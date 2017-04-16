@@ -197,23 +197,23 @@ def runIK(target):
 def testIK():
     global t
     global rateMs
-    t = 0.0
+    t = 2*math.pi
     rateMs = 50
     root.after(rateMs, testIKCallback)
 
 
 def testIKCallback():
     global t
-    aEll = 80
-    bEll = 30
-    t = t + 0.1
-    if t <= 2*math.pi:
+    aEll = 60
+    bEll = 20
+    xAdjust = 0
+    yAdjust = 30
+    t = t - 0.1
+    if t >= 0:
         u = math.tan(t/2.0)
         u2 = math.pow(u, 2)
         x = aEll*(1 - u2) / (u2 + 1)
         y = 2*bEll*u / (u2 + 1)
-        xAdjust = 0
-        yAdjust = 50
         target[0] = targetHome[0] + x + xAdjust
         target[2] = targetHome[2] + y + yAdjust
         print "ellipse x: ", x
