@@ -12,11 +12,14 @@ import math
 import numpy as np
 
 
-def globalise():
-    global sideViewCanvas, frontViewCanvas, topViewCanvas
-    global canvasW, canvasH
-    global canvasScale, canvasOffset
-    global angles
+class App:
+    def __init__(self, master):
+        self.master = master
+        self.poll()  # Start polling
+
+    def poll(self):
+        redraw()
+        self.master.after(10, self.poll)
 
 
 class joint():
@@ -28,18 +31,31 @@ class joint():
 
 
 def runFK(angles):
+    global a
+    #global angleOffsets
+    global footOffset
+    global T_1_in_W
+    global T_2_in_W
+    global T_3_in_W
+    global T_4_in_W
+    global T_5_in_W
+    global T_F_in_W
 
     a = [0, 0, 29.05, 76.919, 72.96, 45.032]  # Link lengths "a-1"
+    #a = [0, 0, 0, 76.919, 72.96, 0]  # Link lengths "a-1"
 
-    angleOffsets = [0, 0, -34, 67.5, -33.5, 0]
+    #angleOffsets = [0, 0, -34, 67.5, -33.5, 0]
 
     footOffset = 33.596
+    #footOffset = 0
 
     s = [0, 0, 0, 0, 0, 0]
     c = [0, 0, 0, 0, 0, 0]
     for i in range(1,6):
-        s[i] = math.sin( math.radians(angles[i-1] + angleOffsets[i]) )
-        c[i] = math.cos( math.radians(angles[i-1] + angleOffsets[i]) )
+        #s[i] = math.sin( math.radians(angles[i-1] + angleOffsets[i]) )
+        #c[i] = math.cos( math.radians(angles[i-1] + angleOffsets[i]) )
+        s[i] = math.sin( math.radians(angles[i-1]) )
+        c[i] = math.cos( math.radians(angles[i-1]) )
 
     # +90 around Y
     T_0_in_W = np.matrix( [ [  0,  0,  1,  0],
@@ -78,35 +94,132 @@ def runFK(angles):
                             [  0,  0,  0,  1] ] )
 
     T_1_in_W = T_0_in_W * T_1_in_0
-    joint1 = joint( 1, T_1_in_W.item(0, 3), T_1_in_W.item(1, 3), T_1_in_W.item(2, 3) )
     T_2_in_W = T_1_in_W * T_2_in_1
-    joint2 = joint( 2, T_2_in_W.item(0, 3), T_2_in_W.item(1, 3), T_2_in_W.item(2, 3) )
     T_3_in_W = T_2_in_W * T_3_in_2
-    joint3 = joint( 3, T_3_in_W.item(0, 3), T_3_in_W.item(1, 3), T_3_in_W.item(2, 3) )
     T_4_in_W = T_3_in_W * T_4_in_3
-    joint4 = joint( 4, T_4_in_W.item(0, 3), T_4_in_W.item(1, 3), T_4_in_W.item(2, 3) )
     T_5_in_W = T_4_in_W * T_5_in_4
-    joint5 = joint( 5, T_5_in_W.item(0, 3), T_5_in_W.item(1, 3), T_5_in_W.item(2, 3) )
     T_F_in_W = T_5_in_W * T_F_in_5
-    jointFoot = joint( 'F', T_F_in_W.item(0, 3), T_F_in_W.item(1, 3), T_F_in_W.item(2, 3) )
 
-    # Redraw views
-    sideViewCanvas.delete("clear")
-    frontViewCanvas.delete("clear")
-    topViewCanvas.delete("clear")
+    print "T_F_in_W: ", T_F_in_W
 
-    drawLink(joint1, joint2)
-    drawLink(joint2, joint3)
-    drawLink(joint3, joint4)
-    drawLink(joint4, joint5)
-    drawLink(joint5, jointFoot)
 
-    drawJoint(joint1)
-    drawJoint(joint2)
-    drawJoint(joint3)
-    drawJoint(joint4)
-    drawJoint(joint5)
-    drawEE(jointFoot)
+def runIK(target):
+    # Solve Joint 1
+    num = target[1]
+    den = abs(target[2]) - footOffset
+    a0Rads = math.atan2(num, den)
+    angles[0] = math.degrees(a0Rads) # + angleOffsets[0]
+
+    # Lengths projected onto z-plane
+    c0 = math.cos(a0Rads)
+    a2p = a[2]*c0
+    a3p = a[3]*c0
+    a4p = a[4]*c0
+    a5p = a[5]*c0
+
+    #j4Height = abs(target[2]) - a[2] - a[5] - footOffset
+    j4Height = abs(target[2]) - a2p - a5p - footOffset
+
+    j2j4DistSquared = math.pow(j4Height, 2) + math.pow(target[0], 2)
+    j2j4Dist = math.sqrt(j2j4DistSquared)
+    #print "j2j4Dist: ", j2j4Dist
+    #print "pow(a[3], 2): ", pow(a[3], 2)
+    #print "pow(a[4], 2): ", pow(a[4], 2)
+    #print "pow(j2j4Dist, 2): ", pow(j2j4Dist, 2)
+    #print "num: ", (pow(a[3], 2) + pow(a[4], 2) - pow(j2j4Dist, 2))
+    #print "den: ", (2*a[3]*a[4])
+
+    # # Solve Joint 2 - Law of cosines
+    # num = pow(a[3], 2) + pow(j2j4Dist, 2) - pow(a[4], 2)
+    # den = 2*a[3]*j2j4Dist
+    # if abs(num) <= abs(den):
+    #     angles[1] = 0.0 - math.degrees( math.acos(num/den) )# - angleOffsets[1]
+
+
+    num = target[0]
+    den = j4Height
+    psi = math.degrees( math.atan2(num, den) )
+
+
+    #num = pow(a[3], 2) + j2j4DistSquared - pow(a[4], 2)
+    num = pow(a3p, 2) + j2j4DistSquared - pow(a4p, 2)
+    #den = 2.0*a[3]*j2j4Dist
+    den = 2.0*a3p*j2j4Dist
+    if abs(num) <= abs(den):
+        phi = math.degrees( math.acos(num/den) )
+        angles[1] = - (phi - psi)
+
+    # Solve Joint 3 - Law of cosines
+    #num = pow(a[3], 2) + pow(a[4], 2) - j2j4DistSquared
+    num = pow(a3p, 2) + pow(a4p, 2) - j2j4DistSquared
+    #den = 2.0*a[3]*a[4]
+    den = 2.0*a3p*a4p
+    if abs(num) <= abs(den):
+        angles[2] = 180.0 - math.degrees( math.acos(num/den) )# - angleOffsets[2]
+
+    # # Solve Joint 4
+    # num = target[0]
+    # den = abs(target[2]) - footOffset - a[5]
+    # phi = math.degrees( math.atan2(num, den) )
+    # num = pow(a[4], 2) + pow(j2j4Dist, 2) - pow(a[3], 2)
+    # den = 2*a[4]*j2j4Dist
+    # if abs(num) <= abs(den):
+    #     omega = math.degrees( math.acos(num/den) )
+    #     #print "phi: ", phi
+    #     #print "omega: ", omega
+    #     angles[3] = - (phi + omega)# + angleOffsets[3]
+
+
+    #num = a[3]*abs(math.sin( math.radians(angles[1]) )) + target[0]
+    #den = a[4]
+    #if abs(num) <= abs(den):
+    #    angles[3] = - math.degrees( math.asin(num/den) )
+    #OR
+    #num = pow(a[4], 2) + j2j4DistSquared - pow(a[3], 2)
+    num = pow(a4p, 2) + j2j4DistSquared - pow(a3p, 2)
+    #den = 2.0*a[4]*j2j4Dist
+    den = 2.0*a4p*j2j4Dist
+    if abs(num) <= abs(den):
+        omega = math.degrees( math.acos(num/den) )
+        angles[3] = - (psi + omega)# + angleOffsets[3]
+
+
+
+    # Solve Joint 5
+    angles[4] = - angles[0]# + angleOffsets[4]
+
+    runFK(angles)
+
+    print "target: ", target
+    print "angles: ", angles
+
+
+def testIK():
+    global t
+    global rateMs
+    t = 0.0
+    rateMs = 50
+    root.after(rateMs, testIKCallback)
+
+
+def testIKCallback():
+    global t
+    aEll = 80
+    bEll = 30
+    t = t + 0.1
+    if t <= 2*math.pi:
+        u = math.tan(t/2.0)
+        u2 = math.pow(u, 2)
+        x = aEll*(1 - u2) / (u2 + 1)
+        y = 2*bEll*u / (u2 + 1)
+        xAdjust = 0
+        yAdjust = 50
+        target[0] = targetHome[0] + x + xAdjust
+        target[2] = targetHome[2] + y + yAdjust
+        print "ellipse x: ", x
+        print "ellipse y: ", y
+        runIK(target)
+        root.after(rateMs, testIKCallback)
 
 
 def initViews():
@@ -140,6 +253,35 @@ def initViews():
                                fill = "green", width = axisW, tag = "alwaysShown" )  # y-axis
     topViewCanvas.create_text( canvasW - borderDist + 20, borderDist + axisL, text = "Y",
                                font = 6, fill = "green", tag = "alwaysShown" )
+
+
+def redraw():
+    # Redraw views
+    sideViewCanvas.delete("clear")
+    frontViewCanvas.delete("clear")
+    topViewCanvas.delete("clear")
+
+    joint1 = joint( 1, T_1_in_W.item(0, 3), T_1_in_W.item(1, 3), T_1_in_W.item(2, 3) )
+    joint2 = joint( 2, T_2_in_W.item(0, 3), T_2_in_W.item(1, 3), T_2_in_W.item(2, 3) )
+    joint3 = joint( 3, T_3_in_W.item(0, 3), T_3_in_W.item(1, 3), T_3_in_W.item(2, 3) )
+    joint4 = joint( 4, T_4_in_W.item(0, 3), T_4_in_W.item(1, 3), T_4_in_W.item(2, 3) )
+    joint5 = joint( 5, T_5_in_W.item(0, 3), T_5_in_W.item(1, 3), T_5_in_W.item(2, 3) )
+    jointFoot = joint( 'F', T_F_in_W.item(0, 3), T_F_in_W.item(1, 3), T_F_in_W.item(2, 3) )
+
+    drawTarget(target)
+
+    drawLink(joint1, joint2)
+    drawLink(joint2, joint3)
+    drawLink(joint3, joint4)
+    drawLink(joint4, joint5)
+    drawLink(joint5, jointFoot)
+
+    drawJoint(joint1)
+    drawJoint(joint2)
+    drawJoint(joint3)
+    drawJoint(joint4)
+    drawJoint(joint5)
+    drawEE(jointFoot)
 
 
 def drawJoint(joint):
@@ -204,6 +346,21 @@ def drawLink(jointA, jointB):
                                 fill = fillCol, width = w, tag = "clear" )
 
 
+def drawTarget(target):
+    r = 32
+    borderCol = "#3D9140"
+    w = 10
+    sideViewCanvas.create_oval( canvasW - canvasScale*target[0] - r + canvasOffset[0], canvasH - canvasScale*target[2] - r + canvasOffset[1],
+                                canvasW - canvasScale*target[0] + r + canvasOffset[0], canvasH - canvasScale*target[2] + r + canvasOffset[1],
+                                outline = borderCol, width = w, tag = "clear" )
+    frontViewCanvas.create_oval( canvasW + canvasScale*target[1] - r + canvasOffset[0], canvasH - canvasScale*target[2] - r + canvasOffset[1],
+                                 canvasW + canvasScale*target[1] + r + canvasOffset[0], canvasH - canvasScale*target[2] + r + canvasOffset[1],
+                                 outline = borderCol, width = w, tag = "clear" )
+    topViewCanvas.create_oval( canvasW - canvasScale*target[0] - r + canvasOffset[0], canvasH + canvasScale*target[1] - r + canvasOffset[1],
+                               canvasW - canvasScale*target[0] + r + canvasOffset[0], canvasH + canvasScale*target[1] + r + canvasOffset[1],
+                               outline = borderCol, width = w, tag = "clear" )
+
+
 def joint1SliderCallback(val):
     angles[0] = float(val)
     runFK(angles)
@@ -229,6 +386,21 @@ def joint5SliderCallback(val):
     runFK(angles)
 
 
+def targetXSliderCallback(val):
+    target[0] = targetHome[0] + float(val)/1.0
+    runIK(target)
+
+
+def targetYSliderCallback(val):
+    target[1] = targetHome[1] + float(val)/1.0
+    runIK(target)
+
+
+def targetZSliderCallback(val):
+    target[2] = targetHome[2] + float(val)/1.0
+    runIK(target)
+
+
 def messageBoxModifiedCallback(self):
     messageBox.see(END)
     messageBox.edit_modified(False)
@@ -241,6 +413,10 @@ def logMessage(msg):
 def quit():
     root.destroy()
 
+
+global sideViewCanvas, frontViewCanvas, topViewCanvas
+global canvasW, canvasH
+global canvasScale, canvasOffset
 
 startTime = strftime("%a, %d %b %Y %H:%M:%S", localtime())
 
@@ -287,18 +463,20 @@ frontViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
 
 topViewLabel = Label(topViewFrame, text="Top View", font = defaultFont)
 topViewLabel.grid(row=0, column=0)
-topViewCanvas = Canvas(topViewFrame, background="#FFFACD", width = canvasW, height = canvasH)
+topViewCanvas = Canvas(topViewFrame, background="#E0EEE0", width = canvasW, height = canvasH)
 topViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
 
 messageBoxFrame = Frame(controlsFrame)
 jointSlidersFrame = Frame(controlsFrame)
+targetSlidersFrame = Frame(controlsFrame)
 buttonsFrame = Frame(controlsFrame)
 
-messageBoxFrame.grid(row=0, column=0)
-jointSlidersFrame.grid(row=0, column=1)
-buttonsFrame.grid(row=1, column=0)
+messageBoxFrame.grid(row=0, column=0, sticky=N)
+jointSlidersFrame.grid(row=0, column=1, sticky=N)
+targetSlidersFrame.grid(row=0, column=2, sticky=N)
+buttonsFrame.grid(row=1, column=0, sticky=N)
 
-messageBox = Text(messageBoxFrame, width = 42, height=18, font = defaultFont)
+messageBox = Text(messageBoxFrame, width = 32, height=18, font = defaultFont)
 messageBox.grid(row=0, column=0, sticky=N+S+W+E)
 scrl = Scrollbar(messageBoxFrame, command=messageBox.yview)
 scrl.grid(row=0, column=1, sticky=N+S)
@@ -306,37 +484,73 @@ messageBox.config(yscrollcommand=scrl.set)
 messageBox.bind("<<Modified>>", messageBoxModifiedCallback)
 logMessage("Started at: " + startTime)
 
-joint1Slider = Scale( jointSlidersFrame, from_ = -180.0, to = 180.0, resolution = 0.1, label = "j1",
+
+fkLabel = Label(jointSlidersFrame, text="FK - Joints", font = 6)
+fkLabel.grid(row=0, column=0)
+
+jsRange = 180.0
+joint1Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
                       length = 200, width = 40, font = 6, orient=HORIZONTAL, command = joint1SliderCallback )
-joint1Slider.grid(row=0, column=0)
+joint1Slider.grid(row=1, column=0)
 
-joint2Slider = Scale( jointSlidersFrame, from_ = -180.0, to = 180.0, resolution = 0.1, label = "j2",
+joint2Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j2",
                       length = 200, width = 40, font = 6, orient=HORIZONTAL, command = joint2SliderCallback )
-joint2Slider.grid(row=1, column=0)
+joint2Slider.grid(row=2, column=0)
 
-joint3Slider = Scale( jointSlidersFrame, from_ = -180.0, to = 180.0, resolution = 0.1, label = "j3",
+joint3Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j3",
                       length = 200, width = 40, font = 6, orient=HORIZONTAL, command = joint3SliderCallback )
-joint3Slider.grid(row=2, column=0)
+joint3Slider.grid(row=3, column=0)
 
-joint4Slider = Scale( jointSlidersFrame, from_ = -180.0, to = 180.0, resolution = 0.1, label = "j4",
+joint4Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j4",
                       length = 200, width = 40, font = 6, orient=HORIZONTAL, command = joint4SliderCallback )
-joint4Slider.grid(row=3, column=0)
+joint4Slider.grid(row=4, column=0)
 
-joint5Slider = Scale( jointSlidersFrame, from_ = -180.0, to = 180.0, resolution = 0.1, label = "j5",
+joint5Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j5",
                       length = 200, width = 40, font = 6, orient=HORIZONTAL, command = joint5SliderCallback )
-joint5Slider.grid(row=4, column=0)
+joint5Slider.grid(row=5, column=0)
 
-#testButton = Button(buttonsFrame, text="Test", command='', font = defaultFont)
-#testButton.grid(row=0, column=0)
+
+ikLabel = Label(targetSlidersFrame, text="IK - Target", font = 6)
+ikLabel.grid(row=0, column=0)
+
+tsRange = 300.0
+targetXSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "X",
+                      length = 200, width = 40, font = 6, orient=HORIZONTAL, command = targetXSliderCallback )
+targetXSlider.grid(row=1, column=0)
+
+targetYSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Y",
+                      length = 200, width = 40, font = 6, orient=HORIZONTAL, command = targetYSliderCallback )
+targetYSlider.grid(row=2, column=0)
+
+targetZSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Z",
+                      length = 200, width = 40, font = 6, orient=HORIZONTAL, command = targetZSliderCallback )
+targetZSlider.grid(row=3, column=0)
+
+
+testIKButton = Button(buttonsFrame, text="Test IK", command=testIK, font = defaultFont)
+testIKButton.grid(row=0, column=1)
 
 quitButton = Button(buttonsFrame, text="Quit", command=quit, font = defaultFont)
-quitButton.grid(row=0, column=1)
+quitButton.grid(row=0, column=2)
 
 
 if __name__ == '__main__':
-    globalise()
+    global angleOffsets, angles
+    global targetHome, target
     initViews()
-    angles = [0, 0, 0, 0, 0]
+    angleOffsets = [0, -34, 67.5, -33.5, 0]  # Offsets for natural "home" position
+    angles = angleOffsets[:]
+    target = [0, 0, 0]
     runFK(angles)
-    mainloop()
+    joint1Slider.set(angles[0])
+    joint2Slider.set(angles[1])
+    joint3Slider.set(angles[2])
+    joint4Slider.set(angles[3])
+    joint5Slider.set(angles[4])
+    targetHome = [T_F_in_W.item(0, 3), T_F_in_W.item(1, 3), T_F_in_W.item(2, 3)]
+    print "targetHome: ", targetHome
+    target = targetHome[:]
+
+    App(root)
+    root.mainloop()
 
