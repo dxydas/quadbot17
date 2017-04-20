@@ -11,6 +11,10 @@ from time import localtime, strftime
 import math
 import numpy as np
 
+import thread
+import Queue
+from inputs import get_gamepad
+
 
 class App:
     def __init__(self, master):
@@ -22,12 +26,106 @@ class App:
         self.master.after(10, self.poll)
 
 
-class joint():
+class GamepadHandler:
+    def __init__(self, master):
+        self.master = master
+        self.target = targetHome[:]
+        self.speed = [0, 0, 0]
+        self.inputLJSX = 0
+        self.inputLJSY = 0
+        self.inputRJSX = 0
+        self.inputRJSY = 0
+        self.inputLJSXNormed = 0
+        self.inputLJSYNormed = 0
+        self.inputRJSXNormed = 0
+        self.inputRJSYNormed = 0
+        self.dt = 0.01
+        self.pollInputs()
+        self.pollIK()
+
+    def processEvent(self, event):
+        #print(event.ev_type, event.code, event.state)
+        if event.code == 'ABS_X':
+            self.inputLJSX = event.state
+        elif event.code == 'ABS_Y':
+            self.inputLJSY = event.state
+        elif event.code == 'ABS_RX':
+            self.inputRJSX = event.state
+        elif event.code == 'ABS_RY':
+            self.inputRJSY = event.state
+
+    def pollInputs(self):
+        # World X
+        self.inputLJSYNormed = self.filterInput(-self.inputLJSY)
+        self.target[0], self.speed[0] = self.updateMotion(self.inputLJSYNormed, self.target[0], self.speed[0])
+        # World Y
+        self.inputLJSXNormed = self.filterInput(-self.inputLJSX)
+        self.target[1], self.speed[1] = self.updateMotion(self.inputLJSXNormed, self.target[1], self.speed[1])
+        # World Z
+        self.inputRJSYNormed = self.filterInput(-self.inputRJSY)
+        self.target[2], self.speed[2] = self.updateMotion(self.inputRJSYNormed, self.target[2], self.speed[2])
+        self.master.after(int(self.dt*1000), self.pollInputs)
+
+    def pollIK(self):
+        global target
+        target = self.target[:]
+        runIK(target)
+        self.master.after(int(5*self.dt*1000), self.pollIK)  # 5x slower than input polling
+
+    def filterInput(self, i):
+        if (i > 3277) or (i < -3277):  # ~10%
+            if i > 3277:
+                OldMin = 0
+                OldMax = 32767
+            elif i < -3277:
+                OldMin = 0
+                OldMax = 32768
+            NewMin = 0
+            NewMax = 1.0
+            OldRange = (OldMax - OldMin)
+            NewRange = (NewMax - NewMin)
+            inputNormed = math.copysign(1.0, abs(i)) * (i - OldMin) * NewRange / OldRange + NewMin
+        else:
+            inputNormed = 0
+        return inputNormed
+
+    def updateMotion(self, i, target, speed):
+        c1 = 10000.0
+        c2 = 10.0
+        mu = 1.0
+        m = 1.0
+        u0 = speed
+        F = c1*i - c2*u0  # Force minus linear drag
+        a = F/m
+        t = self.dt
+        x0 = target
+        # Equations of motion
+        u = u0 + a*t
+        x = x0 + u0*t + 0.5*a*pow(t, 2)
+        # Update self
+        target = x
+        speed = u
+        #print "i: ", i
+        #print "F: ", F
+        #print "target ", target
+        #print "u0: ", u0
+        #print "u: ", u
+        return target, speed
+
+
+class Joint():
     def __init__(self, id, x, y, z):
         self.id = id
         self.x = x
         self.y = y
         self.z = z
+
+
+def funcThread(widget):
+    while 1:
+        events = get_gamepad()
+        for event in events:
+            widget.processEvent(event)
 
 
 def runFK(angles):
@@ -100,7 +198,7 @@ def runFK(angles):
     T_5_in_W = T_4_in_W * T_5_in_4
     T_F_in_W = T_5_in_W * T_F_in_5
 
-    print "T_F_in_W: ", T_F_in_W
+    #print "T_F_in_W: ", T_F_in_W
 
 
 def runIK(target):
@@ -190,8 +288,8 @@ def runIK(target):
 
     runFK(angles)
 
-    print "target: ", target
-    print "angles: ", angles
+    #print "target: ", target
+    #print "angles: ", angles
 
 
 def testIK():
@@ -216,8 +314,6 @@ def testIKCallback():
         y = 2*bEll*u / (u2 + 1)
         target[0] = targetHome[0] + x + xAdjust
         target[2] = targetHome[2] + y + yAdjust
-        print "ellipse x: ", x
-        print "ellipse y: ", y
         runIK(target)
         root.after(rateMs, testIKCallback)
 
@@ -261,12 +357,12 @@ def redraw():
     frontViewCanvas.delete("clear")
     topViewCanvas.delete("clear")
 
-    joint1 = joint( 1, T_1_in_W.item(0, 3), T_1_in_W.item(1, 3), T_1_in_W.item(2, 3) )
-    joint2 = joint( 2, T_2_in_W.item(0, 3), T_2_in_W.item(1, 3), T_2_in_W.item(2, 3) )
-    joint3 = joint( 3, T_3_in_W.item(0, 3), T_3_in_W.item(1, 3), T_3_in_W.item(2, 3) )
-    joint4 = joint( 4, T_4_in_W.item(0, 3), T_4_in_W.item(1, 3), T_4_in_W.item(2, 3) )
-    joint5 = joint( 5, T_5_in_W.item(0, 3), T_5_in_W.item(1, 3), T_5_in_W.item(2, 3) )
-    jointFoot = joint( 'F', T_F_in_W.item(0, 3), T_F_in_W.item(1, 3), T_F_in_W.item(2, 3) )
+    joint1 = Joint( 1, T_1_in_W.item(0, 3), T_1_in_W.item(1, 3), T_1_in_W.item(2, 3) )
+    joint2 = Joint( 2, T_2_in_W.item(0, 3), T_2_in_W.item(1, 3), T_2_in_W.item(2, 3) )
+    joint3 = Joint( 3, T_3_in_W.item(0, 3), T_3_in_W.item(1, 3), T_3_in_W.item(2, 3) )
+    joint4 = Joint( 4, T_4_in_W.item(0, 3), T_4_in_W.item(1, 3), T_4_in_W.item(2, 3) )
+    joint5 = Joint( 5, T_5_in_W.item(0, 3), T_5_in_W.item(1, 3), T_5_in_W.item(2, 3) )
+    jointFoot = Joint( 'F', T_F_in_W.item(0, 3), T_F_in_W.item(1, 3), T_F_in_W.item(2, 3) )
 
     drawTarget(target)
 
@@ -548,8 +644,10 @@ if __name__ == '__main__':
     joint4Slider.set(angles[3])
     joint5Slider.set(angles[4])
     targetHome = [T_F_in_W.item(0, 3), T_F_in_W.item(1, 3), T_F_in_W.item(2, 3)]
-    print "targetHome: ", targetHome
     target = targetHome[:]
+
+    h = GamepadHandler(root)
+    thread.start_new(funcThread, (h,))
 
     App(root)
     root.mainloop()
