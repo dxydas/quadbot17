@@ -1,19 +1,16 @@
 #!/usr/bin/env python
 
 import sys
-#import rospy
 from std_msgs.msg import String
 from Tkinter import *
-#import tkMessageBox
-#from geometry_msgs.msg import Vector3
-#from std_msgs.msg import Float32
 from time import localtime, strftime
 import math
 import numpy as np
-
-import thread
+import threading
 import Queue
+from inputs import DeviceManager
 from inputs import get_gamepad
+import serial
 
 
 class App:
@@ -26,9 +23,17 @@ class App:
         self.master.after(10, self.poll)
 
 
-class GamepadHandler:
+class GamepadHandler(threading.Thread):
     def __init__(self, master):
         self.master = master
+        # Threading vars
+        threading.Thread.__init__(self)
+        self.daemon = True  # OK for main to exit even if instance is still running
+        self.paused = False
+        self.triggerPolling = True
+        self.cond = threading.Condition()
+        # Input vars
+        devices = DeviceManager()
         self.target = targetHome[:]
         self.speed = [0, 0, 0]
         self.inputLJSX = 0
@@ -39,9 +44,36 @@ class GamepadHandler:
         self.inputLJSYNormed = 0
         self.inputRJSXNormed = 0
         self.inputRJSYNormed = 0
-        self.dt = 0.01
-        self.pollInputs()
-        self.pollIK()
+        self.dt = 0.005
+
+    def run(self):
+        while 1:
+            with self.cond:
+                if self.paused:
+                    self.cond.wait()  # Block until notified
+                    self.triggerPolling = True
+                else:
+                    if self.triggerPolling:
+                        self.pollInputs()
+                        self.pollIK()
+                        self.pollSerial()
+                        self.triggerPolling = False
+            # Get joystick input
+            try:
+                events = get_gamepad()
+                for event in events:
+                    self.processEvent(event)
+            except:
+                pass
+
+    def pause(self):
+        with self.cond:
+            self.paused = True
+
+    def resume(self):
+        with self.cond:
+            self.paused = False
+            self.cond.notify()  # Unblock self if waiting
 
     def processEvent(self, event):
         #print(event.ev_type, event.code, event.state)
@@ -64,27 +96,43 @@ class GamepadHandler:
         # World Z
         self.inputRJSYNormed = self.filterInput(-self.inputRJSY)
         self.target[2], self.speed[2] = self.updateMotion(self.inputRJSYNormed, self.target[2], self.speed[2])
-        self.master.after(int(self.dt*1000), self.pollInputs)
+        with self.cond:
+            if not self.paused:
+                self.master.after(int(self.dt*1000), self.pollInputs)
 
     def pollIK(self):
         global target
         target = self.target[:]
         runIK(target)
-        self.master.after(int(5*self.dt*1000), self.pollIK)  # 5x slower than input polling
+        with self.cond:
+            if not self.paused:
+                self.master.after(int(self.dt*1000), self.pollIK)
+
+    def pollSerial(self):
+        if 'ser' in globals():
+            global ser
+            global angles
+            writeStr = ""
+            for i in range(len(angles)):
+                x = int( rescale(angles[i], -180.0, 180.0, 0, 1023) )
+                writeStr += str(i+1) + "," + str(x)
+                if i < (len(angles) - 1):
+                    writeStr += ","
+                else:
+                    writeStr += "\n"
+            #print "writeStr: ", writeStr
+            ser.write(writeStr)
+        with self.cond:
+            if not self.paused:
+                self.master.after(int(5*self.dt*1000), self.pollSerial)  # 10x slower than pollIK
 
     def filterInput(self, i):
         if (i > 3277) or (i < -3277):  # ~10%
             if i > 3277:
-                OldMin = 0
-                OldMax = 32767
+                oldMax = 32767
             elif i < -3277:
-                OldMin = 0
-                OldMax = 32768
-            NewMin = 0
-            NewMax = 1.0
-            OldRange = (OldMax - OldMin)
-            NewRange = (NewMax - NewMin)
-            inputNormed = math.copysign(1.0, abs(i)) * (i - OldMin) * NewRange / OldRange + NewMin
+                oldMax = 32768
+            inputNormed = math.copysign(1.0, abs(i)) * rescale(i, 0, oldMax, 0, 1.0)
         else:
             inputNormed = 0
         return inputNormed
@@ -121,11 +169,10 @@ class Joint():
         self.z = z
 
 
-def funcThread(widget):
-    while 1:
-        events = get_gamepad()
-        for event in events:
-            widget.processEvent(event)
+def rescale(old, oldMin, oldMax, newMin, newMax):
+    oldRange = (oldMax - oldMin)
+    newRange = (newMax - newMin)
+    return (old - oldMin) * newRange / oldRange + newMin
 
 
 def runFK(angles):
@@ -316,6 +363,14 @@ def testIKCallback():
         target[2] = targetHome[2] + y + yAdjust
         runIK(target)
         root.after(rateMs, testIKCallback)
+
+
+def toggleJoystick():
+    global gamepadHandler
+    if jsVar.get() == 0:
+        gamepadHandler.pause()
+    else:
+        gamepadHandler.resume()
 
 
 def initViews():
@@ -623,6 +678,11 @@ targetZSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resol
 targetZSlider.grid(row=3, column=0)
 
 
+jsVar = IntVar()
+joystickCheckButton = Checkbutton(buttonsFrame, text="Joystick", var=jsVar, command=toggleJoystick, font = defaultFont)
+joystickCheckButton.grid(row=0, column=0)
+joystickCheckButton.select()
+
 testIKButton = Button(buttonsFrame, text="Test IK", command=testIK, font = defaultFont)
 testIKButton.grid(row=0, column=1)
 
@@ -646,9 +706,17 @@ if __name__ == '__main__':
     targetHome = [T_F_in_W.item(0, 3), T_F_in_W.item(1, 3), T_F_in_W.item(2, 3)]
     target = targetHome[:]
 
-    h = GamepadHandler(root)
-    thread.start_new(funcThread, (h,))
+    global ser
+    try:
+        port = "/dev/ttyUSB0"
+        ser = serial.Serial(port, 38400)
+        logMessage("Serial port " + port + " connected")
+    except serial.serialutil.SerialException:
+        logMessage("Serial port " + port + " not connected")
+
+    global gamepadHandler
+    gamepadHandler = GamepadHandler(root)
+    gamepadHandler.start()
 
     App(root)
     root.mainloop()
-
