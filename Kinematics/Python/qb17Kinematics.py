@@ -26,9 +26,8 @@ class App:
 class GamepadReader(threading.Thread):
     def __init__(self, master):
         self.master = master
-        # Threading vars
         threading.Thread.__init__(self)
-        self.daemon = True  # OK for main to exit even if instance is still running
+        self.daemon = True
 
     def run(self):
         while 1:
@@ -73,7 +72,7 @@ class GamepadHandler(threading.Thread):
         self.inputLJSYNormed = 0
         self.inputRJSXNormed = 0
         self.inputRJSYNormed = 0
-        self.dt = 0.005
+        self.dt = 0.005  # 5 ms
 
     def run(self):
         while 1:
@@ -84,7 +83,6 @@ class GamepadHandler(threading.Thread):
                 elif self.triggerPolling:
                     self.pollInputs()
                     self.pollIK()
-                    self.pollSerial()
                     self.triggerPolling = False
 
     def pause(self):
@@ -122,28 +120,6 @@ class GamepadHandler(threading.Thread):
             if not self.paused:
                 self.master.after(int(self.dt*1000), self.pollIK)
 
-    def pollSerial(self):
-        if 'ser' in globals():
-            global ser
-            global angles
-            writeStr = ""
-            for i in range(len(angles)):
-                # Joint 2 needs its direction inverted
-                if i == 1:
-                    x = int( rescale(-angles[i], -180.0, 180.0, 0, 1023) )
-                else:
-                    x = int( rescale(angles[i], -180.0, 180.0, 0, 1023) )
-                writeStr += str(i+1) + "," + str(x)
-                if i < (len(angles) - 1):
-                    writeStr += ","
-                else:
-                    writeStr += "\n"
-            #print "writeStr: ", writeStr
-            ser.write(writeStr)
-        with self.cond:
-            if not self.paused:
-                self.master.after(int(10*self.dt*1000), self.pollSerial)  # 10x slower than pollIK
-
     def filterInput(self, i):
         if (i > 3277) or (i < -3277):  # ~10%
             if i > 3277:
@@ -171,12 +147,38 @@ class GamepadHandler(threading.Thread):
         # Update self
         target = x
         speed = u
-        #print "i: ", i
-        #print "F: ", F
-        #print "target ", target
-        #print "u0: ", u0
-        #print "u: ", u
         return target, speed
+
+
+class SerialHandler(threading.Thread):
+    def __init__(self, master):
+        self.master = master
+        threading.Thread.__init__(self)
+        self.daemon = True
+        self.cond = threading.Condition()
+        # Input vars
+        self.dt = 0.02  # 20 ms
+        self.pollSerial()
+
+    def pollSerial(self):
+        if 'ser' in globals():
+            global ser
+            global angles
+            writeStr = ""
+            for i in range(len(angles)):
+                # Joint 2 needs its direction inverted
+                if i == 1:
+                    x = int( rescale(-angles[i], -180.0, 180.0, 0, 1023) )
+                else:
+                    x = int( rescale(angles[i], -180.0, 180.0, 0, 1023) )
+                writeStr += str(i+1) + "," + str(x)
+                if i < (len(angles) - 1):
+                    writeStr += ","
+                else:
+                    writeStr += "\n"
+            #print "writeStr: ", writeStr
+            ser.write(writeStr)
+        self.master.after(int(self.dt*1000), self.pollSerial)
 
 
 class Joint():
@@ -767,6 +769,9 @@ if __name__ == '__main__':
     global gamepadHandler
     gamepadHandler = GamepadHandler(root)
     gamepadHandler.start()
+
+    serialHandler = SerialHandler(root)
+    serialHandler.start()
 
     App(root)
     root.mainloop()
