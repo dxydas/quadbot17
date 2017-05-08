@@ -3,16 +3,28 @@
 
 int numOfJoints = 5;
 
+
 void setup()
 {
   Serial.begin(38400);
+
+  // Set goal speeds to 50%
+  ax12SetRegister2(254, 32, 100);
+  delay(1);
+
+  // Home motors
+  SetPosition(254, 512);
+  delay(1);
 }
+
 
 void loop()
 {
 }
 
-void serialEvent() {
+
+void serialEvent()
+{
   int id[numOfJoints];
   int pos[numOfJoints];
   while (Serial.available())
@@ -26,7 +38,7 @@ void serialEvent() {
     {
       for (int i = 0; i < numOfJoints; ++i)
       {
-        if ( (id[i] > 0) && (0 <= pos[i]) && (pos[i] <= 1023 ) )
+        if ( (1 <= id[i]) && (id[i] <= numOfJoints) && (0 <= pos[i]) && (pos[i] <= 1023 ) )
           SetPosition(id[i], pos[i]);
         //Serial.print("I got id: ");
         //Serial.println(id[i]);
@@ -36,4 +48,53 @@ void serialEvent() {
     }
   }
 }
+
+
+// Alternative way:
+//void serialEvent()
+//{
+//  int id[numOfJoints];
+//  int pos[numOfJoints];
+//  char buffer[256];
+//  int i = 0;
+//  while (Serial.available())
+//  {
+//    char c = Serial.read();
+//    if(c == '\n')
+//    {
+//      int j = 0;
+//      int count = 0;
+//      char *p = buffer;
+//      char *str;
+//      //Serial.println("in parser:");
+//      //Serial.println(buffer);
+//      while ( (str = strtok_r(p, ",", &p)) )
+//      {
+//        // Odd numbers are IDs, even numbers are positions
+//        if (j % 2 == 0)
+//        {
+//          id[count] = strtol(str, NULL, 10);
+//          //Serial.println(id[count]);
+//          count++;
+//        }
+//        else
+//        {
+//          pos[count] = strtol(str, NULL, 10);
+//          //Serial.println(pos[count]);
+//        }
+//        j++;
+//      }
+//      i = 0;
+//      buffer[i] = NULL;
+//    }
+//    else
+//    {
+//      //Serial.println("adding to buffer:");
+//      //Serial.println(buffer);
+//      buffer[i++] = c;
+//      buffer[i] = '\0';
+//      delay(1);
+//    }
+//  }
+//}
 
