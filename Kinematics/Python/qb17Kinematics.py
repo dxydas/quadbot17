@@ -23,6 +23,39 @@ class App:
         self.master.after(10, self.poll)
 
 
+class GamepadReader(threading.Thread):
+    def __init__(self, master):
+        self.master = master
+        # Threading vars
+        threading.Thread.__init__(self)
+        self.daemon = True  # OK for main to exit even if instance is still running
+
+    def run(self):
+        while 1:
+            # Get joystick input
+            try:
+                events = get_gamepad()
+                for event in events:
+                    self.processEvent(event)
+            except:
+                pass
+
+    def processEvent(self, event):
+        #print(event.ev_type, event.code, event.state)
+        if event.code == 'ABS_X':
+            global inputLJSX
+            inputLJSX = event.state
+        elif event.code == 'ABS_Y':
+            global inputLJSY
+            inputLJSY = event.state
+        elif event.code == 'ABS_RX':
+            global inputRJSX
+            inputRJSX = event.state
+        elif event.code == 'ABS_RY':
+            global inputRJSY
+            inputRJSY = event.state
+
+
 class GamepadHandler(threading.Thread):
     def __init__(self, master):
         self.master = master
@@ -36,10 +69,6 @@ class GamepadHandler(threading.Thread):
         devices = DeviceManager()
         self.target = targetHome[:]
         self.speed = [0, 0, 0]
-        self.inputLJSX = 0
-        self.inputLJSY = 0
-        self.inputRJSX = 0
-        self.inputRJSY = 0
         self.inputLJSXNormed = 0
         self.inputLJSYNormed = 0
         self.inputRJSXNormed = 0
@@ -52,19 +81,11 @@ class GamepadHandler(threading.Thread):
                 if self.paused:
                     self.cond.wait()  # Block until notified
                     self.triggerPolling = True
-                else:
-                    if self.triggerPolling:
-                        self.pollInputs()
-                        self.pollIK()
-                        self.pollSerial()
-                        self.triggerPolling = False
-            # Get joystick input
-            try:
-                events = get_gamepad()
-                for event in events:
-                    self.processEvent(event)
-            except:
-                pass
+                elif self.triggerPolling:
+                    self.pollInputs()
+                    self.pollIK()
+                    self.pollSerial()
+                    self.triggerPolling = False
 
     def pause(self):
         with self.cond:
@@ -75,34 +96,27 @@ class GamepadHandler(threading.Thread):
             self.paused = False
             self.cond.notify()  # Unblock self if waiting
 
-    def processEvent(self, event):
-        #print(event.ev_type, event.code, event.state)
-        if event.code == 'ABS_X':
-            self.inputLJSX = event.state
-        elif event.code == 'ABS_Y':
-            self.inputLJSY = event.state
-        elif event.code == 'ABS_RX':
-            self.inputRJSX = event.state
-        elif event.code == 'ABS_RY':
-            self.inputRJSY = event.state
-
     def pollInputs(self):
         # World X
-        self.inputLJSYNormed = self.filterInput(-self.inputLJSY)
+        global inputLJSY
+        self.inputLJSYNormed = self.filterInput(-inputLJSY)
         self.target[0], self.speed[0] = self.updateMotion(self.inputLJSYNormed, self.target[0], self.speed[0])
         # World Y
-        self.inputLJSXNormed = self.filterInput(-self.inputLJSX)
+        global inputLJSX
+        self.inputLJSXNormed = self.filterInput(-inputLJSX)
         self.target[1], self.speed[1] = self.updateMotion(self.inputLJSXNormed, self.target[1], self.speed[1])
         # World Z
-        self.inputRJSYNormed = self.filterInput(-self.inputRJSY)
+        global inputRJSY
+        self.inputRJSYNormed = self.filterInput(-inputRJSY)
         self.target[2], self.speed[2] = self.updateMotion(self.inputRJSYNormed, self.target[2], self.speed[2])
         with self.cond:
             if not self.paused:
                 self.master.after(int(self.dt*1000), self.pollInputs)
 
     def pollIK(self):
-        global target
+        global target, speed
         target = self.target[:]
+        speed = self.speed[:]
         runIK(target)
         with self.cond:
             if not self.paused:
@@ -114,7 +128,11 @@ class GamepadHandler(threading.Thread):
             global angles
             writeStr = ""
             for i in range(len(angles)):
-                x = int( rescale(angles[i], -180.0, 180.0, 0, 1023) )
+                # Joint 2 needs its direction inverted
+                if i == 1:
+                    x = int( rescale(-angles[i], -180.0, 180.0, 0, 1023) )
+                else:
+                    x = int( rescale(angles[i], -180.0, 180.0, 0, 1023) )
                 writeStr += str(i+1) + "," + str(x)
                 if i < (len(angles) - 1):
                     writeStr += ","
@@ -124,7 +142,7 @@ class GamepadHandler(threading.Thread):
             ser.write(writeStr)
         with self.cond:
             if not self.paused:
-                self.master.after(int(5*self.dt*1000), self.pollSerial)  # 10x slower than pollIK
+                self.master.after(int(10*self.dt*1000), self.pollSerial)  # 10x slower than pollIK
 
     def filterInput(self, i):
         if (i > 3277) or (i < -3277):  # ~10%
@@ -138,7 +156,7 @@ class GamepadHandler(threading.Thread):
         return inputNormed
 
     def updateMotion(self, i, target, speed):
-        c1 = 10000.0
+        c1 = 1000.0
         c2 = 10.0
         mu = 1.0
         m = 1.0
@@ -419,8 +437,6 @@ def redraw():
     joint5 = Joint( 5, T_5_in_W.item(0, 3), T_5_in_W.item(1, 3), T_5_in_W.item(2, 3) )
     jointFoot = Joint( 'F', T_F_in_W.item(0, 3), T_F_in_W.item(1, 3), T_F_in_W.item(2, 3) )
 
-    drawTarget(target)
-
     drawLink(joint1, joint2)
     drawLink(joint2, joint3)
     drawLink(joint3, joint4)
@@ -433,6 +449,8 @@ def redraw():
     drawJoint(joint4)
     drawJoint(joint5)
     drawEE(jointFoot)
+
+    drawTarget(target, speed)
 
 
 def drawJoint(joint):
@@ -497,10 +515,11 @@ def drawLink(jointA, jointB):
                                 fill = fillCol, width = w, tag = "clear" )
 
 
-def drawTarget(target):
+def drawTarget(target, speed):
     r = 32
     borderCol = "#3D9140"
     w = 10
+    # Target circle
     sideViewCanvas.create_oval( canvasW - canvasScale*target[0] - r + canvasOffset[0], canvasH - canvasScale*target[2] - r + canvasOffset[1],
                                 canvasW - canvasScale*target[0] + r + canvasOffset[0], canvasH - canvasScale*target[2] + r + canvasOffset[1],
                                 outline = borderCol, width = w, tag = "clear" )
@@ -510,6 +529,21 @@ def drawTarget(target):
     topViewCanvas.create_oval( canvasW - canvasScale*target[0] - r + canvasOffset[0], canvasH + canvasScale*target[1] - r + canvasOffset[1],
                                canvasW - canvasScale*target[0] + r + canvasOffset[0], canvasH + canvasScale*target[1] + r + canvasOffset[1],
                                outline = borderCol, width = w, tag = "clear" )
+    # Input force vector
+    fillCol = "red"
+    k = 1
+    sideViewCanvas.create_line( canvasW - canvasScale*target[0] + canvasOffset[0], canvasH - canvasScale*target[2] + canvasOffset[1],
+                                canvasW - canvasScale*target[0] - speed[0]*k + canvasOffset[0],
+                                canvasH - canvasScale*target[2] - speed[2]*k + canvasOffset[1],
+                                fill = fillCol, width = w, tag = "clear" )
+    frontViewCanvas.create_line( canvasW + canvasScale*target[1] + canvasOffset[0], canvasH - canvasScale*target[2] + canvasOffset[1],
+                                 canvasW + canvasScale*target[1] + speed[1]*k + canvasOffset[0],
+                                 canvasH - canvasScale*target[2] - speed[2]*k + canvasOffset[1],
+                                 fill = fillCol, width = w, tag = "clear" )
+    topViewCanvas.create_line( canvasW - canvasScale*target[0] + canvasOffset[0], canvasH + canvasScale*target[1] + canvasOffset[1],
+                               canvasW - canvasScale*target[0] - speed[0]*k + canvasOffset[0],
+                               canvasH + canvasScale*target[1] + speed[1]*k + canvasOffset[1],
+                               fill = fillCol, width = w, tag = "clear" )
 
 
 def joint1SliderCallback(val):
@@ -562,6 +596,9 @@ def logMessage(msg):
 
 
 def quit():
+    if 'ser' in globals():
+        global ser
+        ser.close()
     root.destroy()
 
 
@@ -692,11 +729,12 @@ quitButton.grid(row=0, column=2)
 
 if __name__ == '__main__':
     global angleOffsets, angles
-    global targetHome, target
+    global targetHome, target, speed
     initViews()
     angleOffsets = [0, -34, 67.5, -33.5, 0]  # Offsets for natural "home" position
     angles = angleOffsets[:]
     target = [0, 0, 0]
+    speed = [0, 0, 0]
     runFK(angles)
     joint1Slider.set(angles[0])
     joint2Slider.set(angles[1])
@@ -713,6 +751,18 @@ if __name__ == '__main__':
         logMessage("Serial port " + port + " connected")
     except serial.serialutil.SerialException:
         logMessage("Serial port " + port + " not connected")
+
+    global inputLJSX
+    inputLJSX = 0
+    global inputLJSY
+    inputLJSY = 0
+    global inputRJSX
+    inputRJSX = 0
+    global inputRJSY
+    inputRJSY = 0
+
+    gamepadReader = GamepadReader(root)
+    gamepadReader.start()
 
     global gamepadHandler
     gamepadHandler = GamepadHandler(root)
