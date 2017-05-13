@@ -176,12 +176,31 @@ class SerialHandler(threading.Thread):
         self.daemon = True
         self.cond = threading.Condition()
         # Input vars
+        self.ser = 0
+        self.port = "/dev/ttyUSB0"
+        self.serialOK = False
+        self.serialDisconnected = False
         self.dt = 0.05  # 50 ms
         self.pollSerial()
 
+    def run(self):
+        while 1:
+            if not self.serialOK:
+                try:
+                    self.ser = serial.Serial(self.port, 38400)
+                    logMessage("Serial port " + self.port + " connected")
+                    self.serialOK = True
+                    self.serialDisconnected = False
+                except serial.SerialException:
+                    self.serialOK = False
+                    if self.serialDisconnected == False:
+                        logMessage("Serial port " + self.port + " not connected")
+                        self.serialDisconnected = True
+            else:
+                sleep(2)
+
     def pollSerial(self):
-        if 'ser' in globals():
-            global ser
+        if self.serialOK:
             writeStr = ""
             for i in range(len(angles)):
                 # Joint 2 needs its direction inverted
@@ -195,8 +214,17 @@ class SerialHandler(threading.Thread):
                 else:
                     writeStr += "\n"
             #print "writeStr: ", writeStr
-            ser.write(writeStr)
+            try:
+                self.ser.write(writeStr)
+            except serial.SerialException:
+                logMessage("Serial write error")
+                self.ser.close()
+                self.serialOK = False
         self.master.after(int(self.dt*1000), self.pollSerial)
+
+    def closeSerial(self):
+        if self.serialOK:
+            self.ser.close()
 
 
 class Joint():
@@ -616,9 +644,7 @@ def logMessage(msg):
 
 
 def quit():
-    if 'ser' in globals():
-        global ser
-        ser.close()
+    serialHandler.closeSerial()
     root.destroy()
 
 
@@ -763,14 +789,6 @@ if __name__ == '__main__':
     joint5Slider.set(angles[4])
     targetHome = [T_F_in_W.item(0, 3), T_F_in_W.item(1, 3), T_F_in_W.item(2, 3)]
     target = targetHome[:]
-
-    global ser
-    try:
-        port = "/dev/ttyUSB0"
-        ser = serial.Serial(port, 38400)
-        logMessage("Serial port " + port + " connected")
-    except serial.serialutil.SerialException:
-        logMessage("Serial port " + port + " not connected")
 
     global inputLJSX
     inputLJSX = 0
