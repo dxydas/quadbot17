@@ -3,13 +3,12 @@
 import sys
 from std_msgs.msg import String
 from Tkinter import *
-from time import localtime, strftime
+from time import localtime, strftime, sleep
 import math
 import numpy as np
 import threading
 import Queue
-from inputs import DeviceManager
-from inputs import get_gamepad
+import inputs
 import serial
 
 
@@ -28,16 +27,39 @@ class GamepadReader(threading.Thread):
         self.master = master
         threading.Thread.__init__(self)
         self.daemon = True
+        self.gamepadOK = False
+        self.gamepadUnplugged = False
+        self.gamepadIOError = False
 
     def run(self):
         while 1:
-            # Get joystick input
+            if not self.gamepadOK:
+                self.devices = inputs.DeviceManager()
+                try:
+                    gamepad = self.devices.gamepads[0]
+                    logMessage("Gamepad connected")
+                    self.gamepadOK = True
+                    self.gamepadUnplugged = False
+                except IndexError:
+                    self.gamepadOK = False
+                    if self.gamepadUnplugged == False:
+                        logMessage("Gamepad not found")
+                        self.gamepadUnplugged = True
+                    sleep(1)
+                    continue
             try:
-                events = get_gamepad()
+                # Get joystick input
+                events = gamepad.read()
                 for event in events:
                     self.processEvent(event)
-            except:
-                pass
+                self.gamepadIOError = False
+            except IOError:
+                self.gamepadOK = False
+                if self.gamepadIOError == False:
+                    logMessage("Gamepad I/O error")
+                    self.gamepadIOError = True
+                sleep(1)
+                continue
 
     def processEvent(self, event):
         #print(event.ev_type, event.code, event.state)
@@ -65,7 +87,6 @@ class GamepadHandler(threading.Thread):
         self.triggerPolling = True
         self.cond = threading.Condition()
         # Input vars
-        devices = DeviceManager()
         self.target = targetHome[:]
         self.speed = [0, 0, 0]
         self.inputLJSXNormed = 0
@@ -132,12 +153,10 @@ class GamepadHandler(threading.Thread):
         return inputNormed
 
     def updateMotion(self, i, target, speed):
-        c1 = 1000.0
-        c2 = 10.0
         mu = 1.0
         m = 1.0
         u0 = speed
-        F = c1*i - c2*u0  # Force minus linear drag
+        F = inputForceMax*i - dragForceCoef*u0  # Force minus linear drag
         a = F/m
         t = self.dt
         x0 = target
@@ -157,13 +176,12 @@ class SerialHandler(threading.Thread):
         self.daemon = True
         self.cond = threading.Condition()
         # Input vars
-        self.dt = 0.02  # 20 ms
+        self.dt = 0.05  # 50 ms
         self.pollSerial()
 
     def pollSerial(self):
         if 'ser' in globals():
             global ser
-            global angles
             writeStr = ""
             for i in range(len(angles)):
                 # Joint 2 needs its direction inverted
@@ -531,9 +549,9 @@ def drawTarget(target, speed):
     topViewCanvas.create_oval( canvasW - canvasScale*target[0] - r + canvasOffset[0], canvasH + canvasScale*target[1] - r + canvasOffset[1],
                                canvasW - canvasScale*target[0] + r + canvasOffset[0], canvasH + canvasScale*target[1] + r + canvasOffset[1],
                                outline = borderCol, width = w, tag = "clear" )
-    # Input force vector
-    fillCol = "red"
-    k = 1
+    # Speed vector
+    fillCol = borderCol
+    k = 1000.0 / inputForceMax  # Arbitrary scaling, to make max. length of vector constant
     sideViewCanvas.create_line( canvasW - canvasScale*target[0] + canvasOffset[0], canvasH - canvasScale*target[2] + canvasOffset[1],
                                 canvasW - canvasScale*target[0] - speed[0]*k + canvasOffset[0],
                                 canvasH - canvasScale*target[2] - speed[2]*k + canvasOffset[1],
@@ -762,6 +780,10 @@ if __name__ == '__main__':
     inputRJSX = 0
     global inputRJSY
     inputRJSY = 0
+
+    global inputForceMax, dragForceCoef
+    inputForceMax = 2000
+    dragForceCoef = 10
 
     gamepadReader = GamepadReader(root)
     gamepadReader.start()
