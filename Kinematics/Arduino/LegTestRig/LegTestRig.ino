@@ -8,13 +8,31 @@ void setup()
 {
   Serial.begin(38400);
 
-  // Set goal speeds to 50%
-  ax12SetRegister2(254, 32, 100);
-  delay(1);
+  // Set max torque
+  //ax12SetRegister2(254, 14, 512);
+  //delay(10);
+
+  // Set punch
+  //ax12SetRegister2(254, 48, 100);
+  //delay(10);
+
+  // Set compliance margins
+  //ax12SetRegister(254, 26, 1);
+  //ax12SetRegister(254, 27, 1);
+  //delay(10);
+
+  // Set compliance slopes
+  ax12SetRegister(254, 28, 50);
+  ax12SetRegister(254, 29, 50);
+  delay(10);
+
+  // Set goal speed
+  //ax12SetRegister2(254, 32, 0);
+  //delay(10);
 
   // Home motors
   SetPosition(254, 512);
-  delay(1);
+  delay(10);
 }
 
 
