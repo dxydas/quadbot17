@@ -319,7 +319,7 @@ def runIK(target):
     num = target[1]
     den = abs(target[2]) - footOffset
     a0Rads = math.atan2(num, den)
-    angles[0] = math.degrees(a0Rads) # + angleOffsets[0]
+    angles[0] = math.degrees(a0Rads)
 
     # Lengths projected onto z-plane
     c0 = math.cos(a0Rads)
@@ -328,76 +328,37 @@ def runIK(target):
     a4p = a[4]*c0
     a5p = a[5]*c0
 
-    #j4Height = abs(target[2]) - a[2] - a[5] - footOffset
     j4Height = abs(target[2]) - a2p - a5p - footOffset
 
     j2j4DistSquared = math.pow(j4Height, 2) + math.pow(target[0], 2)
     j2j4Dist = math.sqrt(j2j4DistSquared)
-    #print "j2j4Dist: ", j2j4Dist
-    #print "pow(a[3], 2): ", pow(a[3], 2)
-    #print "pow(a[4], 2): ", pow(a[4], 2)
-    #print "pow(j2j4Dist, 2): ", pow(j2j4Dist, 2)
-    #print "num: ", (pow(a[3], 2) + pow(a[4], 2) - pow(j2j4Dist, 2))
-    #print "den: ", (2*a[3]*a[4])
 
-    # # Solve Joint 2 - Law of cosines
-    # num = pow(a[3], 2) + pow(j2j4Dist, 2) - pow(a[4], 2)
-    # den = 2*a[3]*j2j4Dist
-    # if abs(num) <= abs(den):
-    #     angles[1] = 0.0 - math.degrees( math.acos(num/den) )# - angleOffsets[1]
-
-
+    # Solve Joint 2
     num = target[0]
     den = j4Height
     psi = math.degrees( math.atan2(num, den) )
 
-
-    #num = pow(a[3], 2) + j2j4DistSquared - pow(a[4], 2)
     num = pow(a3p, 2) + j2j4DistSquared - pow(a4p, 2)
-    #den = 2.0*a[3]*j2j4Dist
     den = 2.0*a3p*j2j4Dist
     if abs(num) <= abs(den):
         phi = math.degrees( math.acos(num/den) )
         angles[1] = - (phi - psi)
 
-    # Solve Joint 3 - Law of cosines
-    #num = pow(a[3], 2) + pow(a[4], 2) - j2j4DistSquared
+    # Solve Joint 3
     num = pow(a3p, 2) + pow(a4p, 2) - j2j4DistSquared
-    #den = 2.0*a[3]*a[4]
     den = 2.0*a3p*a4p
     if abs(num) <= abs(den):
-        angles[2] = 180.0 - math.degrees( math.acos(num/den) )# - angleOffsets[2]
+        angles[2] = 180.0 - math.degrees( math.acos(num/den) )
 
     # # Solve Joint 4
-    # num = target[0]
-    # den = abs(target[2]) - footOffset - a[5]
-    # phi = math.degrees( math.atan2(num, den) )
-    # num = pow(a[4], 2) + pow(j2j4Dist, 2) - pow(a[3], 2)
-    # den = 2*a[4]*j2j4Dist
-    # if abs(num) <= abs(den):
-    #     omega = math.degrees( math.acos(num/den) )
-    #     #print "phi: ", phi
-    #     #print "omega: ", omega
-    #     angles[3] = - (phi + omega)# + angleOffsets[3]
-
-
-    #num = a[3]*abs(math.sin( math.radians(angles[1]) )) + target[0]
-    #den = a[4]
-    #if abs(num) <= abs(den):
-    #    angles[3] = - math.degrees( math.asin(num/den) )
-    #OR
-    #num = pow(a[4], 2) + j2j4DistSquared - pow(a[3], 2)
     num = pow(a4p, 2) + j2j4DistSquared - pow(a3p, 2)
-    #den = 2.0*a[4]*j2j4Dist
     den = 2.0*a4p*j2j4Dist
     if abs(num) <= abs(den):
         omega = math.degrees( math.acos(num/den) )
-        angles[3] = - (psi + omega)# + angleOffsets[3]
-
-
+        angles[3] = - (psi + omega)
 
     # Solve Joint 5
-    angles[4] = - angles[0]# + angleOffsets[4]
+    angles[4] = - angles[0]
 
     runFK(angles)
 
