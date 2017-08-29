@@ -10,6 +10,7 @@ import threading
 import Queue
 import inputs
 import serial
+import csv
 
 
 class App:
@@ -26,13 +27,17 @@ class GamepadReader(threading.Thread):
     def __init__(self, master):
         self.master = master
         threading.Thread.__init__(self)
-        self.daemon = True
+        self.terminate = False
         self.gamepadOK = False
         self.gamepadUnplugged = False
         self.gamepadIOError = False
 
+    def stop(self):
+        self.terminate = True
+        self._Thread__stop()
+
     def run(self):
-        while 1:
+        while not self.terminate:
             if not self.gamepadOK:
                 self.devices = inputs.DeviceManager()
                 try:
@@ -82,12 +87,12 @@ class GamepadHandler(threading.Thread):
         self.master = master
         # Threading vars
         threading.Thread.__init__(self)
-        self.daemon = True  # OK for main to exit even if instance is still running
+        self.terminate = False
         self.paused = True
         self.triggerPolling = True
         self.cond = threading.Condition()
         # Input vars
-        self.target = targetHome[:]
+        self.target = targetHome[selectedLeg][:]
         self.speed = [0, 0, 0]
         self.inputLJSXNormed = 0
         self.inputLJSYNormed = 0
@@ -95,8 +100,12 @@ class GamepadHandler(threading.Thread):
         self.inputRJSYNormed = 0
         self.dt = 0.005  # 5 ms
 
+    def stop(self):
+        self.terminate = True
+        self._Thread__stop()
+
     def run(self):
-        while 1:
+        while not self.terminate:
             with self.cond:
                 if self.paused:
                     self.cond.wait()  # Block until notified
@@ -173,7 +182,7 @@ class SerialHandler(threading.Thread):
     def __init__(self, master):
         self.master = master
         threading.Thread.__init__(self)
-        self.daemon = True
+        self.terminate = False
         self.cond = threading.Condition()
         # Input vars
         self.ser = 0
@@ -183,8 +192,12 @@ class SerialHandler(threading.Thread):
         self.dt = 0.05  # 50 ms
         self.pollSerial()
 
+    def stop(self):
+        self.terminate = True
+        self._Thread__stop()
+
     def run(self):
-        while 1:
+        while not self.terminate:
             if not self.serialOK:
                 try:
                     self.ser = serial.Serial(self.port, 38400)
@@ -432,37 +445,188 @@ def runIK(leg, target):
 
 
 def testIK():
-    global t
-    global rateMs
-    t = 2*math.pi
-    rateMs = 50
-    root.after(rateMs, testIKCallback)
+    global tTIK
+    global rateMsTIK
+    tTIK = 2*math.pi
+    rateMsTIK = 50
+    root.after(rateMsTIK, testIKCallback)
 
 
 def testIKCallback():
-    global t
+    global tTIK
     aEll = 60
     bEll = 20
     xAdjust = 0
     yAdjust = 30
-    t = t - 0.1
-    if t >= 0:
-        u = math.tan(t/2.0)
+    tTIK = tTIK - 0.1
+    if tTIK >= 0:
+        u = math.tan(tTIK/2.0)
         u2 = math.pow(u, 2)
         x = aEll*(1 - u2) / (u2 + 1)
         y = 2*bEll*u / (u2 + 1)
-        target[0] = targetHome[0] + x + xAdjust
-        target[2] = targetHome[2] + y + yAdjust
+        target[0] = targetHome[selectedLeg][0] + x + xAdjust
+        target[2] = targetHome[selectedLeg][2] + y + yAdjust
         runIK(legs[selectedLeg], target)
-        root.after(rateMs, testIKCallback)
+        root.after(rateMsTIK, testIKCallback)
 
 
-def loadTargets():
-    tmp=1
+def loadFromFile(filename):
+    global FLUpDown
+    global FLFwdBack
+    global FRUpDown
+    global FRFwdBack
+    global RLUpDown
+    global RLFwdBack
+    global RRUpDown
+    global RRFwdBack
+
+    FLUpDown = []
+    FLFwdBack = []
+    FRUpDown = []
+    FRFwdBack = []
+    RLUpDown = []
+    RLFwdBack = []
+    RRUpDown = []
+    RRFwdBack = []
+
+    arraySize = 100
+    rowOffset = 2
+    with open(filename, 'rb') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',')
+        for r, row in enumerate(reader):
+            if r in range(rowOffset, rowOffset + arraySize):
+                #print r, row
+                for c, col in enumerate(row):
+                    if c in range(2,10):
+                        #print c, col
+                        if c == 2:
+                            FLUpDown.append(float(col))
+                        if c == 3:
+                            FLFwdBack.append(float(col))
+                        if c == 4:
+                            FRUpDown.append(float(col))
+                        if c == 5:
+                            FRFwdBack.append(float(col))
+                        if c == 6:
+                            RLUpDown.append(float(col))
+                        if c == 7:
+                            RLFwdBack.append(float(col))
+                        if c == 8:
+                            RRUpDown.append(float(col))
+                        if c == 9:
+                            RRFwdBack.append(float(col))
+    csvfile.close()
+
+
+def findClosestLegPose():
+    minDist = 0
+    idx = 0
+    for i in range(0, len(FLUpDown)):
+        tmp = ( abs(currentPose[0] - FLUpDown[i]) +
+                abs(currentPose[1] - FLFwdBack[i]) +
+                abs(currentPose[2] - FRUpDown[i]) +
+                abs(currentPose[3] - FRFwdBack[i]) +
+                abs(currentPose[4] - RLUpDown[i]) +
+                abs(currentPose[5] - RLFwdBack[i]) +
+                abs(currentPose[6] - RRUpDown[i]) +
+                abs(currentPose[7] - RRFwdBack[i]) )
+        if tmp <= minDist:
+            minDist = tmp
+            idx = i
+    print "Current index:", iLT
+    print "Closest new index:", idx
+    print "Dist:", minDist
+    print "Index diff (abs):", abs(iLT - idx)
+    return idx
+
+
+def loadTargets1():
+    # Load from csv
+    loadFromFile("Gait_Creep.csv")
+
+    # Run IK
+    global iLT
+    global rateMsLT
+    global gaitCallbackRunning
+    rateMsLT = 30
+    if not 'gaitCallbackRunning' in globals():
+        gaitCallbackRunning = False
+    if not gaitCallbackRunning:
+        iLT = 0
+        root.after(rateMsLT, loadTargetsCallback)
+    else:
+        iLT = findClosestLegPose()
+
+
+def loadTargets2():
+    # Load from csv
+    loadFromFile("Gait_Walk.csv")
+
+    # Run IK
+    global iLT
+    global rateMsLT
+    global gaitCallbackRunning
+    rateMsLT = 30
+    if not 'gaitCallbackRunning' in globals():
+        gaitCallbackRunning = False
+    if not gaitCallbackRunning:
+        iLT = 0
+        root.after(rateMsLT, loadTargetsCallback)
+    else:
+        iLT = findClosestLegPose()
+
+
+def loadTargetsCallback():
+    global showTarget
+    global iLT
+    global currentPose
+    global gaitCallbackRunning
+    showTarget = False
+    amplAdjust = 50
+    xAdjust = -20
+    zAdjust = 20
+    print "i: ", iLT
+
+    if iLT < len(FLUpDown):
+        # FL
+        i = 0
+        target[0] = targetHome[i][0] + amplAdjust*FLFwdBack[iLT] + xAdjust
+        target[1] = targetHome[i][1]
+        target[2] = targetHome[i][2] + amplAdjust*FLUpDown[iLT] + zAdjust
+        runIK(legs[i], target)
+        # FR
+        i = 1
+        target[0] = targetHome[i][0] + amplAdjust*FRFwdBack[iLT] + xAdjust
+        target[1] = targetHome[i][1]
+        target[2] = targetHome[i][2] + amplAdjust*FRUpDown[iLT] + zAdjust
+        runIK(legs[i], target)
+        # RL
+        i = 2
+        target[0] = targetHome[i][0] + amplAdjust*RLFwdBack[iLT] + xAdjust
+        target[1] = targetHome[i][1]
+        target[2] = targetHome[i][2] + amplAdjust*RLUpDown[iLT] + zAdjust
+        runIK(legs[i], target)
+        # RR
+        i = 3
+        target[0] = targetHome[i][0] + amplAdjust*RRFwdBack[iLT] + xAdjust
+        target[1] = targetHome[i][1]
+        target[2] = targetHome[i][2] + amplAdjust*RRUpDown[iLT] + zAdjust
+        runIK(legs[i], target)
+
+        currentPose = [ FLUpDown[iLT], FLFwdBack[iLT], FRUpDown[iLT], FRFwdBack[iLT],
+                        RLUpDown[iLT], RLFwdBack[iLT], RRUpDown[iLT], RRFwdBack[iLT] ]
+
+        iLT = iLT + 1
+        gaitCallbackRunning = True
+        root.after(rateMsLT, loadTargetsCallback)
+
+    else:
+        print "Done"
+        gaitCallbackRunning = False
+        showTarget = True
 
 
 def toggleJoystick():
-    global gamepadHandler
     if jsVar.get() == 0:
         gamepadHandler.pause()
     else:
@@ -515,7 +679,9 @@ def redraw():
             drawJoint(leg.joints[j])
         drawEE(leg.joints[5])
 
-    drawTarget(target, speed)
+    global showTarget
+    if showTarget:
+        drawTarget(target, speed)
 
 
 def drawJoint(joint):
@@ -642,17 +808,26 @@ def joint5SliderCallback(val):
 
 
 def targetXSliderCallback(val):
-    target[0] = targetHome[0] + float(val)/1.0
+    global targetYSlider, targetZSlider
+    target[0] = targetHome[selectedLeg][0] + float(val)/1.0
+    target[1] = targetHome[selectedLeg][1] + float(targetYSlider.get())/1.0
+    target[2] = targetHome[selectedLeg][2] + float(targetZSlider.get())/1.0
     runIK(legs[selectedLeg], target)
 
 
 def targetYSliderCallback(val):
-    target[1] = targetHome[1] + float(val)/1.0
+    global targetXSlider, targetZSlider
+    target[0] = targetHome[selectedLeg][0] + float(targetXSlider.get())/1.0
+    target[1] = targetHome[selectedLeg][1] + float(val)/1.0
+    target[2] = targetHome[selectedLeg][2] + float(targetZSlider.get())/1.0
     runIK(legs[selectedLeg], target)
 
 
 def targetZSliderCallback(val):
-    target[2] = targetHome[2] + float(val)/1.0
+    global targetXSlider, targetYSlider
+    target[0] = targetHome[selectedLeg][0] + float(targetXSlider.get())/1.0
+    target[1] = targetHome[selectedLeg][1] + float(targetYSlider.get())/1.0
+    target[2] = targetHome[selectedLeg][2] + float(val)/1.0
     runIK(legs[selectedLeg], target)
 
 
@@ -667,12 +842,22 @@ def logMessage(msg):
 
 def quit():
     serialHandler.closeSerial()
+    gamepadReader.stop()
+    gamepadHandler.stop()
+    serialHandler.stop()
+    # Wait for threads to finish
+    #print threading.active_count()
+    while gamepadReader.isAlive() or gamepadHandler.isAlive() or serialHandler.isAlive():
+        #print "waiting"
+        sleep(0.1)
+    #print threading.active_count()
     root.destroy()
 
 
 global sideViewCanvas, frontViewCanvas, topViewCanvas
 global canvasW, canvasH
 global canvasScale, canvasOffset
+global targetXSlider, targetYSlider, targetZSlider
 
 startTime = strftime("%a, %d %b %Y %H:%M:%S", localtime())
 
@@ -722,16 +907,20 @@ topViewLabel.grid(row=0, column=0)
 topViewCanvas = Canvas(topViewFrame, background="#E0EEE0", width = canvasW, height = canvasH)
 topViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
 
-messageBoxFrame = Frame(controlsFrame)
-legSelectFrame = Frame(controlsFrame)
-jointSlidersFrame = Frame(controlsFrame)
-targetSlidersFrame = Frame(controlsFrame)
+controlsSubFrame = Frame(controlsFrame)
 buttonsFrame = Frame(controlsFrame)
+
+messageBoxFrame = Frame(controlsSubFrame)
+legSelectFrame = Frame(controlsSubFrame)
+jointSlidersFrame = Frame(controlsSubFrame)
+targetSlidersFrame = Frame(controlsSubFrame)
 
 messageBoxFrame.grid(row=0, column=0, sticky=N)
 legSelectFrame.grid(row=0, column=1, sticky=N)
 jointSlidersFrame.grid(row=0, column=2, sticky=N)
 targetSlidersFrame.grid(row=0, column=3, sticky=N)
+
+controlsSubFrame.grid(row=0, column=0, sticky=N)
 buttonsFrame.grid(row=1, column=0, sticky=N)
 
 messageBox = Text(messageBoxFrame, width = 32, height=18, font = defaultFont)
@@ -786,7 +975,7 @@ joint5Slider.grid(row=5, column=0)
 ikLabel = Label(targetSlidersFrame, text="IK - Target", font = 6)
 ikLabel.grid(row=0, column=0)
 
-tsRange = 500.0
+tsRange = 300.0
 targetXSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "X",
                       length = 200, width = 40, font = 6, orient=HORIZONTAL, command = targetXSliderCallback )
 targetXSlider.grid(row=1, column=0)
@@ -808,17 +997,21 @@ joystickCheckButton.grid(row=0, column=0)
 testIKButton = Button(buttonsFrame, text="Test IK", command=testIK, font = defaultFont)
 testIKButton.grid(row=0, column=1)
 
-loadTargetsButton = Button(buttonsFrame, text="Load", command=loadTargets, font = defaultFont)
-loadTargetsButton.grid(row=0, column=2)
+loadTargets1Button = Button(buttonsFrame, text="Load 1", command=loadTargets1, font = defaultFont)
+loadTargets1Button.grid(row=0, column=2)
+
+loadTargets2Button = Button(buttonsFrame, text="Load 2", command=loadTargets2, font = defaultFont)
+loadTargets2Button.grid(row=0, column=3)
 
 quitButton = Button(buttonsFrame, text="Quit", command=quit, font = defaultFont)
-quitButton.grid(row=0, column=3)
+quitButton.grid(row=0, column=4)
 
 
 if __name__ == '__main__':
     global selectedLeg
     global angleOffsets
     global targetHome, target, speed
+    global showTarget
     initLegs()
     initViews()
     selectedLeg = 0
@@ -834,9 +1027,12 @@ if __name__ == '__main__':
     joint4Slider.set(legs[selectedLeg].angles[3])
     joint5Slider.set(legs[selectedLeg].angles[4])
 
-    # Target: Foot in robot base
-    targetHome = [ legs[selectedLeg].joints[5].x, legs[selectedLeg].joints[5].y, legs[selectedLeg].joints[5].z ]
-    target = targetHome[:]
+    # Targets: Foot in robot base
+    targetHome = [0, 0, 0, 0]
+    for i in range (0,4):
+        targetHome[i] = [ legs[i].joints[5].x, legs[i].joints[5].y, legs[i].joints[5].z ]
+    target = targetHome[0][:]
+    showTarget = True
 
     global inputLJSX
     inputLJSX = 0
@@ -854,7 +1050,6 @@ if __name__ == '__main__':
     gamepadReader = GamepadReader(root)
     gamepadReader.start()
 
-    global gamepadHandler
     gamepadHandler = GamepadHandler(root)
     gamepadHandler.start()
 
