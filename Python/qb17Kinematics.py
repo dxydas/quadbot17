@@ -26,13 +26,17 @@ class GamepadReader(threading.Thread):
     def __init__(self, master):
         self.master = master
         threading.Thread.__init__(self)
-        self.daemon = True
+        self.terminate = False
         self.gamepadOK = False
         self.gamepadUnplugged = False
         self.gamepadIOError = False
 
+    def stop(self):
+        self.terminate = True
+        self._Thread__stop()
+
     def run(self):
-        while 1:
+        while not self.terminate:
             if not self.gamepadOK:
                 self.devices = inputs.DeviceManager()
                 try:
@@ -82,8 +86,8 @@ class GamepadHandler(threading.Thread):
         self.master = master
         # Threading vars
         threading.Thread.__init__(self)
-        self.daemon = True  # OK for main to exit even if instance is still running
-        self.paused = False
+        self.terminate = False
+        self.paused = True
         self.triggerPolling = True
         self.cond = threading.Condition()
         # Input vars
@@ -95,8 +99,12 @@ class GamepadHandler(threading.Thread):
         self.inputRJSYNormed = 0
         self.dt = 0.005  # 5 ms
 
+    def stop(self):
+        self.terminate = True
+        self._Thread__stop()
+
     def run(self):
-        while 1:
+        while not self.terminate:
             with self.cond:
                 if self.paused:
                     self.cond.wait()  # Block until notified
@@ -173,7 +181,7 @@ class SerialHandler(threading.Thread):
     def __init__(self, master):
         self.master = master
         threading.Thread.__init__(self)
-        self.daemon = True
+        self.terminate = False
         self.cond = threading.Condition()
         # Input vars
         self.ser = 0
@@ -183,8 +191,12 @@ class SerialHandler(threading.Thread):
         self.dt = 0.05  # 50 ms
         self.pollSerial()
 
+    def stop(self):
+        self.terminate = True
+        self._Thread__stop()
+
     def run(self):
-        while 1:
+        while not self.terminate:
             if not self.serialOK:
                 try:
                     self.ser = serial.Serial(self.port, 38400)
@@ -393,7 +405,6 @@ def testIKCallback():
 
 
 def toggleJoystick():
-    global gamepadHandler
     if jsVar.get() == 0:
         gamepadHandler.pause()
     else:
@@ -606,6 +617,12 @@ def logMessage(msg):
 
 def quit():
     serialHandler.closeSerial()
+    gamepadReader.stop()
+    gamepadHandler.stop()
+    serialHandler.stop()
+    # Wait for threads to finish
+    while gamepadReader.isAlive() or gamepadHandler.isAlive() or serialHandler.isAlive():
+        sleep(0.1)
     root.destroy()
 
 
@@ -725,7 +742,7 @@ targetZSlider.grid(row=3, column=0)
 jsVar = IntVar()
 joystickCheckButton = Checkbutton(buttonsFrame, text="Joystick", var=jsVar, command=toggleJoystick, font = defaultFont)
 joystickCheckButton.grid(row=0, column=0)
-joystickCheckButton.select()
+#joystickCheckButton.select()  # Set default
 
 testIKButton = Button(buttonsFrame, text="Test IK", command=testIK, font = defaultFont)
 testIKButton.grid(row=0, column=1)
@@ -767,7 +784,6 @@ if __name__ == '__main__':
     gamepadReader = GamepadReader(root)
     gamepadReader.start()
 
-    global gamepadHandler
     gamepadHandler = GamepadHandler(root)
     gamepadHandler.start()
 
