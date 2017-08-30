@@ -491,6 +491,7 @@ def loadFromFile(filename):
 
     arraySize = 100
     rowOffset = 2
+    amplAdjust = 50
     with open(filename, 'rb') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         for r, row in enumerate(reader):
@@ -500,21 +501,21 @@ def loadFromFile(filename):
                     if c in range(2,10):
                         #print c, col
                         if c == 2:
-                            FLUpDown.append(float(col))
+                            FLUpDown.append(amplAdjust*float(col))
                         if c == 3:
-                            FLFwdBack.append(float(col))
+                            FLFwdBack.append(amplAdjust*float(col))
                         if c == 4:
-                            FRUpDown.append(float(col))
+                            FRUpDown.append(amplAdjust*float(col))
                         if c == 5:
-                            FRFwdBack.append(float(col))
+                            FRFwdBack.append(amplAdjust*float(col))
                         if c == 6:
-                            RLUpDown.append(float(col))
+                            RLUpDown.append(amplAdjust*float(col))
                         if c == 7:
-                            RLFwdBack.append(float(col))
+                            RLFwdBack.append(amplAdjust*float(col))
                         if c == 8:
-                            RRUpDown.append(float(col))
+                            RRUpDown.append(amplAdjust*float(col))
                         if c == 9:
-                            RRFwdBack.append(float(col))
+                            RRFwdBack.append(amplAdjust*float(col))
     csvfile.close()
 
 
@@ -522,17 +523,59 @@ def findClosestLegPose():
     minDist = 0
     idx = 0
     for i in range(0, len(FLUpDown)):
-        tmp = ( abs(currentPose[0] - FLUpDown[i]) +
-                abs(currentPose[1] - FLFwdBack[i]) +
-                abs(currentPose[2] - FRUpDown[i]) +
-                abs(currentPose[3] - FRFwdBack[i]) +
-                abs(currentPose[4] - RLUpDown[i]) +
-                abs(currentPose[5] - RLFwdBack[i]) +
-                abs(currentPose[6] - RRUpDown[i]) +
-                abs(currentPose[7] - RRFwdBack[i]) )
-        if tmp <= minDist:
-            minDist = tmp
+
+        distances = np.zeros(len(FLUpDown))
+        minThresh = 20
+        penalty = 10
+
+        x = abs(currentPose[0] - FLUpDown[i])
+        distances[0] = x
+        if (x > minThresh):
+            distances[0] += penalty
+
+        x = abs(currentPose[1] - FLFwdBack[i])
+        distances[1] = x
+        if (x > minThresh):
+            distances[1] += penalty
+
+        x = abs(currentPose[2] - FRUpDown[i])
+        distances[2] = x
+        if (x > minThresh):
+            distances[2] += penalty
+
+        x = abs(currentPose[3] - FRFwdBack[i])
+        distances[3] = x
+        if (x > minThresh):
+            distances[3] += penalty
+
+        x = abs(currentPose[4] - RLUpDown[i])
+        distances[4] = x
+        if (x > minThresh):
+            distances[4] += penalty
+
+        x = abs(currentPose[5] - RLFwdBack[i])
+        distances[5] = x
+        if (x > minThresh):
+            distances[5] += penalty
+
+        x = abs(currentPose[6] - RRUpDown[i])
+        distances[6] = x
+        if (x > minThresh):
+            distances[6] += penalty
+
+        x = abs(currentPose[7] - RRFwdBack[i])
+        distances[7] = x
+        if (x > minThresh):
+            distances[7] += penalty
+
+        distanceMetric = 0
+        for d in distances:
+            distanceMetric += d
+
+        if (i == 0) or (distanceMetric < minDist):
+            minDist = distanceMetric
             idx = i
+
     print "Current index:", iLT
     print "Closest new index:", idx
     print "Dist:", minDist
@@ -582,7 +625,6 @@ def loadTargetsCallback():
     global currentPose
     global gaitCallbackRunning
     showTarget = False
-    amplAdjust = 50
     xAdjust = -20
     zAdjust = 20
     print "i: ", iLT
@@ -590,27 +632,27 @@ def loadTargetsCallback():
     if iLT < len(FLUpDown):
         # FL
         i = 0
-        target[0] = targetHome[i][0] + amplAdjust*FLFwdBack[iLT] + xAdjust
+        target[0] = targetHome[i][0] + FLFwdBack[iLT] + xAdjust
         target[1] = targetHome[i][1]
-        target[2] = targetHome[i][2] + amplAdjust*FLUpDown[iLT] + zAdjust
+        target[2] = targetHome[i][2] + FLUpDown[iLT] + zAdjust
         runIK(legs[i], target)
         # FR
         i = 1
-        target[0] = targetHome[i][0] + amplAdjust*FRFwdBack[iLT] + xAdjust
+        target[0] = targetHome[i][0] + FRFwdBack[iLT] + xAdjust
         target[1] = targetHome[i][1]
-        target[2] = targetHome[i][2] + amplAdjust*FRUpDown[iLT] + zAdjust
+        target[2] = targetHome[i][2] + FRUpDown[iLT] + zAdjust
         runIK(legs[i], target)
         # RL
         i = 2
-        target[0] = targetHome[i][0] + amplAdjust*RLFwdBack[iLT] + xAdjust
+        target[0] = targetHome[i][0] + RLFwdBack[iLT] + xAdjust
         target[1] = targetHome[i][1]
-        target[2] = targetHome[i][2] + amplAdjust*RLUpDown[iLT] + zAdjust
+        target[2] = targetHome[i][2] + RLUpDown[iLT] + zAdjust
         runIK(legs[i], target)
         # RR
         i = 3
-        target[0] = targetHome[i][0] + amplAdjust*RRFwdBack[iLT] + xAdjust
+        target[0] = targetHome[i][0] + RRFwdBack[iLT] + xAdjust
         target[1] = targetHome[i][1]
-        target[2] = targetHome[i][2] + amplAdjust*RRUpDown[iLT] + zAdjust
+        target[2] = targetHome[i][2] + RRUpDown[iLT] + zAdjust
         runIK(legs[i], target)
 
         currentPose = [ FLUpDown[iLT], FLFwdBack[iLT], FRUpDown[iLT], FRFwdBack[iLT],
