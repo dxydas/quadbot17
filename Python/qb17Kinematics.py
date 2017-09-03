@@ -362,7 +362,7 @@ def runIK(target):
     if abs(num) <= abs(den):
         angles[2] = 180.0 - math.degrees( math.acos(num/den) )
 
-    # # Solve Joint 4
+    # Solve Joint 4
     num = pow(a4p, 2) + j2j4DistSquared - pow(a3p, 2)
     den = 2.0*a4p*j2j4Dist
     if abs(num) <= abs(den):
