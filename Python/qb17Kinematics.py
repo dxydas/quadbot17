@@ -170,7 +170,7 @@ class GamepadHandler(threading.Thread):
         x0 = target
         # Equations of motion
         u = u0 + a*t
-        x = x0 + u0*t + 0.5*a*pow(t, 2)
+        x = x0 + u0*t + 0.5*a*math.pow(t, 2)
         # Update self
         target = x
         speed = u
@@ -350,20 +350,20 @@ def runIK(target):
     den = j4Height
     psi = math.degrees( math.atan2(num, den) )
 
-    num = pow(a3p, 2) + j2j4DistSquared - pow(a4p, 2)
+    num = math.pow(a3p, 2) + j2j4DistSquared - math.pow(a4p, 2)
     den = 2.0*a3p*j2j4Dist
     if abs(num) <= abs(den):
         phi = math.degrees( math.acos(num/den) )
         angles[1] = - (phi - psi)
 
     # Solve Joint 3
-    num = pow(a3p, 2) + pow(a4p, 2) - j2j4DistSquared
+    num = math.pow(a3p, 2) + math.pow(a4p, 2) - j2j4DistSquared
     den = 2.0*a3p*a4p
     if abs(num) <= abs(den):
         angles[2] = 180.0 - math.degrees( math.acos(num/den) )
 
     # Solve Joint 4
-    num = pow(a4p, 2) + j2j4DistSquared - pow(a3p, 2)
+    num = math.pow(a4p, 2) + j2j4DistSquared - math.pow(a3p, 2)
     den = 2.0*a4p*j2j4Dist
     if abs(num) <= abs(den):
         omega = math.degrees( math.acos(num/den) )
