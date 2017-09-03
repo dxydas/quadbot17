@@ -1,3 +1,4 @@
+#include <math.h>
 #include <ax12.h>
 
 
@@ -11,7 +12,7 @@
 void setup()
 {
   Serial.begin(38400);
-  
+
 
 // Target arrays - Split into quadrants
 
@@ -75,23 +76,27 @@ void setup()
   }
   Serial.println("");
 
-  
 
 
-  
-  
-    
-  
+
+
+
+
   // Forward/backward - X+ is forward
   
   // Up/down - Z+ is up
   
-  
-  float target[3] = {1, 2, 3};
+  float target[3] = {232.2870506213818, 0.0, -2.7432364936986176};
   float joints[5] = {0, 0, 0, 0, 0};
   
   runIK(target, joints);
-  
+  Serial.println("joints:");
+  for (int i = 0; i < 5; ++i)
+  {
+    Serial.print(joints[i]);
+    Serial.print(" ");
+  }
+  Serial.println("");
   
   
   
@@ -104,25 +109,73 @@ void loop()
   
   // iterate through arrays
   // all legs at each loop
-  
-  
 }
 
 
 
 // IK - get joint angles from foot target
-void runIK(const float target[], float joints[])
+void runIK(const float targetInLegBase[], float angles[])
 {
-  
+  float num, den;
+  float a0Rads, c0, a2p, a3p, a4p, a5p;
+  float j4Height, j2j4DistSquared, j2j4Dist;
+  float phi, psi, omega;
+  float footOffset = 33.596;
+  float a[6] = {0, 0, 29.05, 76.919, 72.96, 45.032};  // Link lengths "a-1"
 
+  // Solve Joint 1
+  num = targetInLegBase[1];
+  den = abs(targetInLegBase[0]) - footOffset;
+  a0Rads = atan2(num, den);
+  angles[0] = a0Rads * 180.0 / M_PI;
 
+  // Lengths projected onto z-plane
+  c0 = cos(a0Rads);
+  a2p = a[2]*c0;
+  a3p = a[3]*c0;
+  a4p = a[4]*c0;
+  a5p = a[5]*c0;
+
+  j4Height = abs(targetInLegBase[0]) - a2p - a5p - footOffset;
+
+  j2j4DistSquared = pow(j4Height, 2) + pow(targetInLegBase[2], 2);
+  j2j4Dist = sqrt(j2j4DistSquared);
+
+  // Solve Joint 2
+  num = targetInLegBase[2];
+  den = j4Height;
+  psi = atan2(num, den) * 180.0 / M_PI;
+    Serial.println("num");
+    Serial.println(num);
+    Serial.println("den");
+    Serial.println(den);
+
+  num = pow(a3p, 2) + j2j4DistSquared - pow(a4p, 2);
+  den = 2.0*a3p*j2j4Dist;
+  if (abs(num) <= abs(den))
+  {
+    phi = acos(num/den) * 180.0 / M_PI;
+    angles[1] = - (phi - psi);
+  }
+
+  // Solve Joint 3
+  num = pow(a3p, 2) + pow(a4p, 2) - j2j4DistSquared;
+  den = 2.0*a3p*a4p;
+  if (abs(num) <= abs(den))
+    angles[2] = 180.0 - acos(num/den) * 180.0 / M_PI;
+
+  // Solve Joint 4
+  num = pow(a4p, 2) + j2j4DistSquared - pow(a3p, 2);
+  den = 2.0*a4p*j2j4Dist;
+  if (abs(num) <= abs(den))
+  {
+    omega = acos(num/den) * 180.0 / M_PI;
+    angles[3] = - (psi + omega);
+  }
+
+  // Solve Joint 5
+  angles[4] = - angles[0];
 }
-
-
-
-
-
-
 
 
 
