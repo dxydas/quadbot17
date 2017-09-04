@@ -280,7 +280,7 @@ def runFK(angles):
         s[i] = math.sin( math.radians(angles[i-1]) )
         c[i] = math.cos( math.radians(angles[i-1]) )
 
-    # +90 around Y
+    # +90 around Y to get from world base to leg base
     T_0_in_W = np.matrix( [ [  0,  0,  1,  0],
                             [  0,  1,  0,  0],
                             [ -1,  0,  0,  0],
