@@ -263,7 +263,7 @@ class Joint():
 
 def initLegs():
     # Offsets from centre of robot
-    # +90 around Y
+    # +90 around Y to get from robot base to leg base
     lengthD = 150
     widthD = 50
     tfFLBaseInRobotBase = np.matrix( [ [  0,  0,  1,  lengthD],
@@ -440,6 +440,7 @@ def runIK(leg, target):
 
     runFK(leg)
 
+    #print "target: ", target
     #print "targetInLegBase: ", targetInLegBase
     #print "leg.angles: ", leg.angles
 
