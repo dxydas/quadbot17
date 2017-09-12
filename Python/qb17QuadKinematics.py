@@ -216,11 +216,20 @@ class SerialHandler(threading.Thread):
         if self.serialOK:
             writeStr = ""
             for i in range(len(legs[selectedLeg].angles)):
-                # Joint 2 needs its direction inverted
-                if i == 1:
-                    x = int( rescale(-legs[selectedLeg].angles[i], -180.0, 180.0, 0, 1023) )
+                if (selectedLeg % 2 == 0):
+                    # Left side
+                    # Joint 2 needs its direction inverted
+                    if i == 1:
+                        x = int( rescale(-legs[selectedLeg].angles[i], -180.0, 180.0, 0, 1023) )
+                    else:
+                        x = int( rescale(legs[selectedLeg].angles[i], -180.0, 180.0, 0, 1023) )
                 else:
-                    x = int( rescale(legs[selectedLeg].angles[i], -180.0, 180.0, 0, 1023) )
+                    # Right side
+                    # All joints except for 1 and 5 are mirrors of left side
+                    if (i == 2) or (i == 3):
+                        x = int( rescale(-legs[selectedLeg].angles[i], -180.0, 180.0, 0, 1023) )
+                    else:
+                        x = int( rescale(legs[selectedLeg].angles[i], -180.0, 180.0, 0, 1023) )
                 writeStr += str(i+1) + "," + str(x)
                 if i < (len(legs[selectedLeg].angles) - 1):
                     writeStr += ","
@@ -264,8 +273,8 @@ class Joint():
 def initLegs():
     # Offsets from centre of robot
     # +90 around Y to get from robot base to leg base
-    lengthD = 150
-    widthD = 50
+    lengthD = 100  # Distance of leg from centre, lengthwise
+    widthD = 50    # Distance of leg from centre, widthwise
     tfFLBaseInRobotBase = np.matrix( [ [  0,  0,  1,  lengthD],
                                        [  0,  1,  0,  widthD],
                                        [ -1,  0,  0,  0],
@@ -340,7 +349,7 @@ def runFK(leg):
         c[i] = math.cos( math.radians(leg.angles[i-1]) )
 
     tfJointInPrevJoint = [0, 0, 0, 0, 0, 0]
-    # 1 in 0
+
     tfJointInPrevJoint[0] = np.matrix( [ [ c[1], -s[1],  0, a[1]],
                                          [ s[1],  c[1],  0,    0],
                                          [    0,     0,  1,    0],
@@ -577,10 +586,11 @@ def findClosestLegPose():
             minDist = distanceMetric
             idx = i
 
-    print "Current index:", iLT
-    print "Closest new index:", idx
-    print "Dist:", minDist
-    print "Index diff (abs):", abs(iLT - idx)
+    #print "Current index:", iLT
+    #print "Closest new index:", idx
+    #print "Dist:", minDist
+    #print "Index diff (abs):", abs(iLT - idx)
+
     return idx
 
 
@@ -628,7 +638,7 @@ def loadTargetsCallback():
     showTarget = False
     xAdjust = -20
     zAdjust = 20
-    print "i: ", iLT
+    #print "i: ", iLT
 
     if iLT < len(FLUpDown):
         # FL
@@ -664,7 +674,7 @@ def loadTargetsCallback():
         root.after(rateMsLT, loadTargetsCallback)
 
     else:
-        print "Done"
+        #print "Done"
         gaitCallbackRunning = False
         showTarget = True
 
@@ -681,6 +691,7 @@ def initViews():
     axisL = 60
     borderDist = 40
 
+    # Side view axis widget
     sideViewCanvas.create_line( canvasW - (borderDist + axisL), borderDist + axisL, canvasW - borderDist, borderDist + axisL,
                                 fill = "red", width = axisW, tag = "alwaysShown" )  # x-axis
     sideViewCanvas.create_text( canvasW - (borderDist + axisL), borderDist + axisL + 20, text = "X",
@@ -690,6 +701,7 @@ def initViews():
     sideViewCanvas.create_text( canvasW - borderDist + 20, borderDist, text = "Z",
                                 font = 6, fill = "blue", tag = "alwaysShown" )
 
+    # Front view axis widget
     frontViewCanvas.create_line( canvasW - (borderDist + axisL), borderDist + axisL, canvasW - borderDist, borderDist + axisL,
                                  fill = "green", width = axisW, tag = "alwaysShown" )  # y-axis
     frontViewCanvas.create_text( canvasW - borderDist, borderDist + axisL + 20, text = "Y",
@@ -699,6 +711,7 @@ def initViews():
     frontViewCanvas.create_text( canvasW - (borderDist + axisL) - 20, borderDist, text = "Z",
                                  font = 6, fill = "blue", tag = "alwaysShown" )
 
+    # Top view axis widget
     topViewCanvas.create_line( canvasW - (borderDist + axisL), borderDist, canvasW - borderDist, borderDist,
                                fill = "red", width = axisW, tag = "alwaysShown" )  # x-axis
     topViewCanvas.create_text( canvasW - (borderDist + axisL), borderDist - 20, text = "X",
