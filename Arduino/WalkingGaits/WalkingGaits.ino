@@ -4,7 +4,6 @@
 
 
 // Target arrays - Split into quadrants
-<<<<<<< HEAD
 const float UpDownQs[2][4][25] PROGMEM = {
   {
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -35,12 +34,6 @@ const float FwdBackQs[2][4][25] PROGMEM = {
 };
 
 
-
-
-
-//float UpDownAll[100];
-//float FwdBackAll[100];
-
 int g;
 int G = 2;   // Num. of gaits
 int Q = 4;   // Num. of quadrants
@@ -52,20 +45,6 @@ float targetHome[3] = {232.2870506213818, 0.0, -2.7432364936986176};
 float joints[5] = {0, 0, 0, 0, 0};
 float xAdjustInLegBase = -20;
 float zAdjustInLegBase = -20;
-=======
-const float UpDownQs[4][25] PROGMEM = {
-  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-  {0,0.2,0.4,0.6,0.8,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.8,0.6,0.4,0.2,0}
-};
-const float FwdBackQs[4][25] PROGMEM = {
-  {1,1,1,1,1,1,0.9855072464,0.9710144928,0.9565217391,0.9420289855,0.9275362319,0.9130434783,0.8985507246,0.884057971,0.8695652174,0.8550724638,0.8405797101,0.8260869565,0.8115942029,0.7971014493,0.7826086957,0.768115942,0.7536231884,0.7391304348,0.7246376812},
-  {0.7101449275,0.6956521739,0.6811594203,0.6666666667,0.652173913,0.6376811594,0.6231884058,0.6086956522,0.5942028986,0.5797101449,0.5652173913,0.5507246377,0.5362318841,0.5217391304,0.5072463768,0.4927536232,0.4782608696,0.4637681159,0.4492753623,0.4347826087,0.4202898551,0.4057971014,0.3913043478,0.3768115942,0.3623188406},
-  {0.347826087,0.3333333333,0.3188405797,0.3043478261,0.2898550725,0.2753623188,0.2608695652,0.2463768116,0.231884058,0.2173913043,0.2028985507,0.1884057971,0.1739130435,0.1594202899,0.1449275362,0.1304347826,0.115942029,0.1014492754,0.0869565217,0.0724637681,0.0579710145,0.0434782609,0.0289855072,0.0144927536,0},
-  {0,0,0,0,0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,1}
-};
->>>>>>> 4d24b1ff0c1d53eeefe66d86b40296d188b75787
 
 
 void setup()
@@ -73,7 +52,6 @@ void setup()
   Serial.begin(38400);
 }
 
-<<<<<<< HEAD
 
 void loop()
 {
@@ -105,50 +83,6 @@ void loop()
 
         // Front Right
         setTarget(g, (i+2)%Q, j);
-=======
-  float UpDownAll[100];
-  float FwdBackAll[100];
-
-  int Q = 4;
-  int N = 25;
-  float amplAdjust = 50;
-  int offset;
-  for (int i = 0; i < Q; ++i)
-    for (int j = 0; j < N; ++j)
-      {
-        // FL
-        //offset = i*N;
-        //UpDownAll[j+offset] = amplAdjust * pgm_read_float_near(&(UpDownQs[i][j]));
-        //FwdBackAll[j+offset] = amplAdjust * pgm_read_float_near(&(FwdBackQs[i][j]));
-        offset = i;
-        UpDownAll[j+i*N] = amplAdjust * pgm_read_float_near(&(UpDownQs[offset][j]));
-        FwdBackAll[j+i*N] = amplAdjust * pgm_read_float_near(&(FwdBackQs[offset][j]));
-
-        // FR
-        //offset = (i+2)%Q*N;
-        //UpDownAll[j+offset] = amplAdjust * pgm_read_float_near(&(UpDownQs[i][j]));
-        //FwdBackAll[j+offset] = amplAdjust * pgm_read_float_near(&(FwdBackQs[i][j]));
-        offset = (i+2)%Q;
-//        UpDownAll[j+i*N] = amplAdjust * pgm_read_float_near(&(UpDownQs[offset][j]));
-//        FwdBackAll[j+i*N] = amplAdjust * pgm_read_float_near(&(FwdBackQs[offset][j]));
-
-        // RL
-        //offset = (i+3)%Q*N;
-        //UpDownAll[j+offset] = amplAdjust * pgm_read_float_near(&(UpDownQs[i][j]));
-        //FwdBackAll[j+offset] = amplAdjust * pgm_read_float_near(&(FwdBackQs[i][j]));
-        offset = (i+1)%Q;
-//        UpDownAll[j+i*N] = amplAdjust * pgm_read_float_near(&(UpDownQs[offset][j]));
-//        FwdBackAll[j+i*N] = amplAdjust * pgm_read_float_near(&(FwdBackQs[offset][j]));
-
-        // RR
-        //offset = (i+1)%Q*N;
-        //UpDownAll[j+offset] = amplAdjust * pgm_read_float_near(&(UpDownQs[i][j]));
-        //FwdBackAll[j+offset] = amplAdjust * pgm_read_float_near(&(FwdBackQs[i][j]));
-        offset = (i+3)%Q;
-//        UpDownAll[j+i*N] = amplAdjust * pgm_read_float_near(&(UpDownQs[offset][j]));
-//        FwdBackAll[j+i*N] = amplAdjust * pgm_read_float_near(&(FwdBackQs[offset][j]));
-     }
->>>>>>> 4d24b1ff0c1d53eeefe66d86b40296d188b75787
 
         // Rear Left
         setTarget(g, (i+2)%Q, j);
@@ -156,31 +90,9 @@ void loop()
         // Rear Right
         setTarget(g, i, j);
      }
-
-/*
-  for (int i = 0; i < 100; ++i)
-  {
-    Serial.print(UpDownAll[i]);
-    Serial.print(" ");
-  }
-  Serial.println("");
-
-  for (int i = 0; i < 100; ++i)
-  {
-    Serial.print(FwdBackAll[i]);
-    Serial.print(" ");
-  }
-  Serial.println("");
-*/
 }
 
-  float target[3];
-  float targetHome[3] = {232.2870506213818, 0.0, -2.7432364936986176};
-  float joints[5] = {0, 0, 0, 0, 0};
-  float xAdjustInLegBase = -20;
-  float zAdjustInLegBase = -20;
 
-<<<<<<< HEAD
 void setTarget(int g, int i, int j)
 {
   float UpDown = amplAdjust * pgm_read_float_near(&(UpDownQs[g][i][j]));
@@ -191,15 +103,8 @@ void setTarget(int g, int i, int j)
   target[2] = targetHome[2] + FwdBack + zAdjustInLegBase;
 
   runIK(target, joints);
+
 /*
-=======
-  target[0] = targetHome[0] - UpDownAll[0] + xAdjustInLegBase;
-  target[1] = targetHome[1];
-  target[2] = targetHome[2] + FwdBackAll[0] + zAdjustInLegBase;
-
-  runIK(target, joints);
-
->>>>>>> 4d24b1ff0c1d53eeefe66d86b40296d188b75787
   Serial.println("target:");
   for (int i = 0; i < 3; ++i)
   {
@@ -215,24 +120,10 @@ void setTarget(int g, int i, int j)
     Serial.print(" ");
   }
   Serial.println("");
-<<<<<<< HEAD
 */
 }
 
 
-=======
-
-}
-
-
-void loop()
-{
-
-
-}
-
-
->>>>>>> 4d24b1ff0c1d53eeefe66d86b40296d188b75787
 // IK - get joint angles from foot target
 void runIK(const float targetInLegBase[], float angles[])
 {
