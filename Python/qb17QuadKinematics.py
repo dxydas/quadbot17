@@ -274,11 +274,6 @@ class Joint():
 
 
 def initSpine():
-    # -45 around Y to get from world to robot spine
-#    tfSpineBaseInWorld = np.matrix( [ [  0.707,  0, -0.707,  0],
- #                                     [      0,  1,      0,  0],
-  #                                    [  0.707,  0,  0.707,  0],
-   #                                   [      0,  0,      0,  1] ] )
     tmpTF = np.matrix( [ [  1,  0,  0,  0],
                          [  0,  1,  0,  0],
                          [  0,  0,  1,  0],
@@ -286,7 +281,6 @@ def initSpine():
 
     global spine
     spineAngles = [0, 0, 0]
-    #spine = Spine( "B", initSpineJoints(21), spineAngles, tfSpineBaseInWorld )
     spine = Spine( "B", initSpineJoints(21), spineAngles, tmpTF )
 
 
@@ -384,11 +378,6 @@ def rescale(old, oldMin, oldMax, newMin, newMax):
 
 
 def runSpineFK(spine, roll, pitch, yaw):
-   # spine.tfSpineBaseInWorld = np.matrix( [ [  1,  0,  0,  0],
-    #                                        [  0,  1,  0,  60],
- #                                           [  0,  0,  1,  0],
-     #                                       [  0,  0,  0,  1] ] )
-
     # Spine front: In the future this can be controlled by e.g. orientation from IMU
     s = math.sin( math.radians(yaw) )
     c = math.cos( math.radians(yaw) )
@@ -530,26 +519,11 @@ def runLegFK(leg):
         else:
             T = leg.joints[j-1].tfJointInWorld
         leg.joints[j].tfJointInWorld = T * tfJointInPrevJoint[j]
-        # Extract joint positions in base coords
-        #leg.joints[j].x = leg.joints[j].tfJointInWorld.item(0, 3)
-        #leg.joints[j].y = leg.joints[j].tfJointInWorld.item(1, 3)
-        #leg.joints[j].z = leg.joints[j].tfJointInWorld.item(2, 3)
 
 
 def runLegIK(leg, target):
-    # Convert target in robot base to be in leg base
-    # targetInLegBase = tfRobotBaseInLegBase * target
-    #                 = inv(tfLegBaseInRobotBase) * target
-    # Convert target to 4x1 size vector, in order to multiply with 4x4 matrix
-    #targetV4 = np.array([target[0], target[1], target[2], 1]).reshape(4, 1)
-    #targetInLegBaseV4 = np.linalg.inv(leg.tfLegBaseInRobotBase) * targetV4
-    #targetInLegBase = [targetInLegBaseV4[0], targetInLegBaseV4[1], targetInLegBaseV4[2]]
-#    targetInLegBase = np.linalg.inv(leg.tfLegBaseInRobotBase) * target
-
     # Convert target in world to be in leg base
     tfSpineBaseInLegBase = np.linalg.inv(leg.tfLegBaseInSpineBase)
-    #worldInLegBase = spine.joints[i].tfJointInWorld
-    #targetInLegBase = tfSpineBaseInLegBase * worldInLegBase * target
     if (leg.id == "FL") or (leg.id == "FR"):
         T = spine.tfSpineBaseInWorld
         worldInSpineBase = np.linalg.inv(spine.tfSpineBaseInWorld)
@@ -1019,11 +993,6 @@ def selectLeg():
 	selectedLeg = rbLegVar.get()
 
 
-#def selectBase():
-#    global selectedBase
-#    selectedBase = rbBaseVar.get()
-
-
 def joint1SliderCallback(val):
     legs[selectedLeg].angles[0] = float(val)
     runLegFK(legs[selectedLeg])
@@ -1050,7 +1019,6 @@ def joint5SliderCallback(val):
 
 
 def targetXSliderCallback(val):
-    #global targetYSlider, targetZSlider
     target[0, 3] = targetHome[selectedLeg][0, 3] + float(val)
     target[1, 3] = targetHome[selectedLeg][1, 3] + float(targetYSlider.get())
     target[2, 3] = targetHome[selectedLeg][2, 3] + float(targetZSlider.get())
@@ -1058,7 +1026,6 @@ def targetXSliderCallback(val):
 
 
 def targetYSliderCallback(val):
-    #global targetXSlider, targetZSlider
     target[0, 3] = targetHome[selectedLeg][0, 3] + float(targetXSlider.get())
     target[1, 3] = targetHome[selectedLeg][1, 3] + float(val)
     target[2, 3] = targetHome[selectedLeg][2, 3] + float(targetZSlider.get())
@@ -1066,7 +1033,6 @@ def targetYSliderCallback(val):
 
 
 def targetZSliderCallback(val):
-    #global targetXSlider, targetYSlider
     target[0, 3] = targetHome[selectedLeg][0, 3] + float(targetXSlider.get())
     target[1, 3] = targetHome[selectedLeg][1, 3] + float(targetYSlider.get())
     target[2, 3] = targetHome[selectedLeg][2, 3] + float(val)
@@ -1074,7 +1040,6 @@ def targetZSliderCallback(val):
 
 
 def targetRollSliderCallback(val):
-    #global targetPitchSlider, targetYawSlider
 #    target[3] = targetHome[selectedLeg][3] + float(val)
 #    target[4] = targetHome[selectedLeg][4] + float(targetPitchSlider.get())
 #    target[5] = targetHome[selectedLeg][5] + float(targetYawSlider.get())
@@ -1082,7 +1047,6 @@ def targetRollSliderCallback(val):
 
 
 def targetPitchSliderCallback(val):
-    #global targetRollSlider, targetYawSlider
 #    target[3] = targetHome[selectedLeg][3] + float(targetRollSlider.get())
 #    target[4] = targetHome[selectedLeg][4] + float(val)
 #    target[5] = targetHome[selectedLeg][5] + float(targetYawSlider.get())
@@ -1090,7 +1054,6 @@ def targetPitchSliderCallback(val):
 
 
 def targetYawSliderCallback(val):
-    #global targetRollSlider, targetPitchSlider
 #    target[3] = targetHome[selectedLeg][3] + float(targetRollSlider.get())
 #    target[4] = targetHome[selectedLeg][4] + float(targetPitchSlider.get())
 #    target[5] = targetHome[selectedLeg][5] + float(val)
@@ -1098,7 +1061,6 @@ def targetYawSliderCallback(val):
 
 
 def spineRollSliderCallback(val):
-    #global spineRollSlider, spinePitchSlider, spineYawSlider
     r = float(val)
     p = spinePitchSlider.get()
     y = spineYawSlider.get()
@@ -1106,7 +1068,6 @@ def spineRollSliderCallback(val):
 
 
 def spinePitchSliderCallback(val):
-    #global spineRollSlider, spinePitchSlider, spineYawSlider
     r = spineRollSlider.get()
     p = float(val)
     y = spineYawSlider.get()
@@ -1228,9 +1189,7 @@ targetSlidersFrame.grid(row=0, column=3, sticky=N)
 spineSlidersFrame.grid(row=0, column=4, sticky=N)
 
 legSelectSubFrame = Frame(selectFrame)
-#baseSelectSubFrame = Frame(selectFrame)
 legSelectSubFrame.grid(row=0, column=0, sticky=N)
-#baseSelectSubFrame.grid(row=1, column=0, sticky=N)
 
 controlsSubFrame.grid(row=0, column=0, sticky=N)
 buttonsFrame.grid(row=1, column=0, sticky=N)
@@ -1261,19 +1220,6 @@ FRRadiobutton.grid(row=2, column=0)
 RLRadiobutton.grid(row=3, column=0)
 RRRadiobutton.grid(row=4, column=0)
 FLRadiobutton.select()  # Set default
-
-
-#baseSelectLabel = Label(baseSelectSubFrame, text="Base", font = defaultFont)
-#baseSelectLabel.grid(row=0, column=0)
-
-#rbBaseVar = IntVar()
-#RobotBaseFrontRadiobutton = Radiobutton( baseSelectSubFrame, text = "BF", font = defaultFont, variable = rbBaseVar,
-#                                         value = 0, command = selectBase )
-#RobotBaseRearRadiobutton = Radiobutton( baseSelectSubFrame, text = "BR", font = defaultFont, variable = rbBaseVar,
-#                                        value = 1, command = selectBase )
-#RobotBaseFrontRadiobutton.grid(row=1, column=0)
-#RobotBaseRearRadiobutton.grid(row=2, column=0)
-#RobotBaseFrontRadiobutton.select()  # Set default
 
 
 fkLabel = Label(jointSlidersFrame, text="FK - Joints", font = defaultFont)
@@ -1377,7 +1323,6 @@ quitButton.grid(row=0, column=4)
 
 if __name__ == '__main__':
     global selectedLeg
-    #global selectedBase
     global spineAngleOffsets
     global legAngleOffsets
     global targetHome, target, speed
@@ -1386,7 +1331,6 @@ if __name__ == '__main__':
     initLegs()
     initViews()
     selectedLeg = 0
-    #selectedBase = 0
 
     # Offsets for natural "home" position
     spineAngleOffsets = [0, 0, -45]
@@ -1409,7 +1353,6 @@ if __name__ == '__main__':
     # Targets: Foot in world
     targetHome = [0, 0, 0, 0]
     for i in range (0,4):
-        #targetHome[i] = [ legs[i].joints[5].x, legs[i].joints[5].y, legs[i].joints[5].z ]
         targetHome[i] = deepcopy(legs[i].joints[5].tfJointInWorld)
     target = deepcopy(targetHome[0])
     speed = [0, 0, 0]
