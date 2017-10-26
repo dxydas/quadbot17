@@ -11,6 +11,7 @@ import Queue
 import inputs
 import serial
 import csv
+from copy import deepcopy
 
 
 class App:
@@ -92,7 +93,7 @@ class GamepadHandler(threading.Thread):
         self.triggerPolling = True
         self.cond = threading.Condition()
         # Input vars
-        self.target = targetHome[selectedLeg][:]
+        self.target = deepcopy(targetHome[selectedLeg])
         self.speed = [0, 0, 0]
         self.inputLJSXNormed = 0
         self.inputLJSYNormed = 0
@@ -128,24 +129,24 @@ class GamepadHandler(threading.Thread):
         # World X
         global inputLJSY
         self.inputLJSYNormed = self.filterInput(-inputLJSY)
-        self.target[0], self.speed[0] = self.updateMotion(self.inputLJSYNormed, self.target[0], self.speed[0])
+        self.target[0, 3], self.speed[0] = self.updateMotion(self.inputLJSYNormed, self.target[0, 3], self.speed[0])
         # World Y
         global inputLJSX
         self.inputLJSXNormed = self.filterInput(-inputLJSX)
-        self.target[1], self.speed[1] = self.updateMotion(self.inputLJSXNormed, self.target[1], self.speed[1])
+        self.target[1, 3], self.speed[1] = self.updateMotion(self.inputLJSXNormed, self.target[1, 3], self.speed[1])
         # World Z
         global inputRJSY
         self.inputRJSYNormed = self.filterInput(-inputRJSY)
-        self.target[2], self.speed[2] = self.updateMotion(self.inputRJSYNormed, self.target[2], self.speed[2])
+        self.target[2, 3], self.speed[2] = self.updateMotion(self.inputRJSYNormed, self.target[2, 3], self.speed[2])
         with self.cond:
             if not self.paused:
                 self.master.after(int(self.dt*1000), self.pollInputs)
 
     def pollIK(self):
         global target, speed
-        target = self.target[:]
-        speed = self.speed[:]
-        runIK(legs[selectedLeg], target)
+        target = deepcopy(self.target)
+        speed = deepcopy(self.speed)
+        runLegIK(legs[selectedLeg], target)
         with self.cond:
             if not self.paused:
                 self.master.after(int(self.dt*1000), self.pollIK)
@@ -249,82 +250,130 @@ class SerialHandler(threading.Thread):
             self.ser.close()
 
 
-class Leg():
-    def __init__(self, id, joints, angles, tfLegBaseInRobotBase, x, y, z):
+class Spine():
+    def __init__(self, id, joints, angles, tfSpineBaseInWorld):
         self.id = id
         self.joints = joints
         self.angles = angles
-        self.tfLegBaseInRobotBase = tfLegBaseInRobotBase
-        self.x = x
-        self.y = y
-        self.z = z
+        self.tfSpineBaseInWorld = tfSpineBaseInWorld
+
+
+class Leg():
+    def __init__(self, id, joints, angles, tfLegBaseInSpineBase):
+        self.id = id
+        self.joints = joints
+        self.angles = angles
+        self.tfLegBaseInSpineBase = tfLegBaseInSpineBase
 
 
 class Joint():
-    def __init__(self, id, tfJointInPrevJoint, tfJointInRobotBase, x, y, z):
+    def __init__(self, id, tfJointInPrevJoint, tfJointInWorld):
         self.id = id
         self.tfJointInPrevJoint = tfJointInPrevJoint
-        self.tfJointInRobotBase = tfJointInRobotBase
-        self.x = x
-        self.y = y
-        self.z = z
+        self.tfJointInWorld = tfJointInWorld
+
+
+def initSpine():
+    # -45 around Y to get from world to robot spine
+#    tfSpineBaseInWorld = np.matrix( [ [  0.707,  0, -0.707,  0],
+ #                                     [      0,  1,      0,  0],
+  #                                    [  0.707,  0,  0.707,  0],
+   #                                   [      0,  0,      0,  1] ] )
+    tmpTF = np.matrix( [ [  1,  0,  0,  0],
+                         [  0,  1,  0,  0],
+                         [  0,  0,  1,  0],
+                         [  0,  0,  0,  1] ] )
+
+    global spine
+    spineAngles = [0, 0, 0]
+    #spine = Spine( "B", initSpineJoints(21), spineAngles, tfSpineBaseInWorld )
+    spine = Spine( "B", initSpineJoints(21), spineAngles, tmpTF )
+
+
+def initSpineJoints(startingJoint):
+    tmpTF = np.matrix( [ [  1,  0,  0,  0],
+                         [  0,  1,  0,  0],
+                         [  0,  0,  1,  0],
+                         [  0,  0,  0,  1] ] )
+    joints = [0, 0, 0]
+    joints[0] = Joint(startingJoint, tmpTF, tmpTF)
+    joints[1] = Joint("Dummy", tmpTF, tmpTF)
+    joints[2] = Joint(startingJoint + 1, tmpTF, tmpTF)
+    return joints
 
 
 def initLegs():
-    # Offsets from centre of robot
-    # +90 around Y to get from robot base to leg base
-    lengthD = 100  # Distance of leg from centre, lengthwise
-    widthD = 50    # Distance of leg from centre, widthwise
-    tfFLBaseInRobotBase = np.matrix( [ [  0,  0,  1,  lengthD],
-                                       [  0,  1,  0,  widthD],
-                                       [ -1,  0,  0,  0],
-                                       [  0,  0,  0,  1] ] )
+    lengthD = 100
+    widthD = 50
+    heightD = 10
 
-    tfFRBaseInRobotBase = np.matrix( [ [  0,  0,  1,  lengthD],
-                                       [  0,  1,  0,  -widthD],
-                                       [ -1,  0,  0,  0],
-                                       [  0,  0,  0,  1] ] )
+    # TODO: Position leg bases more accurately
 
-    tfRLBaseInRobotBase = np.matrix( [ [  0,  0,  1,  -lengthD],
-                                       [  0,  1,  0,  widthD],
-                                       [ -1,  0,  0,  0],
-                                       [  0,  0,  0,  1] ] )
+    # +135 around Y
+    tfFLBaseInSpineBase = np.matrix( [ [ -0.707,  0,   0.707,  0],
+                                       [      0,  1,       0,  0],
+                                       [ -0.707,  0,  -0.707,  0],
+                                       [      0,  0,       0,  1] ] )
+    tfFLBaseInSpineBase *= np.matrix( [ [  1,  0,  0, -heightD],
+                                        [  0,  1,  0,   widthD],
+                                        [  0,  0,  1,  lengthD],
+                                        [  0,  0,  0,        1] ] )
+    # +135 around Y
+    tfFRBaseInSpineBase = np.matrix( [ [ -0.707,  0,   0.707,  0],
+                                       [      0,  1,       0,  0],
+                                       [ -0.707,  0,  -0.707,  0],
+                                       [      0,  0,       0,  1] ] )
+    tfFRBaseInSpineBase *= np.matrix( [ [  1,  0,  0, -heightD],
+                                        [  0,  1,  0,  -widthD],
+                                        [  0,  0,  1,  lengthD],
+                                        [  0,  0,  0,        1] ] )
 
-    tfRRBaseInRobotBase = np.matrix( [ [  0,  0,  1,  -lengthD],
-                                       [  0,  1,  0,  -widthD],
-                                       [ -1,  0,  0,  0],
-                                       [  0,  0,  0,  1] ] )
+    # +90 around X
+    T = np.matrix( [ [  1,  0,  0,  0],
+                     [  0,  0, -1,  0],
+                     [  0,  1,  0,  0],
+                     [  0,  0,  0,  1] ] )
+    # +180 around Y
+    tfRLBaseInSpineBase = T * np.matrix( [ [ -1,  0,  0,  0],
+                                           [  0,  1,  0,  0],
+                                           [  0,  0, -1,  0],
+                                           [  0,  0,  0,  1] ] )
+    tfRLBaseInSpineBase *= np.matrix( [ [  1,  0,  0,        0],
+                                        [  0,  1,  0,   widthD],
+                                        [  0,  0,  1, -lengthD],
+                                        [  0,  0,  0,        1] ] )
+    # +180 around Y
+    tfRRBaseInSpineBase = T * np.matrix( [ [ -1,  0,  0,  0],
+                                           [  0,  1,  0,  0],
+                                           [  0,  0, -1,  0],
+                                           [  0,  0,  0,  1] ] )
+    tfRRBaseInSpineBase *= np.matrix( [ [  1,  0,  0,        0],
+                                        [  0,  1,  0,  -widthD],
+                                        [  0,  0,  1, -lengthD],
+                                        [  0,  0,  0,        1] ] )
 
     global legs
     legs = [0, 0, 0, 0]
     angles = [0, 0, 0, 0, 0]
-    legs[0] = Leg( "FL", initJoints(), angles, tfFLBaseInRobotBase,
-                   tfFLBaseInRobotBase.item(0, 3),
-                   tfFLBaseInRobotBase.item(1, 3),
-                   tfFLBaseInRobotBase.item(2, 3) )
-    legs[1] = Leg( "FR", initJoints(), angles, tfFRBaseInRobotBase,
-                   tfFRBaseInRobotBase.item(0, 3),
-                   tfFRBaseInRobotBase.item(1, 3),
-                   tfFRBaseInRobotBase.item(2, 3) )
-    legs[2] = Leg( "RL", initJoints(), angles, tfRLBaseInRobotBase,
-                   tfRLBaseInRobotBase.item(0, 3),
-                   tfRLBaseInRobotBase.item(1, 3),
-                   tfRLBaseInRobotBase.item(2, 3) )
-    legs[3] = Leg( "RR", initJoints(), angles, tfRRBaseInRobotBase,
-                   tfRRBaseInRobotBase.item(0, 3),
-                   tfRRBaseInRobotBase.item(1, 3),
-                   tfRRBaseInRobotBase.item(2, 3) )
+    sj = 1
+    legs[0] = Leg( "FL", initLegJoints(sj), angles, tfFLBaseInSpineBase )
+    sj += 5
+    legs[1] = Leg( "FR", initLegJoints(sj), angles, tfFRBaseInSpineBase )
+    sj += 5
+    legs[2] = Leg( "RL", initLegJoints(sj), angles, tfRLBaseInSpineBase )
+    sj += 5
+    legs[3] = Leg( "RR", initLegJoints(sj), angles, tfRRBaseInSpineBase )
 
 
-def initJoints():
+def initLegJoints(startingJoint):
     tmpTF = np.matrix( [ [  1,  0,  0,  0],
                          [  0,  1,  0,  0],
                          [  0,  0,  1,  0],
                          [  0,  0,  0,  1] ] )
     joints = [0, 0, 0, 0, 0, 0]
-    for j in range(0,5):
-        joints[j] = Joint(j+1, tmpTF, tmpTF, 0, 0, 0)
-    joints[5] = Joint("F", tmpTF, tmpTF, 0, 0, 0)  # Foot
+    for j in range(0, 5):
+        joints[j] = Joint(startingJoint + j, tmpTF, tmpTF)
+    joints[5] = Joint("F", tmpTF, tmpTF)  # Foot
     return joints
 
 
@@ -334,7 +383,97 @@ def rescale(old, oldMin, oldMax, newMin, newMax):
     return (old - oldMin) * newRange / oldRange + newMin
 
 
-def runFK(leg):
+def runSpineFK(spine, roll, pitch, yaw):
+   # spine.tfSpineBaseInWorld = np.matrix( [ [  1,  0,  0,  0],
+    #                                        [  0,  1,  0,  60],
+ #                                           [  0,  0,  1,  0],
+     #                                       [  0,  0,  0,  1] ] )
+
+    # Spine front: In the future this can be controlled by e.g. orientation from IMU
+    s = math.sin( math.radians(yaw) )
+    c = math.cos( math.radians(yaw) )
+    spine.tfSpineBaseInWorld = np.matrix( [ [  c, -s,  0,  0],
+                                            [  s,  c,  0,  0],
+                                            [  0,  0,  1,  0],
+                                            [  0,  0,  0,  1] ] )
+
+    s = math.sin( math.radians(pitch) )
+    c = math.cos( math.radians(pitch) )
+    spine.tfSpineBaseInWorld *= np.matrix( [ [  c,  0,  s,  0],
+                                             [  0,  1,  0,  0],
+                                             [ -s,  0,  c,  0],
+                                             [  0,  0,  0,  1] ] )
+
+    s = math.sin( math.radians(roll) )
+    c = math.cos( math.radians(roll) )
+    spine.tfSpineBaseInWorld *= np.matrix( [ [  1,  0,  0,  0],
+                                             [  0,  c, -s,  0],
+                                             [  0,  s,  c,  0],
+                                             [  0,  0,  0,  1] ] )
+
+    # TODO: Get this translation accurate e.g. at location of IMU
+    # Translation (to get from world to robot spine)
+    spine.tfSpineBaseInWorld *= np.matrix( [ [  1,  0,  0,  -50],
+                                             [  0,  1,  0,     0],
+                                             [  0,  0,  1,     0],
+                                             [  0,  0,  0,     1] ] )
+
+    # -45 around Y (to get from world to robot spine)
+    spine.tfSpineBaseInWorld *= np.matrix( [ [  0.707,  0, -0.707,  0],
+                                             [      0,  1,      0,  0],
+                                             [  0.707,  0,  0.707,  0],
+                                             [      0,  0,      0,  1] ] )
+
+    d_1b = 16.975  # Dummy link offset
+
+    s = [0, 0, 0, 0]
+    c = [0, 0, 0, 0]
+    for i in range(1, 4):
+        s[i] = math.sin( math.radians(spine.angles[i-1]) )
+        c[i] = math.cos( math.radians(spine.angles[i-1]) )
+
+    tfJointInPrevJoint = [0, 0, 0]
+
+    # Front spine joint
+    tfJointInPrevJoint[0] = np.matrix( [ [ c[1], -s[1],  0,    0],
+                                         [ s[1],  c[1],  0,    0],
+                                         [    0,     0,  1,    0],
+                                         [    0,     0,  0,    1] ] )
+
+    # Dummy joint
+    tfJointInPrevJoint[1] = np.matrix( [ [    1,     0,  0,    0],
+                                         [    0,     1,  0,    0],
+                                         [    0,     0,  1, d_1b],
+                                         [    0,     0,  0,    1] ] )
+
+    # Rear spine joint
+    tfJointInPrevJoint[2] = np.matrix( [ [ c[3], -s[3],  0,    0],
+                                         [    0,     0,  1,    0],
+                                         [-s[3], -c[3],  0,    0],
+                                         [    0,     0,  0,    1] ] )
+
+    for j in range(0, 3):
+        # Assign joint transforms, in preceeding joint coords and in world coords
+        spine.joints[j].tfJointInPrevJoint = deepcopy(tfJointInPrevJoint[j])
+        if j == 0:
+            T = spine.tfSpineBaseInWorld
+        else:
+            T = spine.joints[j-1].tfJointInWorld
+        spine.joints[j].tfJointInWorld = T * tfJointInPrevJoint[j]
+
+    # Update legs
+    for leg in legs:
+        runLegFK(leg)
+
+
+def runSpineIK():
+    #TODO
+    # ...
+    #
+    runSpineFK()
+
+
+def runLegFK(leg):
     global a
     global footOffset
 
@@ -344,7 +483,7 @@ def runFK(leg):
 
     s = [0, 0, 0, 0, 0, 0]
     c = [0, 0, 0, 0, 0, 0]
-    for i in range(1,6):
+    for i in range(1, 6):
         s[i] = math.sin( math.radians(leg.angles[i-1]) )
         c[i] = math.cos( math.radians(leg.angles[i-1]) )
 
@@ -371,7 +510,7 @@ def runFK(leg):
                                          [    0,     0,  0,    1] ] )
 
     tfJointInPrevJoint[4] = np.matrix( [ [ c[5], -s[5],  0, a[5]],
-                                         [    0,     0, -1,    0],
+                                         [    0,     0,  1,    0],
                                          [-s[5], -c[5],  1,    0],
                                          [    0,     0,  0,    1] ] )
 
@@ -380,31 +519,47 @@ def runFK(leg):
                                          [  0,  0,  1,  0],
                                          [  0,  0,  0,  1] ] )
 
-    for j in range(0,6):
-        # Assign joint transforms, in preceeding joint coords and in base coords
-        leg.joints[j].tfJointInPrevJoint = tfJointInPrevJoint[j]
+    for j in range(0, 6):
+        # Assign joint transforms, in preceeding joint coords and in world coords
+        leg.joints[j].tfJointInPrevJoint = deepcopy(tfJointInPrevJoint[j])
         if j == 0:
-            leg.joints[j].tfJointInRobotBase = leg.tfLegBaseInRobotBase * tfJointInPrevJoint[0]
+            if (leg.id == "FL") or (leg.id == "FR"):
+                T = spine.tfSpineBaseInWorld * leg.tfLegBaseInSpineBase
+            else:
+                T = spine.joints[2].tfJointInWorld * leg.tfLegBaseInSpineBase
         else:
-            leg.joints[j].tfJointInRobotBase = leg.joints[j-1].tfJointInRobotBase * tfJointInPrevJoint[j]
+            T = leg.joints[j-1].tfJointInWorld
+        leg.joints[j].tfJointInWorld = T * tfJointInPrevJoint[j]
         # Extract joint positions in base coords
-        leg.joints[j].x = leg.joints[j].tfJointInRobotBase.item(0, 3)
-        leg.joints[j].y = leg.joints[j].tfJointInRobotBase.item(1, 3)
-        leg.joints[j].z = leg.joints[j].tfJointInRobotBase.item(2, 3)
+        #leg.joints[j].x = leg.joints[j].tfJointInWorld.item(0, 3)
+        #leg.joints[j].y = leg.joints[j].tfJointInWorld.item(1, 3)
+        #leg.joints[j].z = leg.joints[j].tfJointInWorld.item(2, 3)
 
 
-def runIK(leg, target):
+def runLegIK(leg, target):
     # Convert target in robot base to be in leg base
     # targetInLegBase = tfRobotBaseInLegBase * target
     #                 = inv(tfLegBaseInRobotBase) * target
     # Convert target to 4x1 size vector, in order to multiply with 4x4 matrix
-    targetV4 = np.array([target[0], target[1], target[2], 1]).reshape(4, 1)
-    targetInLegBaseV4 = np.linalg.inv(leg.tfLegBaseInRobotBase) * targetV4
-    targetInLegBase = [targetInLegBaseV4.item(0), targetInLegBaseV4.item(1), targetInLegBaseV4.item(2)]
+    #targetV4 = np.array([target[0], target[1], target[2], 1]).reshape(4, 1)
+    #targetInLegBaseV4 = np.linalg.inv(leg.tfLegBaseInRobotBase) * targetV4
+    #targetInLegBase = [targetInLegBaseV4[0], targetInLegBaseV4[1], targetInLegBaseV4[2]]
+#    targetInLegBase = np.linalg.inv(leg.tfLegBaseInRobotBase) * target
+
+    # Convert target in world to be in leg base
+    tfSpineBaseInLegBase = np.linalg.inv(leg.tfLegBaseInSpineBase)
+    #worldInLegBase = spine.joints[i].tfJointInWorld
+    #targetInLegBase = tfSpineBaseInLegBase * worldInLegBase * target
+    if (leg.id == "FL") or (leg.id == "FR"):
+        T = spine.tfSpineBaseInWorld
+        worldInSpineBase = np.linalg.inv(spine.tfSpineBaseInWorld)
+    else:
+        worldInSpineBase = np.linalg.inv(spine.joints[2].tfJointInWorld)
+    targetInLegBase = tfSpineBaseInLegBase * worldInSpineBase * target
 
     # Solve Joint 1
-    num = targetInLegBase[1]
-    den = abs(targetInLegBase[0]) - footOffset
+    num = targetInLegBase[1, 3]
+    den = abs(targetInLegBase[0, 3]) - footOffset
     a0Rads = math.atan2(num, den)
     leg.angles[0] = math.degrees(a0Rads)
 
@@ -415,13 +570,13 @@ def runIK(leg, target):
     a4p = a[4]*c0
     a5p = a[5]*c0
 
-    j4Height = abs(targetInLegBase[0]) - a2p - a5p - footOffset
+    j4Height = abs(targetInLegBase[0, 3]) - a2p - a5p - footOffset
 
-    j2j4DistSquared = math.pow(j4Height, 2) + math.pow(targetInLegBase[2], 2)
+    j2j4DistSquared = math.pow(j4Height, 2) + math.pow(targetInLegBase[2, 3], 2)
     j2j4Dist = math.sqrt(j2j4DistSquared)
 
     # Solve Joint 2
-    num = targetInLegBase[2]
+    num = targetInLegBase[2, 3]
     den = j4Height
     psi = math.degrees( math.atan2(num, den) )
 
@@ -447,7 +602,7 @@ def runIK(leg, target):
     # Solve Joint 5
     leg.angles[4] = - leg.angles[0]
 
-    runFK(leg)
+    runLegFK(leg)
 
     #print "target: ", target
     #print "targetInLegBase: ", targetInLegBase
@@ -474,9 +629,9 @@ def testIKCallback():
         u2 = math.pow(u, 2)
         x = aEll*(1 - u2) / (u2 + 1)
         y = 2*bEll*u / (u2 + 1)
-        target[0] = targetHome[selectedLeg][0] + x + xAdjust
-        target[2] = targetHome[selectedLeg][2] + y + yAdjust
-        runIK(legs[selectedLeg], target)
+        target[0, 3] = targetHome[selectedLeg][0, 3] + x + xAdjust
+        target[2, 3] = targetHome[selectedLeg][2, 3] + y + yAdjust
+        runLegIK(legs[selectedLeg], target)
         root.after(rateMsTIK, testIKCallback)
 
 
@@ -508,7 +663,7 @@ def loadFromFile(filename):
             if r in range(rowOffset, rowOffset + arraySize):
                 #print r, row
                 for c, col in enumerate(row):
-                    if c in range(2,10):
+                    if c in range(2, 10):
                         #print c, col
                         if c == 2:
                             FLUpDown.append(amplAdjust*float(col))
@@ -643,28 +798,28 @@ def loadTargetsCallback():
     if iLT < len(FLUpDown):
         # FL
         i = 0
-        target[0] = targetHome[i][0] + FLFwdBack[iLT] + xAdjust
-        target[1] = targetHome[i][1]
-        target[2] = targetHome[i][2] + FLUpDown[iLT] + zAdjust
-        runIK(legs[i], target)
+        target[0, 3] = targetHome[i][0, 3] + FLFwdBack[iLT] + xAdjust
+        target[1, 3] = targetHome[i][1, 3]
+        target[2, 3] = targetHome[i][2, 3] + FLUpDown[iLT] + zAdjust
+        runLegIK(legs[i], target)
         # FR
         i = 1
-        target[0] = targetHome[i][0] + FRFwdBack[iLT] + xAdjust
-        target[1] = targetHome[i][1]
-        target[2] = targetHome[i][2] + FRUpDown[iLT] + zAdjust
-        runIK(legs[i], target)
+        target[0, 3] = targetHome[i][0, 3] + FRFwdBack[iLT] + xAdjust
+        target[1, 3] = targetHome[i][1, 3]
+        target[2, 3] = targetHome[i][2, 3] + FRUpDown[iLT] + zAdjust
+        runLegIK(legs[i], target)
         # RL
         i = 2
-        target[0] = targetHome[i][0] + RLFwdBack[iLT] + xAdjust
-        target[1] = targetHome[i][1]
-        target[2] = targetHome[i][2] + RLUpDown[iLT] + zAdjust
-        runIK(legs[i], target)
+        target[0, 3] = targetHome[i][0, 3] + RLFwdBack[iLT] + xAdjust
+        target[1, 3] = targetHome[i][1, 3]
+        target[2, 3] = targetHome[i][2, 3] + RLUpDown[iLT] + zAdjust
+        runLegIK(legs[i], target)
         # RR
         i = 3
-        target[0] = targetHome[i][0] + RRFwdBack[iLT] + xAdjust
-        target[1] = targetHome[i][1]
-        target[2] = targetHome[i][2] + RRUpDown[iLT] + zAdjust
-        runIK(legs[i], target)
+        target[0, 3] = targetHome[i][0, 3] + RRFwdBack[iLT] + xAdjust
+        target[1, 3] = targetHome[i][1, 3]
+        target[2, 3] = targetHome[i][2, 3] + RRUpDown[iLT] + zAdjust
+        runLegIK(legs[i], target)
 
         currentPose = [ FLUpDown[iLT], FLFwdBack[iLT], FRUpDown[iLT], FRFwdBack[iLT],
                         RLUpDown[iLT], RLFwdBack[iLT], RRUpDown[iLT], RRFwdBack[iLT] ]
@@ -695,31 +850,31 @@ def initViews():
     sideViewCanvas.create_line( canvasW - (borderDist + axisL), borderDist + axisL, canvasW - borderDist, borderDist + axisL,
                                 fill = "red", width = axisW, tag = "alwaysShown" )  # x-axis
     sideViewCanvas.create_text( canvasW - (borderDist + axisL), borderDist + axisL + 20, text = "X",
-                                font = 6, fill = "red", tag = "alwaysShown" )
+                                font = defaultFont, fill = "red", tag = "alwaysShown" )
     sideViewCanvas.create_line( canvasW - borderDist, borderDist, canvasW - borderDist, borderDist + axisL,
                                 fill = "blue", width = axisW, tag = "alwaysShown" )  # z-axis
     sideViewCanvas.create_text( canvasW - borderDist + 20, borderDist, text = "Z",
-                                font = 6, fill = "blue", tag = "alwaysShown" )
+                                font = defaultFont, fill = "blue", tag = "alwaysShown" )
 
     # Front view axis widget
     frontViewCanvas.create_line( canvasW - (borderDist + axisL), borderDist + axisL, canvasW - borderDist, borderDist + axisL,
                                  fill = "green", width = axisW, tag = "alwaysShown" )  # y-axis
     frontViewCanvas.create_text( canvasW - borderDist, borderDist + axisL + 20, text = "Y",
-                                 font = 6, fill = "green", tag = "alwaysShown" )
+                                 font = defaultFont, fill = "green", tag = "alwaysShown" )
     frontViewCanvas.create_line( canvasW - (borderDist + axisL), borderDist, canvasW - (borderDist + axisL), borderDist + axisL,
                                  fill = "blue", width = axisW, tag = "alwaysShown" )  # z-axis
     frontViewCanvas.create_text( canvasW - (borderDist + axisL) - 20, borderDist, text = "Z",
-                                 font = 6, fill = "blue", tag = "alwaysShown" )
+                                 font = defaultFont, fill = "blue", tag = "alwaysShown" )
 
     # Top view axis widget
     topViewCanvas.create_line( canvasW - (borderDist + axisL), borderDist, canvasW - borderDist, borderDist,
                                fill = "red", width = axisW, tag = "alwaysShown" )  # x-axis
     topViewCanvas.create_text( canvasW - (borderDist + axisL), borderDist - 20, text = "X",
-                               font = 6, fill = "red", tag = "alwaysShown" )
+                               font = defaultFont, fill = "red", tag = "alwaysShown" )
     topViewCanvas.create_line( canvasW - borderDist, borderDist, canvasW - borderDist, borderDist + axisL,
                                fill = "green", width = axisW, tag = "alwaysShown" )  # y-axis
     topViewCanvas.create_text( canvasW - borderDist + 20, borderDist + axisL, text = "Y",
-                               font = 6, fill = "green", tag = "alwaysShown" )
+                               font = defaultFont, fill = "green", tag = "alwaysShown" )
 
 
 def redraw():
@@ -728,163 +883,257 @@ def redraw():
     frontViewCanvas.delete("clear")
     topViewCanvas.delete("clear")
 
-    for leg in legs:
-        for j in range(0,5):
-            drawLink(leg.joints[j], leg.joints[j+1])
-        for j in range(0,5):
-            drawJoint(leg.joints[j])
-        drawEE(leg.joints[5])
+    # Spine
+    for j in range(0, 3, 2):  # Skip dummy joint
+        drawJoint( spine.joints[j].id,
+                   spine.joints[j].tfJointInWorld[0, 3],
+                   spine.joints[j].tfJointInWorld[1, 3],
+                   spine.joints[j].tfJointInWorld[2, 3] )
 
+    # Legs
+    for leg in legs:
+        for j in range(0, 5):
+            drawLink( leg.joints[j].tfJointInWorld[0, 3],
+                      leg.joints[j].tfJointInWorld[1, 3],
+                      leg.joints[j].tfJointInWorld[2, 3],
+                      leg.joints[j+1].tfJointInWorld[0, 3],
+                      leg.joints[j+1].tfJointInWorld[1, 3],
+                      leg.joints[j+1].tfJointInWorld[2, 3] )
+        for j in range(0, 5):
+            drawJoint( leg.joints[j].id,
+                       leg.joints[j].tfJointInWorld[0, 3],
+                       leg.joints[j].tfJointInWorld[1, 3],
+                       leg.joints[j].tfJointInWorld[2, 3] )
+        drawEE( leg.joints[5].id,
+                leg.joints[5].tfJointInWorld[0, 3],
+                leg.joints[5].tfJointInWorld[1, 3],
+                leg.joints[5].tfJointInWorld[2, 3] )
+
+    # Target
     global showTarget
     if showTarget:
-        drawTarget(target, speed)
+        drawTarget( target[0, 3],
+                    target[1, 3],
+                    target[2, 3],
+                    speed )
 
 
-def drawJoint(joint):
+def drawJoint(id, x, y, z):
     r = 25
-    w = 6
     fillCol = "#FFFFE0"
     borderCol = "#00008B"
-    sideViewCanvas.create_oval( canvasW - canvasScale*joint.x - r + canvasOffset[0], canvasH - canvasScale*joint.z - r + canvasOffset[1],
-                                canvasW - canvasScale*joint.x + r + canvasOffset[0], canvasH - canvasScale*joint.z + r + canvasOffset[1],
+    w = 6
+    sideViewCanvas.create_oval( canvasW - canvasScale*x - r + canvasOffset[0], canvasH - canvasScale*z - r + canvasOffset[1],
+                                canvasW - canvasScale*x + r + canvasOffset[0], canvasH - canvasScale*z + r + canvasOffset[1],
                                 fill = fillCol, outline = borderCol, width = w, tag = "clear" )
-    sideViewCanvas.create_text( canvasW - canvasScale*joint.x + canvasOffset[0], canvasH - canvasScale*joint.z + canvasOffset[1],
-                                text = joint.id, font = ("Times", 12, "bold"), tag = "clear" )
+    sideViewCanvas.create_text( canvasW - canvasScale*x + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
+                                text = id, font = ("Times", 12, "bold"), tag = "clear" )
 
-    frontViewCanvas.create_oval( canvasW + canvasScale*joint.y - r + canvasOffset[0], canvasH - canvasScale*joint.z - r + canvasOffset[1],
-                                 canvasW + canvasScale*joint.y + r + canvasOffset[0], canvasH - canvasScale*joint.z + r + canvasOffset[1],
+    frontViewCanvas.create_oval( canvasW + canvasScale*y - r + canvasOffset[0], canvasH - canvasScale*z - r + canvasOffset[1],
+                                 canvasW + canvasScale*y + r + canvasOffset[0], canvasH - canvasScale*z + r + canvasOffset[1],
                                  fill = fillCol, outline = borderCol, width = w, tag = "clear" )
-    frontViewCanvas.create_text( canvasW + canvasScale*joint.y + canvasOffset[0], canvasH - canvasScale*joint.z + canvasOffset[1],
-                                 text = joint.id, font = ("Times", 12, "bold"), tag = "clear" )
+    frontViewCanvas.create_text( canvasW + canvasScale*y + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
+                                 text = id, font = ("Times", 12, "bold"), tag = "clear" )
 
-    topViewCanvas.create_oval( canvasW - canvasScale*joint.x - r + canvasOffset[0], canvasH + canvasScale*joint.y - r + canvasOffset[2],
-                               canvasW - canvasScale*joint.x + r + canvasOffset[0], canvasH + canvasScale*joint.y + r + canvasOffset[2],
+    topViewCanvas.create_oval( canvasW - canvasScale*x - r + canvasOffset[0], canvasH + canvasScale*y - r + canvasOffset[2],
+                               canvasW - canvasScale*x + r + canvasOffset[0], canvasH + canvasScale*y + r + canvasOffset[2],
                                fill = fillCol, outline = borderCol, width = w, tag = "clear" )
-    topViewCanvas.create_text( canvasW - canvasScale*joint.x + canvasOffset[0], canvasH + canvasScale*joint.y + canvasOffset[2],
-                               text = joint.id, font = ("Times", 12, "bold"), tag = "clear" )
+    topViewCanvas.create_text( canvasW - canvasScale*x + canvasOffset[0], canvasH + canvasScale*y + canvasOffset[2],
+                               text = id, font = ("Times", 12, "bold"), tag = "clear" )
 
 
-def drawEE(joint):
+def drawEE(id, x, y, z):
     r = 25
     fillCol = "#00008B"
     borderCol = "#00008B"
     w = 6
-    sideViewCanvas.create_oval( canvasW - canvasScale*joint.x - r + canvasOffset[0], canvasH - canvasScale*joint.z - r + canvasOffset[1],
-                                canvasW - canvasScale*joint.x + r + canvasOffset[0], canvasH - canvasScale*joint.z + r + canvasOffset[1],
+    sideViewCanvas.create_oval( canvasW - canvasScale*x - r + canvasOffset[0], canvasH - canvasScale*z - r + canvasOffset[1],
+                                canvasW - canvasScale*x + r + canvasOffset[0], canvasH - canvasScale*z + r + canvasOffset[1],
                                 fill = fillCol, outline = borderCol, width = w, tag = "clear" )
-    sideViewCanvas.create_text( canvasW - canvasScale*joint.x + canvasOffset[0], canvasH - canvasScale*joint.z + canvasOffset[1],
-                                text = joint.id, fill = "white", font = ("Times", 12, "bold"), tag = "clear" )
+    sideViewCanvas.create_text( canvasW - canvasScale*x + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
+                                text = id, fill = "white", font = ("Times", 12, "bold"), tag = "clear" )
 
-    frontViewCanvas.create_oval( canvasW + canvasScale*joint.y - r + canvasOffset[0], canvasH - canvasScale*joint.z - r + canvasOffset[1],
-                                 canvasW + canvasScale*joint.y + r + canvasOffset[0], canvasH - canvasScale*joint.z + r + canvasOffset[1],
+    frontViewCanvas.create_oval( canvasW + canvasScale*y - r + canvasOffset[0], canvasH - canvasScale*z - r + canvasOffset[1],
+                                 canvasW + canvasScale*y + r + canvasOffset[0], canvasH - canvasScale*z + r + canvasOffset[1],
                                  fill = fillCol, outline = borderCol, width = w, tag = "clear" )
-    frontViewCanvas.create_text( canvasW + canvasScale*joint.y + canvasOffset[0], canvasH - canvasScale*joint.z + canvasOffset[1],
-                                 text = joint.id, fill = "white", font = ("Times", 12, "bold"), tag = "clear" )
+    frontViewCanvas.create_text( canvasW + canvasScale*y + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
+                                 text = id, fill = "white", font = ("Times", 12, "bold"), tag = "clear" )
 
-    topViewCanvas.create_oval( canvasW - canvasScale*joint.x - r + canvasOffset[0], canvasH + canvasScale*joint.y - r + canvasOffset[2],
-                               canvasW - canvasScale*joint.x + r + canvasOffset[0], canvasH + canvasScale*joint.y + r + canvasOffset[2],
+    topViewCanvas.create_oval( canvasW - canvasScale*x - r + canvasOffset[0], canvasH + canvasScale*y - r + canvasOffset[2],
+                               canvasW - canvasScale*x + r + canvasOffset[0], canvasH + canvasScale*y + r + canvasOffset[2],
                                fill = fillCol, outline = borderCol, width = w, tag = "clear" )
-    topViewCanvas.create_text( canvasW - canvasScale*joint.x + canvasOffset[0], canvasH + canvasScale*joint.y + canvasOffset[2],
-                               text = joint.id, fill = "white", font = ("Times", 12, "bold"), tag = "clear" )
+    topViewCanvas.create_text( canvasW - canvasScale*x + canvasOffset[0], canvasH + canvasScale*y + canvasOffset[2],
+                               text = id, fill = "white", font = ("Times", 12, "bold"), tag = "clear" )
 
 
-def drawLink(jointA, jointB):
+def drawLink(Ax, Ay, Az, Bx, By, Bz):
     fillCol = "#00008B"
     w = 10
-    sideViewCanvas.create_line( canvasW - canvasScale*jointA.x + canvasOffset[0], canvasH - canvasScale*jointA.z + canvasOffset[1],
-                                canvasW - canvasScale*jointB.x + canvasOffset[0], canvasH - canvasScale*jointB.z + canvasOffset[1],
+    sideViewCanvas.create_line( canvasW - canvasScale*Ax + canvasOffset[0], canvasH - canvasScale*Az + canvasOffset[1],
+                                canvasW - canvasScale*Bx + canvasOffset[0], canvasH - canvasScale*Bz + canvasOffset[1],
                                 fill = fillCol, width = w, tag = "clear" )
-    frontViewCanvas.create_line( canvasW + canvasScale*jointA.y + canvasOffset[0], canvasH - canvasScale*jointA.z + canvasOffset[1],
-                                 canvasW + canvasScale*jointB.y + canvasOffset[0], canvasH - canvasScale*jointB.z + canvasOffset[1],
+    frontViewCanvas.create_line( canvasW + canvasScale*Ay + canvasOffset[0], canvasH - canvasScale*Az + canvasOffset[1],
+                                 canvasW + canvasScale*By + canvasOffset[0], canvasH - canvasScale*Bz + canvasOffset[1],
                                  fill = fillCol, width = w, tag = "clear" )
-    topViewCanvas.create_line( canvasW - canvasScale*jointA.x + canvasOffset[0], canvasH + canvasScale*jointA.y + canvasOffset[2],
-                                canvasW - canvasScale*jointB.x + canvasOffset[0], canvasH + canvasScale*jointB.y + canvasOffset[2],
+    topViewCanvas.create_line( canvasW - canvasScale*Ax + canvasOffset[0], canvasH + canvasScale*Ay + canvasOffset[2],
+                                canvasW - canvasScale*Bx + canvasOffset[0], canvasH + canvasScale*By + canvasOffset[2],
                                 fill = fillCol, width = w, tag = "clear" )
 
 
-def drawTarget(target, speed):
+def drawTarget(x, y, z, speed):
     r = 32
     borderCol = "#3D9140"
     w = 10
     # Target circle
-    sideViewCanvas.create_oval( canvasW - canvasScale*target[0] - r + canvasOffset[0], canvasH - canvasScale*target[2] - r + canvasOffset[1],
-                                canvasW - canvasScale*target[0] + r + canvasOffset[0], canvasH - canvasScale*target[2] + r + canvasOffset[1],
+    sideViewCanvas.create_oval( canvasW - canvasScale*x - r + canvasOffset[0], canvasH - canvasScale*z - r + canvasOffset[1],
+                                canvasW - canvasScale*x + r + canvasOffset[0], canvasH - canvasScale*z + r + canvasOffset[1],
                                 outline = borderCol, width = w, tag = "clear" )
-    frontViewCanvas.create_oval( canvasW + canvasScale*target[1] - r + canvasOffset[0], canvasH - canvasScale*target[2] - r + canvasOffset[1],
-                                 canvasW + canvasScale*target[1] + r + canvasOffset[0], canvasH - canvasScale*target[2] + r + canvasOffset[1],
+    frontViewCanvas.create_oval( canvasW + canvasScale*y - r + canvasOffset[0], canvasH - canvasScale*z - r + canvasOffset[1],
+                                 canvasW + canvasScale*y + r + canvasOffset[0], canvasH - canvasScale*z + r + canvasOffset[1],
                                  outline = borderCol, width = w, tag = "clear" )
-    topViewCanvas.create_oval( canvasW - canvasScale*target[0] - r + canvasOffset[0], canvasH + canvasScale*target[1] - r + canvasOffset[2],
-                               canvasW - canvasScale*target[0] + r + canvasOffset[0], canvasH + canvasScale*target[1] + r + canvasOffset[2],
+    topViewCanvas.create_oval( canvasW - canvasScale*x - r + canvasOffset[0], canvasH + canvasScale*y - r + canvasOffset[2],
+                               canvasW - canvasScale*x + r + canvasOffset[0], canvasH + canvasScale*y + r + canvasOffset[2],
                                outline = borderCol, width = w, tag = "clear" )
     # Speed vector
     fillCol = borderCol
+    sx = speed[0]
+    sy = speed[1]
+    sz = speed[2]
     k = 1000.0 / inputForceMax  # Arbitrary scaling, to make max. length of vector constant
-    sideViewCanvas.create_line( canvasW - canvasScale*target[0] + canvasOffset[0], canvasH - canvasScale*target[2] + canvasOffset[1],
-                                canvasW - canvasScale*target[0] - speed[0]*k + canvasOffset[0],
-                                canvasH - canvasScale*target[2] - speed[2]*k + canvasOffset[1],
+    sideViewCanvas.create_line( canvasW - canvasScale*x + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
+                                canvasW - canvasScale*x - sx*k + canvasOffset[0],
+                                canvasH - canvasScale*z - sz*k + canvasOffset[1],
                                 fill = fillCol, width = w, tag = "clear" )
-    frontViewCanvas.create_line( canvasW + canvasScale*target[1] + canvasOffset[0], canvasH - canvasScale*target[2] + canvasOffset[1],
-                                 canvasW + canvasScale*target[1] + speed[1]*k + canvasOffset[0],
-                                 canvasH - canvasScale*target[2] - speed[2]*k + canvasOffset[1],
+    frontViewCanvas.create_line( canvasW + canvasScale*y + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
+                                 canvasW + canvasScale*y + sy*k + canvasOffset[0],
+                                 canvasH - canvasScale*z - sz*k + canvasOffset[1],
                                  fill = fillCol, width = w, tag = "clear" )
-    topViewCanvas.create_line( canvasW - canvasScale*target[0] + canvasOffset[0], canvasH + canvasScale*target[1] + canvasOffset[2],
-                               canvasW - canvasScale*target[0] - speed[0]*k + canvasOffset[0],
-                               canvasH + canvasScale*target[1] + speed[1]*k + canvasOffset[2],
+    topViewCanvas.create_line( canvasW - canvasScale*x + canvasOffset[0], canvasH + canvasScale*y + canvasOffset[2],
+                               canvasW - canvasScale*x - sx*k + canvasOffset[0],
+                               canvasH + canvasScale*y + sy*k + canvasOffset[2],
                                fill = fillCol, width = w, tag = "clear" )
 
 
 def selectLeg():
 	global selectedLeg
-	selectedLeg = rbVar.get()
+	selectedLeg = rbLegVar.get()
+
+
+#def selectBase():
+#    global selectedBase
+#    selectedBase = rbBaseVar.get()
 
 
 def joint1SliderCallback(val):
     legs[selectedLeg].angles[0] = float(val)
-    runFK(legs[selectedLeg])
+    runLegFK(legs[selectedLeg])
 
 
 def joint2SliderCallback(val):
     legs[selectedLeg].angles[1] = float(val)
-    runFK(legs[selectedLeg])
+    runLegFK(legs[selectedLeg])
 
 
 def joint3SliderCallback(val):
     legs[selectedLeg].angles[2] = float(val)
-    runFK(legs[selectedLeg])
+    runLegFK(legs[selectedLeg])
 
 
 def joint4SliderCallback(val):
     legs[selectedLeg].angles[3] = float(val)
-    runFK(legs[selectedLeg])
+    runLegFK(legs[selectedLeg])
 
 
 def joint5SliderCallback(val):
     legs[selectedLeg].angles[4] = float(val)
-    runFK(legs[selectedLeg])
+    runLegFK(legs[selectedLeg])
 
 
 def targetXSliderCallback(val):
-    global targetYSlider, targetZSlider
-    target[0] = targetHome[selectedLeg][0] + float(val)/1.0
-    target[1] = targetHome[selectedLeg][1] + float(targetYSlider.get())/1.0
-    target[2] = targetHome[selectedLeg][2] + float(targetZSlider.get())/1.0
-    runIK(legs[selectedLeg], target)
+    #global targetYSlider, targetZSlider
+    target[0, 3] = targetHome[selectedLeg][0, 3] + float(val)
+    target[1, 3] = targetHome[selectedLeg][1, 3] + float(targetYSlider.get())
+    target[2, 3] = targetHome[selectedLeg][2, 3] + float(targetZSlider.get())
+    runLegIK(legs[selectedLeg], target)
 
 
 def targetYSliderCallback(val):
-    global targetXSlider, targetZSlider
-    target[0] = targetHome[selectedLeg][0] + float(targetXSlider.get())/1.0
-    target[1] = targetHome[selectedLeg][1] + float(val)/1.0
-    target[2] = targetHome[selectedLeg][2] + float(targetZSlider.get())/1.0
-    runIK(legs[selectedLeg], target)
+    #global targetXSlider, targetZSlider
+    target[0, 3] = targetHome[selectedLeg][0, 3] + float(targetXSlider.get())
+    target[1, 3] = targetHome[selectedLeg][1, 3] + float(val)
+    target[2, 3] = targetHome[selectedLeg][2, 3] + float(targetZSlider.get())
+    runLegIK(legs[selectedLeg], target)
 
 
 def targetZSliderCallback(val):
-    global targetXSlider, targetYSlider
-    target[0] = targetHome[selectedLeg][0] + float(targetXSlider.get())/1.0
-    target[1] = targetHome[selectedLeg][1] + float(targetYSlider.get())/1.0
-    target[2] = targetHome[selectedLeg][2] + float(val)/1.0
-    runIK(legs[selectedLeg], target)
+    #global targetXSlider, targetYSlider
+    target[0, 3] = targetHome[selectedLeg][0, 3] + float(targetXSlider.get())
+    target[1, 3] = targetHome[selectedLeg][1, 3] + float(targetYSlider.get())
+    target[2, 3] = targetHome[selectedLeg][2, 3] + float(val)
+    runLegIK(legs[selectedLeg], target)
+
+
+def targetRollSliderCallback(val):
+    #global targetPitchSlider, targetYawSlider
+#    target[3] = targetHome[selectedLeg][3] + float(val)
+#    target[4] = targetHome[selectedLeg][4] + float(targetPitchSlider.get())
+#    target[5] = targetHome[selectedLeg][5] + float(targetYawSlider.get())
+    runLegIK(legs[selectedLeg], target)
+
+
+def targetPitchSliderCallback(val):
+    #global targetRollSlider, targetYawSlider
+#    target[3] = targetHome[selectedLeg][3] + float(targetRollSlider.get())
+#    target[4] = targetHome[selectedLeg][4] + float(val)
+#    target[5] = targetHome[selectedLeg][5] + float(targetYawSlider.get())
+    runLegIK(legs[selectedLeg], target)
+
+
+def targetYawSliderCallback(val):
+    #global targetRollSlider, targetPitchSlider
+#    target[3] = targetHome[selectedLeg][3] + float(targetRollSlider.get())
+#    target[4] = targetHome[selectedLeg][4] + float(targetPitchSlider.get())
+#    target[5] = targetHome[selectedLeg][5] + float(val)
+    runLegIK(legs[selectedLeg], target)
+
+
+def spineRollSliderCallback(val):
+    #global spineRollSlider, spinePitchSlider, spineYawSlider
+    r = float(val)
+    p = spinePitchSlider.get()
+    y = spineYawSlider.get()
+    runSpineFK(spine, r, p, y)
+
+
+def spinePitchSliderCallback(val):
+    #global spineRollSlider, spinePitchSlider, spineYawSlider
+    r = spineRollSlider.get()
+    p = float(val)
+    y = spineYawSlider.get()
+    runSpineFK(spine, r, p, y)
+
+
+def spineYawSliderCallback(val):
+    r = spineRollSlider.get()
+    p = spinePitchSlider.get()
+    y = float(val)
+    runSpineFK(spine, r, p, y)
+
+
+def spineJoint1SliderCallback(val):
+    r = spineRollSlider.get()
+    p = spinePitchSlider.get()
+    y = spineYawSlider.get()
+    spine.angles[0] = float(val)
+    runSpineFK(spine, r, p, y)
+
+
+def spineJoint2SliderCallback(val):
+    r = spineRollSlider.get()
+    p = spinePitchSlider.get()
+    y = spineYawSlider.get()
+    spine.angles[2] = float(val)
+    runSpineFK(spine, r, p, y)
 
 
 def messageBoxModifiedCallback(self):
@@ -919,14 +1168,14 @@ startTime = strftime("%a, %d %b %Y %H:%M:%S", localtime())
 
 root = Tk()
 root.title("Quadbot 17 Kinematics")
-rootWidth = 2400
+rootWidth = 2600
 rootHeight = 1660
 root.geometry("%dx%d" % (rootWidth, rootHeight))
 
 
 # Scaling for 4K screens
 root.tk.call('tk', 'scaling', 4.0)
-defaultFont = '12'
+defaultFont = ("System", 12)
 
 
 Grid.rowconfigure(root, 0, weight=1)
@@ -967,14 +1216,21 @@ controlsSubFrame = Frame(controlsFrame)
 buttonsFrame = Frame(controlsFrame)
 
 messageBoxFrame = Frame(controlsSubFrame)
-legSelectFrame = Frame(controlsSubFrame)
+selectFrame = Frame(controlsSubFrame)
 jointSlidersFrame = Frame(controlsSubFrame)
 targetSlidersFrame = Frame(controlsSubFrame)
+spineSlidersFrame = Frame(controlsSubFrame)
 
 messageBoxFrame.grid(row=0, column=0, sticky=N)
-legSelectFrame.grid(row=0, column=1, sticky=N)
+selectFrame.grid(row=0, column=1, sticky=N)
 jointSlidersFrame.grid(row=0, column=2, sticky=N)
 targetSlidersFrame.grid(row=0, column=3, sticky=N)
+spineSlidersFrame.grid(row=0, column=4, sticky=N)
+
+legSelectSubFrame = Frame(selectFrame)
+#baseSelectSubFrame = Frame(selectFrame)
+legSelectSubFrame.grid(row=0, column=0, sticky=N)
+#baseSelectSubFrame.grid(row=1, column=0, sticky=N)
 
 controlsSubFrame.grid(row=0, column=0, sticky=N)
 buttonsFrame.grid(row=1, column=0, sticky=N)
@@ -988,14 +1244,18 @@ messageBox.bind("<<Modified>>", messageBoxModifiedCallback)
 logMessage("Started at: " + startTime)
 
 
-legSelectLabel = Label(legSelectFrame, text="Leg", font = 6)
+legSelectLabel = Label(legSelectSubFrame, text="Leg", font = defaultFont)
 legSelectLabel.grid(row=0, column=0)
 
-rbVar = IntVar()
-FLRadiobutton = Radiobutton( legSelectFrame, text = "FL", font = 6, variable = rbVar, value = 0, command = selectLeg )
-FRRadiobutton = Radiobutton( legSelectFrame, text = "FR", font = 6, variable = rbVar, value = 1, command = selectLeg )
-RLRadiobutton = Radiobutton( legSelectFrame, text = "RL", font = 6, variable = rbVar, value = 2, command = selectLeg )
-RRRadiobutton = Radiobutton( legSelectFrame, text = "RR", font = 6, variable = rbVar, value = 3, command = selectLeg )
+rbLegVar = IntVar()
+FLRadiobutton = Radiobutton( legSelectSubFrame, text = "FL", font = defaultFont, variable = rbLegVar,
+                             value = 0, command = selectLeg )
+FRRadiobutton = Radiobutton( legSelectSubFrame, text = "FR", font = defaultFont, variable = rbLegVar,
+                             value = 1, command = selectLeg )
+RLRadiobutton = Radiobutton( legSelectSubFrame, text = "RL", font = defaultFont, variable = rbLegVar,
+                             value = 2, command = selectLeg )
+RRRadiobutton = Radiobutton( legSelectSubFrame, text = "RR", font = defaultFont, variable = rbLegVar,
+                             value = 3, command = selectLeg )
 FLRadiobutton.grid(row=1, column=0)
 FRRadiobutton.grid(row=2, column=0)
 RLRadiobutton.grid(row=3, column=0)
@@ -1003,46 +1263,98 @@ RRRadiobutton.grid(row=4, column=0)
 FLRadiobutton.select()  # Set default
 
 
-fkLabel = Label(jointSlidersFrame, text="FK - Joints", font = 6)
+#baseSelectLabel = Label(baseSelectSubFrame, text="Base", font = defaultFont)
+#baseSelectLabel.grid(row=0, column=0)
+
+#rbBaseVar = IntVar()
+#RobotBaseFrontRadiobutton = Radiobutton( baseSelectSubFrame, text = "BF", font = defaultFont, variable = rbBaseVar,
+#                                         value = 0, command = selectBase )
+#RobotBaseRearRadiobutton = Radiobutton( baseSelectSubFrame, text = "BR", font = defaultFont, variable = rbBaseVar,
+#                                        value = 1, command = selectBase )
+#RobotBaseFrontRadiobutton.grid(row=1, column=0)
+#RobotBaseRearRadiobutton.grid(row=2, column=0)
+#RobotBaseFrontRadiobutton.select()  # Set default
+
+
+fkLabel = Label(jointSlidersFrame, text="FK - Joints", font = defaultFont)
 fkLabel.grid(row=0, column=0)
 
 jsRange = 180.0
 joint1Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
-                      length = 200, width = 40, font = 6, orient=HORIZONTAL, command = joint1SliderCallback )
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = joint1SliderCallback )
 joint1Slider.grid(row=1, column=0)
 
 joint2Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j2",
-                      length = 200, width = 40, font = 6, orient=HORIZONTAL, command = joint2SliderCallback )
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = joint2SliderCallback )
 joint2Slider.grid(row=2, column=0)
 
 joint3Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j3",
-                      length = 200, width = 40, font = 6, orient=HORIZONTAL, command = joint3SliderCallback )
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = joint3SliderCallback )
 joint3Slider.grid(row=3, column=0)
 
 joint4Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j4",
-                      length = 200, width = 40, font = 6, orient=HORIZONTAL, command = joint4SliderCallback )
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = joint4SliderCallback )
 joint4Slider.grid(row=4, column=0)
 
 joint5Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j5",
-                      length = 200, width = 40, font = 6, orient=HORIZONTAL, command = joint5SliderCallback )
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = joint5SliderCallback )
 joint5Slider.grid(row=5, column=0)
 
 
-ikLabel = Label(targetSlidersFrame, text="IK - Target", font = 6)
+ikLabel = Label(targetSlidersFrame, text="IK - Target", font = defaultFont)
 ikLabel.grid(row=0, column=0)
 
 tsRange = 300.0
 targetXSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "X",
-                      length = 200, width = 40, font = 6, orient=HORIZONTAL, command = targetXSliderCallback )
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetXSliderCallback )
 targetXSlider.grid(row=1, column=0)
 
 targetYSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Y",
-                      length = 200, width = 40, font = 6, orient=HORIZONTAL, command = targetYSliderCallback )
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetYSliderCallback )
 targetYSlider.grid(row=2, column=0)
 
 targetZSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Z",
-                      length = 200, width = 40, font = 6, orient=HORIZONTAL, command = targetZSliderCallback )
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetZSliderCallback )
 targetZSlider.grid(row=3, column=0)
+
+tsRange = 90.0
+targetRollSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Roll",
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetRollSliderCallback )
+targetRollSlider.grid(row=4, column=0)
+
+targetPitchSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Pitch",
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetPitchSliderCallback )
+targetPitchSlider.grid(row=5, column=0)
+
+targetYawSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Yaw",
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetYawSliderCallback )
+targetYawSlider.grid(row=6, column=0)
+
+
+rpyLabel = Label(spineSlidersFrame, text="Spine", font = defaultFont)
+rpyLabel.grid(row=0, column=0)
+
+tsRange = 180.0
+spineRollSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Roll",
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = spineRollSliderCallback )
+spineRollSlider.grid(row=1, column=0)
+
+spinePitchSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Pitch",
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = spinePitchSliderCallback )
+spinePitchSlider.grid(row=2, column=0)
+
+spineYawSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Yaw",
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = spineYawSliderCallback )
+spineYawSlider.grid(row=3, column=0)
+
+tsRange = 180.0
+spineJoint1Slider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "j1",
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = spineJoint1SliderCallback )
+spineJoint1Slider.grid(row=4, column=0)
+
+spineJoint2Slider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "j2",
+                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = spineJoint2SliderCallback )
+spineJoint2Slider.grid(row=5, column=0)
 
 
 jsVar = IntVar()
@@ -1065,29 +1377,42 @@ quitButton.grid(row=0, column=4)
 
 if __name__ == '__main__':
     global selectedLeg
-    global angleOffsets
+    #global selectedBase
+    global spineAngleOffsets
+    global legAngleOffsets
     global targetHome, target, speed
     global showTarget
+    initSpine()
     initLegs()
     initViews()
     selectedLeg = 0
-    angleOffsets = [0, -34, 67.5, -33.5, 0]  # Offsets for natural "home" position
-    target = [0, 0, 0]
-    speed = [0, 0, 0]
+    #selectedBase = 0
+
+    # Offsets for natural "home" position
+    spineAngleOffsets = [0, 0, -45]
+    legAngleOffsets = [0, -34, 67.5, -33.5, 0]
+
+    spine.angles = deepcopy(spineAngleOffsets)
+    runSpineFK(spine, 0, 0, 0)
+    spineJoint1Slider.set(spine.angles[0])
+    spineJoint2Slider.set(spine.angles[2])
+
     for leg in legs:
-        leg.angles = angleOffsets[:]
-        runFK(leg)
+        leg.angles = deepcopy(legAngleOffsets)
+        runLegFK(leg)
     joint1Slider.set(legs[selectedLeg].angles[0])
     joint2Slider.set(legs[selectedLeg].angles[1])
     joint3Slider.set(legs[selectedLeg].angles[2])
     joint4Slider.set(legs[selectedLeg].angles[3])
     joint5Slider.set(legs[selectedLeg].angles[4])
 
-    # Targets: Foot in robot base
+    # Targets: Foot in world
     targetHome = [0, 0, 0, 0]
     for i in range (0,4):
-        targetHome[i] = [ legs[i].joints[5].x, legs[i].joints[5].y, legs[i].joints[5].z ]
-    target = targetHome[0][:]
+        #targetHome[i] = [ legs[i].joints[5].x, legs[i].joints[5].y, legs[i].joints[5].z ]
+        targetHome[i] = deepcopy(legs[i].joints[5].tfJointInWorld)
+    target = deepcopy(targetHome[0])
+    speed = [0, 0, 0]
     showTarget = True
 
     global inputLJSX
