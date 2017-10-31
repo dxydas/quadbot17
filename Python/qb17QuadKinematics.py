@@ -465,40 +465,40 @@ def runSpineIK():
 
 
 def runLegFK(leg):
-    s = [0, 0, 0, 0, 0, 0]
-    c = [0, 0, 0, 0, 0, 0]
-    for i in range(1, 6):
-        s[i] = math.sin( math.radians(leg.angles[i-1]) )
-        c[i] = math.cos( math.radians(leg.angles[i-1]) )
+    s = [0, 0, 0, 0, 0]
+    c = [0, 0, 0, 0, 0]
+    for i in range(0, 5):
+        s[i] = math.sin( math.radians(leg.angles[i]) )
+        c[i] = math.cos( math.radians(leg.angles[i]) )
 
     tfJointInPrevJoint = [0, 0, 0, 0, 0, 0]
 
-    tfJointInPrevJoint[0] = np.matrix( [ [ c[1], -s[1],  0, a[1]],
-                                         [ s[1],  c[1],  0,    0],
+    tfJointInPrevJoint[0] = np.matrix( [ [ c[0], -s[0],  0, a[0]],
+                                         [ s[0],  c[0],  0,    0],
                                          [    0,     0,  1,    0],
                                          [    0,     0,  0,    1] ] )
 
-    tfJointInPrevJoint[1] = np.matrix( [ [ c[2], -s[2],  0, a[2]],
+    tfJointInPrevJoint[1] = np.matrix( [ [ c[1], -s[1],  0, a[1]],
                                          [    0,     0, -1,    0],
-                                         [ s[2],  c[2],  0,    0],
+                                         [ s[1],  c[1],  0,    0],
                                          [    0,     0,  0,    1] ] )
 
-    tfJointInPrevJoint[2] = np.matrix( [ [ c[3], -s[3],  0, a[3]],
+    tfJointInPrevJoint[2] = np.matrix( [ [ c[2], -s[2],  0, a[2]],
+                                         [ s[2],  c[2],  0,    0],
+                                         [    0,     0,  1,    0],
+                                         [    0,     0,  0,    1] ] )
+
+    tfJointInPrevJoint[3] = np.matrix( [ [ c[3], -s[3],  0, a[3]],
                                          [ s[3],  c[3],  0,    0],
                                          [    0,     0,  1,    0],
                                          [    0,     0,  0,    1] ] )
 
-    tfJointInPrevJoint[3] = np.matrix( [ [ c[4], -s[4],  0, a[4]],
-                                         [ s[4],  c[4],  0,    0],
+    tfJointInPrevJoint[4] = np.matrix( [ [ c[4], -s[4],  0, a[4]],
                                          [    0,     0,  1,    0],
+                                         [-s[4], -c[4],  1,    0],
                                          [    0,     0,  0,    1] ] )
 
-    tfJointInPrevJoint[4] = np.matrix( [ [ c[5], -s[5],  0, a[5]],
-                                         [    0,     0,  1,    0],
-                                         [-s[5], -c[5],  1,    0],
-                                         [    0,     0,  0,    1] ] )
-
-    tfJointInPrevJoint[5] = np.matrix( [ [  1,  0,  0,  footOffset],
+    tfJointInPrevJoint[5] = np.matrix( [ [  1,  0,  0,  a[5]],
                                          [  0,  1,  0,  0],
                                          [  0,  0,  1,  0],
                                          [  0,  0,  0,  1] ] )
@@ -528,18 +528,18 @@ def runLegIK(leg, target):
 
     # Solve Joint 1
     num = targetInLegBase[1, 3]
-    den = abs(targetInLegBase[0, 3]) - footOffset
+    den = abs(targetInLegBase[0, 3]) - a[5]
     a0Rads = math.atan2(num, den)
     leg.angles[0] = math.degrees(a0Rads)
 
     # Lengths projected onto z-plane
     c0 = math.cos(a0Rads)
-    a2p = a[2]*c0
-    a3p = a[3]*c0
-    a4p = a[4]*c0
-    a5p = a[5]*c0
+    a2p = a[1]*c0
+    a3p = a[2]*c0
+    a4p = a[3]*c0
+    a5p = a[4]*c0
 
-    j4Height = abs(targetInLegBase[0, 3]) - a2p - a5p - footOffset
+    j4Height = abs(targetInLegBase[0, 3]) - a2p - a5p - a[5]
 
     j2j4DistSquared = math.pow(j4Height, 2) + math.pow(targetInLegBase[2, 3], 2)
     j2j4Dist = math.sqrt(j2j4DistSquared)
@@ -1320,7 +1320,6 @@ quitButton.grid(row=0, column=4)
 if __name__ == '__main__':
     global selectedLeg
     global a
-    global footOffset
     global spineAngleOffsets
     global legAngleOffsets
     global targetsHome, targets, speeds
@@ -1330,9 +1329,8 @@ if __name__ == '__main__':
     initViews()
     selectedLeg = 0
 
-    # Leg kinematics values
-    a = [0, 0, 29.05, 76.919, 72.96, 45.032]  # Link lengths "a-1"
-    footOffset = 33.596
+    # Link lengths "a-1" (last value is the foot offset)
+    a = [0, 29.05, 76.919, 72.96, 45.032, 33.596]
 
     # Offsets for natural "home" position
     spineAngleOffsets = [0, 0, -45]
