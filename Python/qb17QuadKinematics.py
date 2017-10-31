@@ -93,13 +93,13 @@ class GamepadHandler(threading.Thread):
         self.triggerPolling = True
         self.cond = threading.Condition()
         # Input vars
-        self.target = deepcopy(targetHome[selectedLeg])
+        self.target = deepcopy(targetsHome[selectedLeg])
         self.speed = [0, 0, 0]
         self.inputLJSXNormed = 0
         self.inputLJSYNormed = 0
         self.inputRJSXNormed = 0
         self.inputRJSYNormed = 0
-        self.dt = 0.005  # 5 ms
+        self.dt = 0.05  # 50 ms
 
     def stop(self):
         self.terminate = True
@@ -143,10 +143,10 @@ class GamepadHandler(threading.Thread):
                 self.master.after(int(self.dt*1000), self.pollInputs)
 
     def pollIK(self):
-        global target, speed
-        target = deepcopy(self.target)
-        speed = deepcopy(self.speed)
-        runLegIK(legs[selectedLeg], target)
+        global targets, speeds
+        targets[selectedLeg] = deepcopy(self.target)
+        speeds[selectedLeg] = deepcopy(self.speed)
+        runLegIK(legs[selectedLeg], target[selectedLeg])
         with self.cond:
             if not self.paused:
                 self.master.after(int(self.dt*1000), self.pollIK)
@@ -216,26 +216,28 @@ class SerialHandler(threading.Thread):
     def pollSerial(self):
         if self.serialOK:
             writeStr = ""
-            for i in range(len(legs[selectedLeg].angles)):
-                if (selectedLeg % 2 == 0):
-                    # Left side
-                    # Joint 2 needs its direction inverted
-                    if i == 1:
-                        x = int( rescale(-legs[selectedLeg].angles[i], -180.0, 180.0, 0, 1023) )
+            for i, leg in enumerate(legs):
+                #print "leg:", leg.id, "angles:", leg.angles
+                for j in range(len(leg.angles)):
+                    if (i % 2 == 0):
+                        # Left side
+                        # Joint 2 needs its direction inverted
+                        if j == 1: # Joint 2 (zero-indexed)
+                            x = int( rescale(-leg.angles[j], -180.0, 180.0, 0, 1023) )
+                        else:
+                            x = int( rescale(leg.angles[j], -180.0, 180.0, 0, 1023) )
                     else:
-                        x = int( rescale(legs[selectedLeg].angles[i], -180.0, 180.0, 0, 1023) )
-                else:
-                    # Right side
-                    # All joints except for 1 and 5 are mirrors of left side
-                    if (i == 2) or (i == 3):
-                        x = int( rescale(-legs[selectedLeg].angles[i], -180.0, 180.0, 0, 1023) )
+                        # Right side
+                        # All joints except for 1 and 5 are mirrors of left side
+                        if (j == 2) or (j == 3):  # Joints 3 & 4 (zero-indexed)
+                            x = int( rescale(-leg.angles[j], -180.0, 180.0, 0, 1023) )
+                        else:  # Joints 1, 2 & 5 (zero-indexed)
+                            x = int( rescale(leg.angles[j], -180.0, 180.0, 0, 1023) )
+                    writeStr += str(leg.joints[j].id) + "," + str(x)
+                    if (i == 3) and ( j == (len(leg.angles) - 1) ):
+                        writeStr += "\n"
                     else:
-                        x = int( rescale(legs[selectedLeg].angles[i], -180.0, 180.0, 0, 1023) )
-                writeStr += str(i+1) + "," + str(x)
-                if i < (len(legs[selectedLeg].angles) - 1):
-                    writeStr += ","
-                else:
-                    writeStr += "\n"
+                        writeStr += ","
             #print "writeStr: ", writeStr
             try:
                 self.ser.write(writeStr)
@@ -451,8 +453,8 @@ def runSpineFK(spine, roll, pitch, yaw):
         spine.joints[j].tfJointInWorld = T * tfJointInPrevJoint[j]
 
     # Update legs
-    for leg in legs:
-        runLegFK(leg)
+    for i, leg in enumerate(legs):
+        runLegIK(leg, targets[i])
 
 
 def runSpineIK():
@@ -463,13 +465,6 @@ def runSpineIK():
 
 
 def runLegFK(leg):
-    global a
-    global footOffset
-
-    a = [0, 0, 29.05, 76.919, 72.96, 45.032]  # Link lengths "a-1"
-
-    footOffset = 33.596
-
     s = [0, 0, 0, 0, 0, 0]
     c = [0, 0, 0, 0, 0, 0]
     for i in range(1, 6):
@@ -603,9 +598,9 @@ def testIKCallback():
         u2 = math.pow(u, 2)
         x = aEll*(1 - u2) / (u2 + 1)
         y = 2*bEll*u / (u2 + 1)
-        target[0, 3] = targetHome[selectedLeg][0, 3] + x + xAdjust
-        target[2, 3] = targetHome[selectedLeg][2, 3] + y + yAdjust
-        runLegIK(legs[selectedLeg], target)
+        targets[selectedLeg][0, 3] = targetsHome[selectedLeg][0, 3] + x + xAdjust
+        targets[selectedLeg][2, 3] = targetsHome[selectedLeg][2, 3] + y + yAdjust
+        runLegIK(legs[selectedLeg], targets[selectedLeg])
         root.after(rateMsTIK, testIKCallback)
 
 
@@ -760,11 +755,11 @@ def loadTargets2():
 
 
 def loadTargetsCallback():
-    global showTarget
+    global showTargets
     global iLT
     global currentPose
     global gaitCallbackRunning
-    showTarget = False
+    showTargets = False
     xAdjust = -20
     zAdjust = 20
     #print "i: ", iLT
@@ -772,28 +767,28 @@ def loadTargetsCallback():
     if iLT < len(FLUpDown):
         # FL
         i = 0
-        target[0, 3] = targetHome[i][0, 3] + FLFwdBack[iLT] + xAdjust
-        target[1, 3] = targetHome[i][1, 3]
-        target[2, 3] = targetHome[i][2, 3] + FLUpDown[iLT] + zAdjust
-        runLegIK(legs[i], target)
+        targets[i][0, 3] = targetsHome[i][0, 3] + FLFwdBack[iLT] + xAdjust
+        targets[i][1, 3] = targetsHome[i][1, 3]
+        targets[i][2, 3] = targetsHome[i][2, 3] + FLUpDown[iLT] + zAdjust
+        runLegIK(legs[i], targets[i])
         # FR
         i = 1
-        target[0, 3] = targetHome[i][0, 3] + FRFwdBack[iLT] + xAdjust
-        target[1, 3] = targetHome[i][1, 3]
-        target[2, 3] = targetHome[i][2, 3] + FRUpDown[iLT] + zAdjust
-        runLegIK(legs[i], target)
+        targets[i][0, 3] = targetsHome[i][0, 3] + FRFwdBack[iLT] + xAdjust
+        targets[i][1, 3] = targetsHome[i][1, 3]
+        targets[i][2, 3] = targetsHome[i][2, 3] + FRUpDown[iLT] + zAdjust
+        runLegIK(legs[i], targets[i])
         # RL
         i = 2
-        target[0, 3] = targetHome[i][0, 3] + RLFwdBack[iLT] + xAdjust
-        target[1, 3] = targetHome[i][1, 3]
-        target[2, 3] = targetHome[i][2, 3] + RLUpDown[iLT] + zAdjust
-        runLegIK(legs[i], target)
+        targets[i][0, 3] = targetsHome[i][0, 3] + RLFwdBack[iLT] + xAdjust
+        targets[i][1, 3] = targetsHome[i][1, 3]
+        targets[i][2, 3] = targetsHome[i][2, 3] + RLUpDown[iLT] + zAdjust
+        runLegIK(legs[i], targets[i])
         # RR
         i = 3
-        target[0, 3] = targetHome[i][0, 3] + RRFwdBack[iLT] + xAdjust
-        target[1, 3] = targetHome[i][1, 3]
-        target[2, 3] = targetHome[i][2, 3] + RRUpDown[iLT] + zAdjust
-        runLegIK(legs[i], target)
+        targets[i][0, 3] = targetsHome[i][0, 3] + RRFwdBack[iLT] + xAdjust
+        targets[i][1, 3] = targetsHome[i][1, 3]
+        targets[i][2, 3] = targetsHome[i][2, 3] + RRUpDown[iLT] + zAdjust
+        runLegIK(legs[i], targets[i])
 
         currentPose = [ FLUpDown[iLT], FLFwdBack[iLT], FRUpDown[iLT], FRFwdBack[iLT],
                         RLUpDown[iLT], RLFwdBack[iLT], RRUpDown[iLT], RRFwdBack[iLT] ]
@@ -805,7 +800,7 @@ def loadTargetsCallback():
     else:
         #print "Done"
         gaitCallbackRunning = False
-        showTarget = True
+        showTargets = True
 
 
 def toggleJoystick():
@@ -884,12 +879,13 @@ def redraw():
                 leg.joints[5].tfJointInWorld[2, 3] )
 
     # Target
-    global showTarget
-    if showTarget:
-        drawTarget( target[0, 3],
-                    target[1, 3],
-                    target[2, 3],
-                    speed )
+    global showTargets
+    if showTargets:
+        for i, target in enumerate(targets):
+            drawTarget( target[0, 3],
+                        target[1, 3],
+                        target[2, 3],
+                        speeds[i] )
 
 
 def drawJoint(id, x, y, z):
@@ -1019,45 +1015,45 @@ def joint5SliderCallback(val):
 
 
 def targetXSliderCallback(val):
-    target[0, 3] = targetHome[selectedLeg][0, 3] + float(val)
-    target[1, 3] = targetHome[selectedLeg][1, 3] + float(targetYSlider.get())
-    target[2, 3] = targetHome[selectedLeg][2, 3] + float(targetZSlider.get())
-    runLegIK(legs[selectedLeg], target)
+    targets[selectedLeg][0, 3] = targetsHome[selectedLeg][0, 3] + float(val)
+    targets[selectedLeg][1, 3] = targetsHome[selectedLeg][1, 3] + float(targetYSlider.get())
+    targets[selectedLeg][2, 3] = targetsHome[selectedLeg][2, 3] + float(targetZSlider.get())
+    runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
 def targetYSliderCallback(val):
-    target[0, 3] = targetHome[selectedLeg][0, 3] + float(targetXSlider.get())
-    target[1, 3] = targetHome[selectedLeg][1, 3] + float(val)
-    target[2, 3] = targetHome[selectedLeg][2, 3] + float(targetZSlider.get())
-    runLegIK(legs[selectedLeg], target)
+    targets[selectedLeg][0, 3] = targetsHome[selectedLeg][0, 3] + float(targetXSlider.get())
+    targets[selectedLeg][1, 3] = targetsHome[selectedLeg][1, 3] + float(val)
+    targets[selectedLeg][2, 3] = targetsHome[selectedLeg][2, 3] + float(targetZSlider.get())
+    runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
 def targetZSliderCallback(val):
-    target[0, 3] = targetHome[selectedLeg][0, 3] + float(targetXSlider.get())
-    target[1, 3] = targetHome[selectedLeg][1, 3] + float(targetYSlider.get())
-    target[2, 3] = targetHome[selectedLeg][2, 3] + float(val)
-    runLegIK(legs[selectedLeg], target)
+    targets[selectedLeg][0, 3] = targetsHome[selectedLeg][0, 3] + float(targetXSlider.get())
+    targets[selectedLeg][1, 3] = targetsHome[selectedLeg][1, 3] + float(targetYSlider.get())
+    targets[selectedLeg][2, 3] = targetsHome[selectedLeg][2, 3] + float(val)
+    runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
 def targetRollSliderCallback(val):
-#    target[3] = targetHome[selectedLeg][3] + float(val)
-#    target[4] = targetHome[selectedLeg][4] + float(targetPitchSlider.get())
-#    target[5] = targetHome[selectedLeg][5] + float(targetYawSlider.get())
-    runLegIK(legs[selectedLeg], target)
+#    targets[selectedLeg][3] = targetsHome[selectedLeg][3] + float(val)
+#    targets[selectedLeg][4] = targetsHome[selectedLeg][4] + float(targetPitchSlider.get())
+#    targets[selectedLeg][5] = targetsHome[selectedLeg][5] + float(targetYawSlider.get())
+    runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
 def targetPitchSliderCallback(val):
-#    target[3] = targetHome[selectedLeg][3] + float(targetRollSlider.get())
-#    target[4] = targetHome[selectedLeg][4] + float(val)
-#    target[5] = targetHome[selectedLeg][5] + float(targetYawSlider.get())
-    runLegIK(legs[selectedLeg], target)
+#    targets[selectedLeg][3] = targetsHome[selectedLeg][3] + float(targetRollSlider.get())
+#    targets[selectedLeg][4] = targetsHome[selectedLeg][4] + float(val)
+#    targets[selectedLeg][5] = targetsHome[selectedLeg][5] + float(targetYawSlider.get())
+    runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
 def targetYawSliderCallback(val):
-#    target[3] = targetHome[selectedLeg][3] + float(targetRollSlider.get())
-#    target[4] = targetHome[selectedLeg][4] + float(targetPitchSlider.get())
-#    target[5] = targetHome[selectedLeg][5] + float(val)
-    runLegIK(legs[selectedLeg], target)
+#    targets[selectedLeg][3] = targetsHome[selectedLeg][3] + float(targetRollSlider.get())
+#    targets[selectedLeg][4] = targetsHome[selectedLeg][4] + float(targetPitchSlider.get())
+#    targets[selectedLeg][5] = targetsHome[selectedLeg][5] + float(val)
+    runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
 def spineRollSliderCallback(val):
@@ -1323,18 +1319,32 @@ quitButton.grid(row=0, column=4)
 
 if __name__ == '__main__':
     global selectedLeg
+    global a
+    global footOffset
     global spineAngleOffsets
     global legAngleOffsets
-    global targetHome, target, speed
-    global showTarget
+    global targetsHome, targets, speeds
+    global showTargets
     initSpine()
     initLegs()
     initViews()
     selectedLeg = 0
 
+    # Leg kinematics values
+    a = [0, 0, 29.05, 76.919, 72.96, 45.032]  # Link lengths "a-1"
+    footOffset = 33.596
+
     # Offsets for natural "home" position
     spineAngleOffsets = [0, 0, -45]
     legAngleOffsets = [0, -34, 67.5, -33.5, 0]
+
+    # Dummy targets (because of runSpikeIK, which calls runLegFK at the end)
+    targets = [0, 0, 0, 0]
+    for i, leg in enumerate(legs):
+        targets[i] = np.matrix( [ [  1,  0,  0,  0],
+                         [  0,  1,  0,  0],
+                         [  0,  0,  1,  0],
+                         [  0,  0,  0,  1] ] )
 
     spine.angles = deepcopy(spineAngleOffsets)
     runSpineFK(spine, 0, 0, 0)
@@ -1351,12 +1361,13 @@ if __name__ == '__main__':
     joint5Slider.set(legs[selectedLeg].angles[4])
 
     # Targets: Foot in world
-    targetHome = [0, 0, 0, 0]
-    for i in range (0,4):
-        targetHome[i] = deepcopy(legs[i].joints[5].tfJointInWorld)
-    target = deepcopy(targetHome[0])
-    speed = [0, 0, 0]
-    showTarget = True
+    targetsHome = [0, 0, 0, 0]
+    speeds = [0, 0, 0, 0]
+    for i, leg in enumerate(legs):
+        targetsHome[i] = deepcopy(leg.joints[5].tfJointInWorld)
+        speeds[i] = [0, 0, 0]
+    targets = deepcopy(targetsHome)
+    showTargets = True
 
     global inputLJSX
     inputLJSX = 0
