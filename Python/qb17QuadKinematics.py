@@ -526,9 +526,13 @@ def runLegIK(leg, target):
         worldInSpineBase = np.linalg.inv(spine.joints[2].tfJointInWorld)
     targetInLegBase = tfSpineBaseInLegBase * worldInSpineBase * target
 
+    Tx = targetInLegBase[0, 3]
+    Ty = targetInLegBase[1, 3]
+    Tz = targetInLegBase[2, 3]
+
     # Solve Joint 1
-    num = targetInLegBase[1, 3]
-    den = abs(targetInLegBase[0, 3]) - a[5]
+    num = Ty
+    den = Tx - a[5]
     a0Rads = math.atan2(num, den)
     leg.angles[0] = math.degrees(a0Rads)
 
@@ -539,13 +543,13 @@ def runLegIK(leg, target):
     a4p = a[3]*c0
     a5p = a[4]*c0
 
-    j4Height = abs(targetInLegBase[0, 3]) - a2p - a5p - a[5]
+    j4Height = Tx - a2p - a5p - a[5]
 
-    j2j4DistSquared = math.pow(j4Height, 2) + math.pow(targetInLegBase[2, 3], 2)
+    j2j4DistSquared = math.pow(j4Height, 2) + math.pow(Tz, 2)
     j2j4Dist = math.sqrt(j2j4DistSquared)
 
     # Solve Joint 2
-    num = targetInLegBase[2, 3]
+    num = Tz
     den = j4Height
     psi = math.degrees( math.atan2(num, den) )
 
@@ -860,7 +864,7 @@ def redraw():
                    spine.joints[j].tfJointInWorld[2, 3] )
 
     # Legs
-    for leg in legs:
+    for leg in reversed(legs):
         for j in range(0, 5):
             drawLink( leg.joints[j].tfJointInWorld[0, 3],
                       leg.joints[j].tfJointInWorld[1, 3],
@@ -1049,11 +1053,11 @@ def targetPitchSliderCallback(val):
     runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
-def targetYawSliderCallback(val):
+#def targetYawSliderCallback(val):
 #    targets[selectedLeg][3] = targetsHome[selectedLeg][3] + float(targetRollSlider.get())
 #    targets[selectedLeg][4] = targetsHome[selectedLeg][4] + float(targetPitchSlider.get())
 #    targets[selectedLeg][5] = targetsHome[selectedLeg][5] + float(val)
-    runLegIK(legs[selectedLeg], targets[selectedLeg])
+#    runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
 def spineRollSliderCallback(val):
@@ -1268,9 +1272,11 @@ targetPitchSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, r
                       length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetPitchSliderCallback )
 targetPitchSlider.grid(row=5, column=0)
 
-targetYawSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Yaw",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetYawSliderCallback )
-targetYawSlider.grid(row=6, column=0)
+# Target Yaw has no effect
+#targetYawSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Yaw",
+#                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetYawSliderCallback )
+#targetYawSlider.grid(row=6, column=0)
+#targetYawSlider.config(state=DISABLED)
 
 
 rpyLabel = Label(spineSlidersFrame, text="Spine", font = defaultFont)
