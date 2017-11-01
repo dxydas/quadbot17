@@ -276,21 +276,14 @@ class Joint():
 
 
 def initSpine():
-    tmpTF = np.matrix( [ [  1,  0,  0,  0],
-                         [  0,  1,  0,  0],
-                         [  0,  0,  1,  0],
-                         [  0,  0,  0,  1] ] )
-
+    tmpTF = np.eye(4)
     global spine
     spineAngles = [0, 0, 0]
     spine = Spine( "B", initSpineJoints(21), spineAngles, tmpTF )
 
 
 def initSpineJoints(startingJoint):
-    tmpTF = np.matrix( [ [  1,  0,  0,  0],
-                         [  0,  1,  0,  0],
-                         [  0,  0,  1,  0],
-                         [  0,  0,  0,  1] ] )
+    tmpTF = np.eye(4)
     joints = [0, 0, 0]
     joints[0] = Joint(startingJoint, tmpTF, tmpTF)
     joints[1] = Joint("Dummy", tmpTF, tmpTF)
@@ -370,10 +363,7 @@ def initLegs():
 
 
 def initLegJoints(startingJoint):
-    tmpTF = np.matrix( [ [  1,  0,  0,  0],
-                         [  0,  1,  0,  0],
-                         [  0,  0,  1,  0],
-                         [  0,  0,  0,  1] ] )
+    tmpTF = np.eye(4)
     joints = [0, 0, 0, 0, 0, 0]
     for j in range(0, 5):
         joints[j] = Joint(startingJoint + j, tmpTF, tmpTF)
@@ -389,41 +379,22 @@ def rescale(old, oldMin, oldMax, newMin, newMax):
 
 def runSpineFK(spine, roll, pitch, yaw):
     # Spine front: In the future this can be controlled by e.g. orientation from IMU
-    s = math.sin( math.radians(yaw) )
-    c = math.cos( math.radians(yaw) )
-    spine.tfSpineBaseInWorld = np.matrix( [ [  c, -s,  0,  0],
-                                            [  s,  c,  0,  0],
-                                            [  0,  0,  1,  0],
-                                            [  0,  0,  0,  1] ] )
-
-    s = math.sin( math.radians(pitch) )
-    c = math.cos( math.radians(pitch) )
-    spine.tfSpineBaseInWorld *= np.matrix( [ [  c,  0,  s,  0],
-                                             [  0,  1,  0,  0],
-                                             [ -s,  0,  c,  0],
-                                             [  0,  0,  0,  1] ] )
-
-    s = math.sin( math.radians(roll) )
-    c = math.cos( math.radians(roll) )
-    spine.tfSpineBaseInWorld *= np.matrix( [ [  1,  0,  0,  0],
-                                             [  0,  c, -s,  0],
-                                             [  0,  s,  c,  0],
-                                             [  0,  0,  0,  1] ] )
+    spine.tfSpineBaseInWorld = applyYawPitchRoll(yaw, pitch, roll)
 
     # TODO: Get this translation accurate e.g. at location of IMU
     # Translation (to get from world to robot spine)
-    spine.tfSpineBaseInWorld *= np.matrix( [ [  1,  0,  0,  -50],
-                                             [  0,  1,  0,    0],
-                                             [  0,  0,  1,    0],
-                                             [  0,  0,  0,    1] ] )
+    spine.tfSpineBaseInWorld *= np.matrix( [ [  1,  0,  0, -50],
+                                             [  0,  1,  0,   0],
+                                             [  0,  0,  1,   0],
+                                             [  0,  0,  0,   1] ] )
 
     # -45 around Y (to get from world to robot spine)
     s = math.sin( -math.pi/4 )
     c = math.cos( -math.pi/4 )
-    spine.tfSpineBaseInWorld *= np.matrix( [ [  c,  0,  s,  0],
-                                             [  0,  1,  0,  0],
-                                             [ -s,  0,  c,  0],
-                                             [  0,  0,  0,  1] ] )
+    spine.tfSpineBaseInWorld *= np.matrix( [ [  c,  0,  s,   0],
+                                             [  0,  1,  0,   0],
+                                             [ -s,  0,  c,   0],
+                                             [  0,  0,  0,   1] ] )
 
     d_1b = 16.975  # Dummy link offset
 
@@ -436,22 +407,22 @@ def runSpineFK(spine, roll, pitch, yaw):
     tfJointInPrevJoint = [0, 0, 0]
 
     # Front spine joint
-    tfJointInPrevJoint[0] = np.matrix( [ [ c[1], -s[1],  0,    0],
-                                         [ s[1],  c[1],  0,    0],
-                                         [    0,     0,  1,    0],
-                                         [    0,     0,  0,    1] ] )
+    tfJointInPrevJoint[0] = np.matrix( [ [  c[1], -s[1],     0,     0],
+                                         [  s[1],  c[1],     0,     0],
+                                         [     0,     0,     1,     0],
+                                         [     0,     0,     0,     1] ] )
 
     # Dummy joint
-    tfJointInPrevJoint[1] = np.matrix( [ [    1,     0,  0,    0],
-                                         [    0,     1,  0,    0],
-                                         [    0,     0,  1, d_1b],
-                                         [    0,     0,  0,    1] ] )
+    tfJointInPrevJoint[1] = np.matrix( [ [     1,     0,     0,     0],
+                                         [     0,     1,     0,     0],
+                                         [     0,     0,     1,  d_1b],
+                                         [     0,     0,     0,     1] ] )
 
     # Rear spine joint
-    tfJointInPrevJoint[2] = np.matrix( [ [ c[3], -s[3],  0,    0],
-                                         [    0,     0,  1,    0],
-                                         [-s[3], -c[3],  0,    0],
-                                         [    0,     0,  0,    1] ] )
+    tfJointInPrevJoint[2] = np.matrix( [ [  c[3], -s[3],     0,     0],
+                                         [     0,     0,     1,     0],
+                                         [ -s[3], -c[3],     0,     0],
+                                         [     0,     0,     0,     1] ] )
 
     for j in range(0, 3):
         # Assign joint transforms, in preceeding joint coords and in world coords
@@ -483,35 +454,35 @@ def runLegFK(leg):
 
     tfJointInPrevJoint = [0, 0, 0, 0, 0, 0]
 
-    tfJointInPrevJoint[0] = np.matrix( [ [ c[0], -s[0],  0, a[0]],
-                                         [ s[0],  c[0],  0,    0],
-                                         [    0,     0,  1,    0],
-                                         [    0,     0,  0,    1] ] )
+    tfJointInPrevJoint[0] = np.matrix( [ [  c[0], -s[0],     0,  a[0]],
+                                         [  s[0],  c[0],     0,     0],
+                                         [     0,     0,     1,     0],
+                                         [     0,     0,     0,     1] ] )
 
-    tfJointInPrevJoint[1] = np.matrix( [ [ c[1], -s[1],  0, a[1]],
-                                         [    0,     0, -1,    0],
-                                         [ s[1],  c[1],  0,    0],
-                                         [    0,     0,  0,    1] ] )
+    tfJointInPrevJoint[1] = np.matrix( [ [  c[1], -s[1],     0,  a[1]],
+                                         [     0,     0,    -1,     0],
+                                         [  s[1],  c[1],     0,     0],
+                                         [     0,     0,     0,     1] ] )
 
-    tfJointInPrevJoint[2] = np.matrix( [ [ c[2], -s[2],  0, a[2]],
-                                         [ s[2],  c[2],  0,    0],
-                                         [    0,     0,  1,    0],
-                                         [    0,     0,  0,    1] ] )
+    tfJointInPrevJoint[2] = np.matrix( [ [  c[2], -s[2],     0,  a[2]],
+                                         [  s[2],  c[2],     0,     0],
+                                         [     0,     0,     1,     0],
+                                         [     0,     0,     0,     1] ] )
 
-    tfJointInPrevJoint[3] = np.matrix( [ [ c[3], -s[3],  0, a[3]],
-                                         [ s[3],  c[3],  0,    0],
-                                         [    0,     0,  1,    0],
-                                         [    0,     0,  0,    1] ] )
+    tfJointInPrevJoint[3] = np.matrix( [ [  c[3], -s[3],     0,  a[3]],
+                                         [  s[3],  c[3],     0,     0],
+                                         [     0,     0,     1,     0],
+                                         [     0,     0,     0,     1] ] )
 
-    tfJointInPrevJoint[4] = np.matrix( [ [ c[4], -s[4],  0, a[4]],
-                                         [    0,     0,  1,    0],
-                                         [-s[4], -c[4],  1,    0],
-                                         [    0,     0,  0,    1] ] )
+    tfJointInPrevJoint[4] = np.matrix( [ [  c[4], -s[4],     0,  a[4]],
+                                         [     0,     0,     1,     0],
+                                         [ -s[4], -c[4],     1,     0],
+                                         [     0,     0,     0,     1] ] )
 
-    tfJointInPrevJoint[5] = np.matrix( [ [  1,  0,  0,  a[5]],
-                                         [  0,  1,  0,  0],
-                                         [  0,  0,  1,  0],
-                                         [  0,  0,  0,  1] ] )
+    tfJointInPrevJoint[5] = np.matrix( [ [  1,  0,  0, a[5]],
+                                         [  0,  1,  0,    0],
+                                         [  0,  0,  1,    0],
+                                         [  0,  0,  0,    1] ] )
 
     for j in range(0, 6):
         # Assign joint transforms, in preceeding joint coords and in world coords
@@ -867,7 +838,7 @@ def redraw():
     topViewCanvas.delete("clear")
 
     # Spine
-    for j in range(0, 3, 2):  # Skip dummy joint
+    for j in range(2, -1, -2):  # Skip dummy joint
         drawJoint( spine.joints[j].id,
                    spine.joints[j].tfJointInWorld[0, 3],
                    spine.joints[j].tfJointInWorld[1, 3],
@@ -875,14 +846,14 @@ def redraw():
 
     # Legs
     for leg in reversed(legs):
-        for j in range(0, 5):
+        for j in range(4, -1, -1):
             drawLink( leg.joints[j].tfJointInWorld[0, 3],
                       leg.joints[j].tfJointInWorld[1, 3],
                       leg.joints[j].tfJointInWorld[2, 3],
                       leg.joints[j+1].tfJointInWorld[0, 3],
                       leg.joints[j+1].tfJointInWorld[1, 3],
                       leg.joints[j+1].tfJointInWorld[2, 3] )
-        for j in range(0, 5):
+        for j in range(4, -1, -1):
             drawJoint( leg.joints[j].id,
                        leg.joints[j].tfJointInWorld[0, 3],
                        leg.joints[j].tfJointInWorld[1, 3],
@@ -998,7 +969,29 @@ def drawTarget(x, y, z, speed):
                                fill = fillCol, width = w, tag = "clear" )
 
 
-def selectLeg():
+def applyYawPitchRoll(yaw, pitch, roll):
+    s = math.sin( math.radians(yaw) )
+    c = math.cos( math.radians(yaw) )
+    T = np.matrix( [ [  c, -s,  0,  0],
+                     [  s,  c,  0,  0],
+                     [  0,  0,  1,  0],
+                     [  0,  0,  0,  1] ] )
+    s = math.sin( math.radians(pitch) )
+    c = math.cos( math.radians(pitch) )
+    T *= np.matrix( [ [  c,  0,  s,  0],
+                      [  0,  1,  0,  0],
+                      [ -s,  0,  c,  0],
+                      [  0,  0,  0,  1] ] )
+    s = math.sin( math.radians(roll) )
+    c = math.cos( math.radians(roll) )
+    T *= np.matrix( [ [  1,  0,  0,  0],
+                      [  0,  c, -s,  0],
+                      [  0,  s,  c,  0],
+                      [  0,  0,  0,  1] ] )
+    return T
+
+
+def selectLegCallback():
 	global selectedLeg
 	selectedLeg = rbLegVar.get()
 
@@ -1050,24 +1043,26 @@ def targetZSliderCallback(val):
 
 
 def targetRollSliderCallback(val):
-
-#    targets[selectedLeg][3] = targetsHome[selectedLeg][3] + float(val)
-#    targets[selectedLeg][4] = targetsHome[selectedLeg][4] + float(targetPitchSlider.get())
-#    targets[selectedLeg][5] = targetsHome[selectedLeg][5] + float(targetYawSlider.get())
+    # Roll is rotation around X
+    targets[selectedLeg] *= applyYawPitchRoll( 0.0,#targetYawSlider.get(),
+                                               targetPitchSlider.get(),
+                                               float(val))
     runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
 def targetPitchSliderCallback(val):
-#    targets[selectedLeg][3] = targetsHome[selectedLeg][3] + float(targetRollSlider.get())
-#    targets[selectedLeg][4] = targetsHome[selectedLeg][4] + float(val)
-#    targets[selectedLeg][5] = targetsHome[selectedLeg][5] + float(targetYawSlider.get())
+    # Pitch is rotation around Y
+    targets[selectedLeg] *= applyYawPitchRoll( 0.0,#targetYawSlider.get(),
+                                               float(val),
+                                               targetRollSlider.get() )
     runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
 #def targetYawSliderCallback(val):
-#    targets[selectedLeg][3] = targetsHome[selectedLeg][3] + float(targetRollSlider.get())
-#    targets[selectedLeg][4] = targetsHome[selectedLeg][4] + float(targetPitchSlider.get())
-#    targets[selectedLeg][5] = targetsHome[selectedLeg][5] + float(val)
+#    # Yaw is rotation around Z
+#    targets[selectedLeg] *= applyYawPitchRoll( float(val),
+#                                               targetPitchSlider.get(),
+#                                               targetRollSlider.get() )
 #    runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
@@ -1219,13 +1214,13 @@ legSelectLabel.grid(row=0, column=0)
 
 rbLegVar = IntVar()
 FLRadiobutton = Radiobutton( legSelectSubFrame, text = "FL", font = defaultFont, variable = rbLegVar,
-                             value = 0, command = selectLeg )
+                             value = 0, command = selectLegCallback )
 FRRadiobutton = Radiobutton( legSelectSubFrame, text = "FR", font = defaultFont, variable = rbLegVar,
-                             value = 1, command = selectLeg )
+                             value = 1, command = selectLegCallback )
 RLRadiobutton = Radiobutton( legSelectSubFrame, text = "RL", font = defaultFont, variable = rbLegVar,
-                             value = 2, command = selectLeg )
+                             value = 2, command = selectLegCallback )
 RRRadiobutton = Radiobutton( legSelectSubFrame, text = "RR", font = defaultFont, variable = rbLegVar,
-                             value = 3, command = selectLeg )
+                             value = 3, command = selectLegCallback )
 FLRadiobutton.grid(row=1, column=0)
 FRRadiobutton.grid(row=2, column=0)
 RLRadiobutton.grid(row=3, column=0)
@@ -1356,10 +1351,7 @@ if __name__ == '__main__':
     # Dummy targets (because of runSpikeIK, which calls runLegFK at the end)
     targets = [0, 0, 0, 0]
     for i, leg in enumerate(legs):
-        targets[i] = np.matrix( [ [  1,  0,  0,  0],
-                         [  0,  1,  0,  0],
-                         [  0,  0,  1,  0],
-                         [  0,  0,  0,  1] ] )
+        targets[i] = np.eye(4)
 
     spine.angles = deepcopy(spineAngleOffsets)
     runSpineFK(spine, 0, 0, 0)
