@@ -306,42 +306,50 @@ def initLegs():
     # TODO: Position leg bases more accurately
 
     # +135 around Y
-    tfFLBaseInSpineBase = np.matrix( [ [ -0.707,  0,   0.707,  0],
-                                       [      0,  1,       0,  0],
-                                       [ -0.707,  0,  -0.707,  0],
-                                       [      0,  0,       0,  1] ] )
+    s = math.sin( 3*math.pi/4 )
+    c = math.cos( 3*math.pi/4 )
+    tfFLBaseInSpineBase = np.matrix( [ [  c,  0,  s,  0],
+                                       [  0,  1,  0,  0],
+                                       [ -s,  0,  c,  0],
+                                       [  0,  0,  0,  1] ] )
     tfFLBaseInSpineBase *= np.matrix( [ [  1,  0,  0, -heightD],
                                         [  0,  1,  0,   widthD],
                                         [  0,  0,  1,  lengthD],
                                         [  0,  0,  0,        1] ] )
     # +135 around Y
-    tfFRBaseInSpineBase = np.matrix( [ [ -0.707,  0,   0.707,  0],
-                                       [      0,  1,       0,  0],
-                                       [ -0.707,  0,  -0.707,  0],
-                                       [      0,  0,       0,  1] ] )
+    # c, s same as above
+    tfFRBaseInSpineBase = np.matrix( [ [  c,  0,  s,  0],
+                                       [  0,  1,  0,  0],
+                                       [ -s,  0,  c,  0],
+                                       [  0,  0,  0,  1] ] )
     tfFRBaseInSpineBase *= np.matrix( [ [  1,  0,  0, -heightD],
                                         [  0,  1,  0,  -widthD],
                                         [  0,  0,  1,  lengthD],
                                         [  0,  0,  0,        1] ] )
 
     # +90 around X
+    s = math.sin( math.pi/2 )
+    c = math.cos( math.pi/2 )
     T = np.matrix( [ [  1,  0,  0,  0],
-                     [  0,  0, -1,  0],
-                     [  0,  1,  0,  0],
+                     [  0,  c, -s,  0],
+                     [  0,  s,  c,  0],
                      [  0,  0,  0,  1] ] )
     # +180 around Y
-    tfRLBaseInSpineBase = T * np.matrix( [ [ -1,  0,  0,  0],
+    s = math.sin( math.pi )
+    c = math.cos( math.pi )
+    tfRLBaseInSpineBase = T * np.matrix( [ [  c,  0,  s,  0],
                                            [  0,  1,  0,  0],
-                                           [  0,  0, -1,  0],
+                                           [ -s,  0,  c,  0],
                                            [  0,  0,  0,  1] ] )
     tfRLBaseInSpineBase *= np.matrix( [ [  1,  0,  0,        0],
                                         [  0,  1,  0,   widthD],
                                         [  0,  0,  1, -lengthD],
                                         [  0,  0,  0,        1] ] )
     # +180 around Y
-    tfRRBaseInSpineBase = T * np.matrix( [ [ -1,  0,  0,  0],
+    # c, s same as above
+    tfRRBaseInSpineBase = T * np.matrix( [ [  c,  0,  s,  0],
                                            [  0,  1,  0,  0],
-                                           [  0,  0, -1,  0],
+                                           [ -s,  0,  c,  0],
                                            [  0,  0,  0,  1] ] )
     tfRRBaseInSpineBase *= np.matrix( [ [  1,  0,  0,        0],
                                         [  0,  1,  0,  -widthD],
@@ -405,15 +413,17 @@ def runSpineFK(spine, roll, pitch, yaw):
     # TODO: Get this translation accurate e.g. at location of IMU
     # Translation (to get from world to robot spine)
     spine.tfSpineBaseInWorld *= np.matrix( [ [  1,  0,  0,  -50],
-                                             [  0,  1,  0,     0],
-                                             [  0,  0,  1,     0],
-                                             [  0,  0,  0,     1] ] )
+                                             [  0,  1,  0,    0],
+                                             [  0,  0,  1,    0],
+                                             [  0,  0,  0,    1] ] )
 
     # -45 around Y (to get from world to robot spine)
-    spine.tfSpineBaseInWorld *= np.matrix( [ [  0.707,  0, -0.707,  0],
-                                             [      0,  1,      0,  0],
-                                             [  0.707,  0,  0.707,  0],
-                                             [      0,  0,      0,  1] ] )
+    s = math.sin( -math.pi/4 )
+    c = math.cos( -math.pi/4 )
+    spine.tfSpineBaseInWorld *= np.matrix( [ [  c,  0,  s,  0],
+                                             [  0,  1,  0,  0],
+                                             [ -s,  0,  c,  0],
+                                             [  0,  0,  0,  1] ] )
 
     d_1b = 16.975  # Dummy link offset
 
@@ -1040,6 +1050,7 @@ def targetZSliderCallback(val):
 
 
 def targetRollSliderCallback(val):
+
 #    targets[selectedLeg][3] = targetsHome[selectedLeg][3] + float(val)
 #    targets[selectedLeg][4] = targetsHome[selectedLeg][4] + float(targetPitchSlider.get())
 #    targets[selectedLeg][5] = targetsHome[selectedLeg][5] + float(targetYawSlider.get())
