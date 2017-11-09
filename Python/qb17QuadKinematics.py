@@ -276,14 +276,14 @@ class Joint():
 
 
 def initSpine():
-    tmpTF = np.eye(4)
+    tmpTF = identityTF()
     global spine
     spineAngles = [0, 0, 0]
     spine = Spine( "B", initSpineJoints(21), spineAngles, tmpTF )
 
 
 def initSpineJoints(startingJoint):
-    tmpTF = np.eye(4)
+    tmpTF = identityTF()
     joints = [0, 0, 0]
     joints[0] = Joint(startingJoint, tmpTF, tmpTF)
     joints[1] = Joint("Dummy", tmpTF, tmpTF)
@@ -363,12 +363,19 @@ def initLegs():
 
 
 def initLegJoints(startingJoint):
-    tmpTF = np.eye(4)
+    tmpTF = identityTF()
     joints = [0, 0, 0, 0, 0, 0]
     for j in range(0, 5):
         joints[j] = Joint(startingJoint + j, tmpTF, tmpTF)
     joints[5] = Joint("F", tmpTF, tmpTF)  # Foot
     return joints
+
+
+def identityTF():
+    return np.matrix( [ [ 1.0,   0,   0,   0],
+                        [   0, 1.0,   0,   0],
+                        [   0,   0, 1.0,   0],
+                        [   0,   0,   0, 1.0] ] )
 
 
 def rescale(old, oldMin, oldMax, newMin, newMax):
@@ -379,7 +386,8 @@ def rescale(old, oldMin, oldMax, newMin, newMax):
 
 def runSpineFK(spine, roll, pitch, yaw):
     # Spine front: In the future this can be controlled by e.g. orientation from IMU
-    spine.tfSpineBaseInWorld = applyYawPitchRoll(yaw, pitch, roll)
+    spine.tfSpineBaseInWorld = identityTF()
+    applyYawPitchRoll(spine.tfSpineBaseInWorld, yaw, pitch, roll)
 
     # TODO: Get this translation accurate e.g. at location of IMU
     # Translation (to get from world to robot spine)
@@ -511,50 +519,211 @@ def runLegIK(leg, target):
     Ty = targetInLegBase[1, 3]
     Tz = targetInLegBase[2, 3]
 
+    # Extract roll/pitch/yaw (as seen in World frame) from rotation matrix
+    r11 = target[0, 0]
+    r21 = target[1, 0]
+    r31 = target[2, 0]
+    r32 = target[2, 1]
+    r33 = target[2, 2]
+    den = math.sqrt( math.pow(r32, 2) + math.pow(r33, 2) )
+    roll = math.atan2( r32, r33 )
+    pitch = math.atan2( -r31, den )
+    yaw = math.atan2( r21, r11 )
+    #print "roll: ", math.degrees(roll)
+    #print "pitch: ", math.degrees(pitch)
+    #print "yaw: ", math.degrees(yaw)
+
+
+    # Foot projection on each axis
+
+    sinr = math.sin(roll)
+    cosr = math.cos(roll)
+    sinp = math.sin(pitch)
+    cosp = math.cos(pitch)
+
+    #aFx = a[5]*math.cos(roll)   * math.cos(pitch)
+    #aFy = a[5]*math.sin(roll)   * math.cos(pitch)
+    #aFz = a[5]*math.sin(pitch)  * math.cos(roll)
+
+    sin2r = math.pow(sinr, 2)
+    sin2p = math.pow(sinp, 2)
+    cos2r = math.pow(cosr, 2)
+    cos2p = math.pow(cosp, 2)
+
+    aFSq = math.pow(a[5], 2)
+
+
+
+    test = 1
+    if test == 1:
+        if roll == 0 and pitch == 0:
+            aFx = a[5]
+            aFy = 0
+            aFz = 0
+        elif roll != 0 and pitch == 0:
+            aFx = a[5]*cosr
+            aFy = a[5]*sinr
+            aFz = 0
+        elif roll == 0 and pitch != 0:
+            aFx = a[5]*sinp
+            aFy = 0
+            aFz = a[5]*cosp
+        else:
+
+            print "sin2p*sin2r", sin2p*sin2r
+            print "cosr", cosr
+
+            #if abs(sin2p*sin2r - 1) < 1e-10:
+            if abs(sin2p - 1) < 1e-15:
+                print "sin2p*sin2r: div 0 skipped! 1"
+                C = a[5]*a[5]
+            elif abs(sin2r - 1) < 1e-15:
+                print "sin2p*sin2r: div 0 skipped! 2"
+                C = 0
+            else:
+                C = math.sqrt( aFSq * cos2r / (1 - sin2p*sin2r) )
+                #aFx = 0
+                #aFy = a[5]*np.sign(roll)
+                #aFz = a[5]*np.sign(pitch)
+            #elif abs(cosr) < 1e-10:
+            if abs(cosr) < 1e-15:
+                print "cosr: div 0 skipped!"
+                A = a[5]
+            else:
+                A = C * cosp / cosr
+
+                #aFx = 0
+                #aFy = a[5]*np.sign(roll)
+                #aFz = a[5]*np.sign(pitch)
+            #else:
+            #C = math.sqrt( aFSq * cos2r / (1 - sin2p*sin2r) )
+            #A = C * cosp / cosr
+
+            aFx = A*cosr
+            aFy = A*sinr
+            aFz = C*sinp
+
+            print "Acosr", A*cosr
+            print "Csinp", C*sinp
+
+            B = math.sqrt( math.pow(aFy, 2) + math.pow(aFz, 2) )
+            print "A", A
+            print "B", B
+            print "C", C
+
+
+
+
+#    x1 = a[5] * math.sin(pitch)
+#    x2 = math.sqrt( math.pow(a[5], 2) - math.pow(x1, 2) )
+#    aFx = x2 * math.cos(roll)
+#    aFy = x2 * math.sin(roll)
+
+#    x3 = a[5] * math.sin(roll)
+#    x4 = math.sqrt( math.pow(a[5], 2) - math.pow(x3, 2) )
+#    aFz = x4 * math.sin(pitch)
+
+
+    #aFy = aFx*math.tan(roll)
+    #aFz = aFx*math.sin(pitch)
+    print "aFx", aFx
+    print "aFy", aFy
+    print "aFz", aFz
+    print "----"
+
+#    ax = a[5]*math.sin(p)
+#    if ( math.tan(r) != 0 ):
+#        ay = ax/math.tan(r)
+#    else:
+#       ay = 0.0
+#    az = math.sqrt( math.pow(a[5], 2) - math.pow(ax, 2) + math.pow(ay, 2) )
+#    print "ax", ax
+#    print "ay", ay
+#    print "az", az
+
     # Solve Joint 1
-    num = Ty
-    den = Tx - a[5]
+    num = Ty + aFy
+    den = Tx - aFx
     a0Rads = math.atan2(num, den)
     leg.angles[0] = math.degrees(a0Rads)
 
+    # Solve Joint 5
+    #leg.angles[4] = - leg.angles[0]
+    leg.angles[4] = - math.degrees(a0Rads + roll)
+
     # Lengths projected onto z-plane
     c0 = math.cos(a0Rads)
-    a2p = a[1]*c0
-    a3p = a[2]*c0
-    a4p = a[3]*c0
-    a5p = a[4]*c0
+    #
+    a2z = a[1]*c0
+    #a2z = a[1]*c0# * math.sin( math.pi/2 - pitch )
+#    ay = a[5]*math.sin(a0Rads)
+ #   az = a[5]*math.cos( math.pi/2 - pitch )
+  #  a2z = math.sqrt( math.pow(a[0], 2) - math.pow(ay, 2) - math.pow(az, 2) )
+    a3z = a[2]*c0
+    a4z = a[3]*c0
+    #
+    a5z = a[4]*c0
+#    a5z = a[4]*c0 * math.sin( math.pi/2 - pitch )
 
-    j4Height = Tx - a2p - a5p - a[5]
+#    ay = a[5]*math.sin(a0Rads)
+#    az = a[5]*math.cos( math.pi/2 - pitch )
+#    print "----"
+#    print "a5", a[5]
+#    print "ay", ay
+#    print "az", az
+#    a5z = math.sqrt( math.pow(a[5], 2) - math.pow(ay, 2) - math.pow(az, 2) )
+#    print "a5z", a5z
+#    print "----"
 
-    j2j4DistSquared = math.pow(j4Height, 2) + math.pow(Tz, 2)
+#    aFp = a[5]*c0
+
+    # Projections
+   # a5z = a5z
+   #    A = a5z*math.cos(roll)
+#   B = (a[4] + A)*math.cos(pitch)
+  # C = a5z + aFz
+
+    # Projections
+    print "a5z", a5z
+    print "aFx", aFx
+
+    a5xp = a5z * cosp
+    X = a5xp + aFx
+    a5z = a5z * sinp
+    Z = a5z + aFz
+
+    j4Height = Tx - a2z - X
+#    j4Height = Tx - a2z - ax
+    print "j4Height", j4Height
+
+    j2j4DistSquared = math.pow(j4Height, 2) + math.pow(Tz + Z, 2)
     j2j4Dist = math.sqrt(j2j4DistSquared)
+    print "j2j4Dist", j2j4Dist
 
     # Solve Joint 2
-    num = Tz
+    num = Tz + Z
     den = j4Height
     psi = math.degrees( math.atan2(num, den) )
 
-    num = math.pow(a3p, 2) + j2j4DistSquared - math.pow(a4p, 2)
-    den = 2.0*a3p*j2j4Dist
+    num = math.pow(a3z, 2) + j2j4DistSquared - math.pow(a4z, 2)
+    den = 2.0*a3z*j2j4Dist
     if abs(num) <= abs(den):
         phi = math.degrees( math.acos(num/den) )
         leg.angles[1] = - (phi - psi)
 
     # Solve Joint 3
-    num = math.pow(a3p, 2) + math.pow(a4p, 2) - j2j4DistSquared
-    den = 2.0*a3p*a4p
+    num = math.pow(a3z, 2) + math.pow(a4z, 2) - j2j4DistSquared
+    den = 2.0*a3z*a4z
     if abs(num) <= abs(den):
         leg.angles[2] = 180.0 - math.degrees( math.acos(num/den) )
 
     # Solve Joint 4
-    num = math.pow(a4p, 2) + j2j4DistSquared - math.pow(a3p, 2)
-    den = 2.0*a4p*j2j4Dist
+    num = math.pow(a4z, 2) + j2j4DistSquared - math.pow(a3z, 2)
+    den = 2.0*a4z*j2j4Dist
     if abs(num) <= abs(den):
         omega = math.degrees( math.acos(num/den) )
-        leg.angles[3] = - (psi + omega)
+        leg.angles[3] = - ( psi + omega + math.degrees(pitch) )
 
-    # Solve Joint 5
-    leg.angles[4] = - leg.angles[0]
 
     runLegFK(leg)
 
@@ -969,26 +1138,28 @@ def drawTarget(x, y, z, speed):
                                fill = fillCol, width = w, tag = "clear" )
 
 
-def applyYawPitchRoll(yaw, pitch, roll):
+def applyYawPitchRoll(T, yaw, pitch, roll):
     s = math.sin( math.radians(yaw) )
     c = math.cos( math.radians(yaw) )
-    T = np.matrix( [ [  c, -s,  0,  0],
-                     [  s,  c,  0,  0],
-                     [  0,  0,  1,  0],
-                     [  0,  0,  0,  1] ] )
+    Rot = np.matrix( [ [  c, -s,  0,  0],
+                       [  s,  c,  0,  0],
+                       [  0,  0,  1,  0],
+                       [  0,  0,  0,  1] ] )
     s = math.sin( math.radians(pitch) )
     c = math.cos( math.radians(pitch) )
-    T *= np.matrix( [ [  c,  0,  s,  0],
-                      [  0,  1,  0,  0],
-                      [ -s,  0,  c,  0],
-                      [  0,  0,  0,  1] ] )
+    Rot *= np.matrix( [ [  c,  0,  s,  0],
+                        [  0,  1,  0,  0],
+                        [ -s,  0,  c,  0],
+                        [  0,  0,  0,  1] ] )
     s = math.sin( math.radians(roll) )
     c = math.cos( math.radians(roll) )
-    T *= np.matrix( [ [  1,  0,  0,  0],
-                      [  0,  c, -s,  0],
-                      [  0,  s,  c,  0],
-                      [  0,  0,  0,  1] ] )
-    return T
+    Rot *= np.matrix( [ [  1,  0,  0,  0],
+                        [  0,  c, -s,  0],
+                        [  0,  s,  c,  0],
+                        [  0,  0,  0,  1] ] )
+    for r in range(0, 3):
+        for c in range(0, 3):
+            T[r, c] = Rot[r, c]
 
 
 def selectLegCallback():
@@ -1044,25 +1215,28 @@ def targetZSliderCallback(val):
 
 def targetRollSliderCallback(val):
     # Roll is rotation around X
-    targets[selectedLeg] *= applyYawPitchRoll( 0.0,#targetYawSlider.get(),
-                                               targetPitchSlider.get(),
-                                               float(val))
+    applyYawPitchRoll( targets[selectedLeg],
+                       0.0,#targetYawSlider.get(),
+                       targetPitchSlider.get(),
+                       float(val))
     runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
 def targetPitchSliderCallback(val):
     # Pitch is rotation around Y
-    targets[selectedLeg] *= applyYawPitchRoll( 0.0,#targetYawSlider.get(),
-                                               float(val),
-                                               targetRollSlider.get() )
+    applyYawPitchRoll( targets[selectedLeg],
+                       0.0,#targetYawSlider.get(),
+                       float(val),
+                       targetRollSlider.get() )
     runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
 #def targetYawSliderCallback(val):
 #    # Yaw is rotation around Z
-#    targets[selectedLeg] *= applyYawPitchRoll( float(val),
-#                                               targetPitchSlider.get(),
-#                                               targetRollSlider.get() )
+#    applyYawPitchRoll( targets[selectedLeg],
+#                       float(val),
+#                       targetPitchSlider.get(),
+#                       targetRollSlider.get() )
 #    runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
@@ -1351,7 +1525,7 @@ if __name__ == '__main__':
     # Dummy targets (because of runSpikeIK, which calls runLegFK at the end)
     targets = [0, 0, 0, 0]
     for i, leg in enumerate(legs):
-        targets[i] = np.eye(4)
+        targets[i] = identityTF()
 
     spine.angles = deepcopy(spineAngleOffsets)
     runSpineFK(spine, 0, 0, 0)
