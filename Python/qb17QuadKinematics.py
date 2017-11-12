@@ -526,179 +526,42 @@ def runLegIK(leg, target):
     r32 = target[2, 1]
     r33 = target[2, 2]
     den = math.sqrt( math.pow(r32, 2) + math.pow(r33, 2) )
-    roll = math.atan2( r32, r33 )
+    # Roll negated
+    roll = - math.atan2( r32, r33 )
     pitch = math.atan2( -r31, den )
     yaw = math.atan2( r21, r11 )
-    #print "roll: ", math.degrees(roll)
-    #print "pitch: ", math.degrees(pitch)
-    #print "yaw: ", math.degrees(yaw)
 
+    # Trig. values
+    sr = math.sin(roll)
+    cr = math.cos(roll)
+    sp = math.sin(pitch)
+    cp = math.cos(pitch)
 
-    # Foot projection on each axis
-
-    sinr = math.sin(roll)
-    cosr = math.cos(roll)
-    sinp = math.sin(pitch)
-    cosp = math.cos(pitch)
-
-    #aFx = a[5]*math.cos(roll)   * math.cos(pitch)
-    #aFy = a[5]*math.sin(roll)   * math.cos(pitch)
-    #aFz = a[5]*math.sin(pitch)  * math.cos(roll)
-
-    sin2r = math.pow(sinr, 2)
-    sin2p = math.pow(sinp, 2)
-    cos2r = math.pow(cosr, 2)
-    cos2p = math.pow(cosp, 2)
-
-    aFSq = math.pow(a[5], 2)
-
-
-
-    test = 1
-    if test == 1:
-        if roll == 0 and pitch == 0:
-            aFx = a[5]
-            aFy = 0
-            aFz = 0
-        elif roll != 0 and pitch == 0:
-            aFx = a[5]*cosr
-            aFy = a[5]*sinr
-            aFz = 0
-        elif roll == 0 and pitch != 0:
-            aFx = a[5]*sinp
-            aFy = 0
-            aFz = a[5]*cosp
-        else:
-
-            print "sin2p*sin2r", sin2p*sin2r
-            print "cosr", cosr
-
-            #if abs(sin2p*sin2r - 1) < 1e-10:
-            if abs(sin2p - 1) < 1e-15:
-                print "sin2p*sin2r: div 0 skipped! 1"
-                C = a[5]*a[5]
-            elif abs(sin2r - 1) < 1e-15:
-                print "sin2p*sin2r: div 0 skipped! 2"
-                C = 0
-            else:
-                C = math.sqrt( aFSq * cos2r / (1 - sin2p*sin2r) )
-                #aFx = 0
-                #aFy = a[5]*np.sign(roll)
-                #aFz = a[5]*np.sign(pitch)
-            #elif abs(cosr) < 1e-10:
-            if abs(cosr) < 1e-15:
-                print "cosr: div 0 skipped!"
-                A = a[5]
-            else:
-                A = C * cosp / cosr
-
-                #aFx = 0
-                #aFy = a[5]*np.sign(roll)
-                #aFz = a[5]*np.sign(pitch)
-            #else:
-            #C = math.sqrt( aFSq * cos2r / (1 - sin2p*sin2r) )
-            #A = C * cosp / cosr
-
-            aFx = A*cosr
-            aFy = A*sinr
-            aFz = C*sinp
-
-            print "Acosr", A*cosr
-            print "Csinp", C*sinp
-
-            B = math.sqrt( math.pow(aFy, 2) + math.pow(aFz, 2) )
-            print "A", A
-            print "B", B
-            print "C", C
-
-
-
-
-#    x1 = a[5] * math.sin(pitch)
-#    x2 = math.sqrt( math.pow(a[5], 2) - math.pow(x1, 2) )
-#    aFx = x2 * math.cos(roll)
-#    aFy = x2 * math.sin(roll)
-
-#    x3 = a[5] * math.sin(roll)
-#    x4 = math.sqrt( math.pow(a[5], 2) - math.pow(x3, 2) )
-#    aFz = x4 * math.sin(pitch)
-
-
-    #aFy = aFx*math.tan(roll)
-    #aFz = aFx*math.sin(pitch)
-    print "aFx", aFx
-    print "aFy", aFy
-    print "aFz", aFz
-    print "----"
-
-#    ax = a[5]*math.sin(p)
-#    if ( math.tan(r) != 0 ):
-#        ay = ax/math.tan(r)
-#    else:
-#       ay = 0.0
-#    az = math.sqrt( math.pow(a[5], 2) - math.pow(ax, 2) + math.pow(ay, 2) )
-#    print "ax", ax
-#    print "ay", ay
-#    print "az", az
+    # Foot link projected onto axes
+    aFx = a[5]*cr*cp
+    aFy = a[5]*sr#*cp
+    aFz = a[5]*sp#cr*sp
 
     # Solve Joint 1
     num = Ty + aFy
     den = Tx - aFx
-    a0Rads = math.atan2(num, den)
-    leg.angles[0] = math.degrees(a0Rads)
+    a0 = math.atan2(num, den)
+    leg.angles[0] = math.degrees(a0)
 
-    # Solve Joint 5
-    #leg.angles[4] = - leg.angles[0]
-    leg.angles[4] = - math.degrees(a0Rads + roll)
-
-    # Lengths projected onto z-plane
-    c0 = math.cos(a0Rads)
-    #
+    # Leg links projected onto z-axis
+    c0 = math.cos(a0)
     a2z = a[1]*c0
-    #a2z = a[1]*c0# * math.sin( math.pi/2 - pitch )
-#    ay = a[5]*math.sin(a0Rads)
- #   az = a[5]*math.cos( math.pi/2 - pitch )
-  #  a2z = math.sqrt( math.pow(a[0], 2) - math.pow(ay, 2) - math.pow(az, 2) )
     a3z = a[2]*c0
     a4z = a[3]*c0
-    #
-    a5z = a[4]*c0
-#    a5z = a[4]*c0 * math.sin( math.pi/2 - pitch )
+    a5z = a[4]*c0*sp
 
-#    ay = a[5]*math.sin(a0Rads)
-#    az = a[5]*math.cos( math.pi/2 - pitch )
-#    print "----"
-#    print "a5", a[5]
-#    print "ay", ay
-#    print "az", az
-#    a5z = math.sqrt( math.pow(a[5], 2) - math.pow(ay, 2) - math.pow(az, 2) )
-#    print "a5z", a5z
-#    print "----"
-
-#    aFp = a[5]*c0
-
-    # Projections
-   # a5z = a5z
-   #    A = a5z*math.cos(roll)
-#   B = (a[4] + A)*math.cos(pitch)
-  # C = a5z + aFz
-
-    # Projections
-    print "a5z", a5z
-    print "aFx", aFx
-
-    a5xp = a5z * cosp
-    X = a5xp + aFx
-    a5z = a5z * sinp
+    # Additional vars
+    a5x = a[4]*c0*cp
+    X = a5x + aFx
     Z = a5z + aFz
-
     j4Height = Tx - a2z - X
-#    j4Height = Tx - a2z - ax
-    print "j4Height", j4Height
-
     j2j4DistSquared = math.pow(j4Height, 2) + math.pow(Tz + Z, 2)
     j2j4Dist = math.sqrt(j2j4DistSquared)
-    print "j2j4Dist", j2j4Dist
 
     # Solve Joint 2
     num = Tz + Z
@@ -724,6 +587,8 @@ def runLegIK(leg, target):
         omega = math.degrees( math.acos(num/den) )
         leg.angles[3] = - ( psi + omega + math.degrees(pitch) )
 
+    # Solve Joint 5
+    leg.angles[4] = - math.degrees(a0 + roll)
 
     runLegFK(leg)
 
@@ -1036,9 +901,7 @@ def redraw():
     global showTargets
     if showTargets:
         for i, target in enumerate(targets):
-            drawTarget( target[0, 3],
-                        target[1, 3],
-                        target[2, 3],
+            drawTarget( target,
                         speeds[i] )
 
 
@@ -1104,11 +967,14 @@ def drawLink(Ax, Ay, Az, Bx, By, Bz):
                                 fill = fillCol, width = w, tag = "clear" )
 
 
-def drawTarget(x, y, z, speed):
+def drawTarget(target, speed):
+    # Target circle
     r = 32
     borderCol = "#3D9140"
     w = 10
-    # Target circle
+    x = target[0, 3]
+    y = target[1, 3]
+    z = target[2, 3]
     sideViewCanvas.create_oval( canvasW - canvasScale*x - r + canvasOffset[0], canvasH - canvasScale*z - r + canvasOffset[1],
                                 canvasW - canvasScale*x + r + canvasOffset[0], canvasH - canvasScale*z + r + canvasOffset[1],
                                 outline = borderCol, width = w, tag = "clear" )
@@ -1118,6 +984,54 @@ def drawTarget(x, y, z, speed):
     topViewCanvas.create_oval( canvasW - canvasScale*x - r + canvasOffset[0], canvasH + canvasScale*y - r + canvasOffset[2],
                                canvasW - canvasScale*x + r + canvasOffset[0], canvasH + canvasScale*y + r + canvasOffset[2],
                                outline = borderCol, width = w, tag = "clear" )
+    # Line along X
+    tmpVec = np.array([50, 0, 0, 1]).reshape(4, 1)
+    tmpVec = target * tmpVec
+    fillCol = "red"
+    lx = tmpVec[0, 0]
+    ly = tmpVec[1, 0]
+    lz = tmpVec[2, 0]
+    sideViewCanvas.create_line( canvasW - canvasScale*x + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
+                                canvasW - canvasScale*lx + canvasOffset[0], canvasH - canvasScale*lz + canvasOffset[1],
+                                    fill = fillCol, width = w, tag = "clear" )
+    frontViewCanvas.create_line( canvasW + canvasScale*y + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
+                                 canvasW + canvasScale*ly + canvasOffset[0], canvasH - canvasScale*lz + canvasOffset[1],
+                                 fill = fillCol, width = w, tag = "clear" )
+    topViewCanvas.create_line( canvasW - canvasScale*x + canvasOffset[0], canvasH + canvasScale*y + canvasOffset[2],
+                               canvasW - canvasScale*lx + canvasOffset[0], canvasH + canvasScale*ly + canvasOffset[2],
+                               fill = fillCol, width = w, tag = "clear" )
+    # Line along Y
+    tmpVec = np.array([0, 50, 0, 1]).reshape(4, 1)
+    tmpVec = target * tmpVec
+    fillCol = "green"
+    lx = tmpVec[0, 0]
+    ly = tmpVec[1, 0]
+    lz = tmpVec[2, 0]
+    sideViewCanvas.create_line( canvasW - canvasScale*x + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
+                                canvasW - canvasScale*lx + canvasOffset[0], canvasH - canvasScale*lz + canvasOffset[1],
+                                    fill = fillCol, width = w, tag = "clear" )
+    frontViewCanvas.create_line( canvasW + canvasScale*y + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
+                                 canvasW + canvasScale*ly + canvasOffset[0], canvasH - canvasScale*lz + canvasOffset[1],
+                                 fill = fillCol, width = w, tag = "clear" )
+    topViewCanvas.create_line( canvasW - canvasScale*x + canvasOffset[0], canvasH + canvasScale*y + canvasOffset[2],
+                               canvasW - canvasScale*lx + canvasOffset[0], canvasH + canvasScale*ly + canvasOffset[2],
+                               fill = fillCol, width = w, tag = "clear" )
+    # Line along Z
+    tmpVec = np.array([0, 0, 50, 1]).reshape(4, 1)
+    tmpVec = target * tmpVec
+    fillCol = "blue"
+    lx = tmpVec[0, 0]
+    ly = tmpVec[1, 0]
+    lz = tmpVec[2, 0]
+    sideViewCanvas.create_line( canvasW - canvasScale*x + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
+                                canvasW - canvasScale*lx + canvasOffset[0], canvasH - canvasScale*lz + canvasOffset[1],
+                                    fill = fillCol, width = w, tag = "clear" )
+    frontViewCanvas.create_line( canvasW + canvasScale*y + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
+                                 canvasW + canvasScale*ly + canvasOffset[0], canvasH - canvasScale*lz + canvasOffset[1],
+                                 fill = fillCol, width = w, tag = "clear" )
+    topViewCanvas.create_line( canvasW - canvasScale*x + canvasOffset[0], canvasH + canvasScale*y + canvasOffset[2],
+                               canvasW - canvasScale*lx + canvasOffset[0], canvasH + canvasScale*ly + canvasOffset[2],
+                               fill = fillCol, width = w, tag = "clear" )
     # Speed vector
     fillCol = borderCol
     sx = speed[0]
@@ -1125,16 +1039,13 @@ def drawTarget(x, y, z, speed):
     sz = speed[2]
     k = 1000.0 / inputForceMax  # Arbitrary scaling, to make max. length of vector constant
     sideViewCanvas.create_line( canvasW - canvasScale*x + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
-                                canvasW - canvasScale*x - sx*k + canvasOffset[0],
-                                canvasH - canvasScale*z - sz*k + canvasOffset[1],
+                                canvasW - canvasScale*x - sx*k + canvasOffset[0], canvasH - canvasScale*z - sz*k + canvasOffset[1],
                                 fill = fillCol, width = w, tag = "clear" )
     frontViewCanvas.create_line( canvasW + canvasScale*y + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
-                                 canvasW + canvasScale*y + sy*k + canvasOffset[0],
-                                 canvasH - canvasScale*z - sz*k + canvasOffset[1],
+                                 canvasW + canvasScale*y + sy*k + canvasOffset[0], canvasH - canvasScale*z - sz*k + canvasOffset[1],
                                  fill = fillCol, width = w, tag = "clear" )
     topViewCanvas.create_line( canvasW - canvasScale*x + canvasOffset[0], canvasH + canvasScale*y + canvasOffset[2],
-                               canvasW - canvasScale*x - sx*k + canvasOffset[0],
-                               canvasH + canvasScale*y + sy*k + canvasOffset[2],
+                               canvasW - canvasScale*x - sx*k + canvasOffset[0], canvasH + canvasScale*y + sy*k + canvasOffset[2],
                                fill = fillCol, width = w, tag = "clear" )
 
 
