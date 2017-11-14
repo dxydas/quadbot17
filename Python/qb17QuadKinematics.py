@@ -3,7 +3,7 @@
 import sys
 from std_msgs.msg import String
 from Tkinter import *
-from time import localtime, strftime, sleep
+from time import time, localtime, strftime, sleep
 import math
 import numpy as np
 import threading
@@ -100,6 +100,11 @@ class GamepadHandler(threading.Thread):
         self.inputRJSXNormed = 0
         self.inputRJSYNormed = 0
         self.dt = 0.05  # 50 ms
+        # TODO: Find out why lower dt values cause program to crash, when
+        #       toggling pause (does not occur in qb17Kinematics.py).
+        #       It might have something to do with pollIK() ...
+        self.prevTime = time()
+        self.currTime = time()
 
     def stop(self):
         self.terminate = True
@@ -126,6 +131,7 @@ class GamepadHandler(threading.Thread):
             self.cond.notify()  # Unblock self if waiting
 
     def pollInputs(self):
+        self.currTime = time()
         # World X
         global inputLJSY
         self.inputLJSYNormed = self.filterInput(-inputLJSY)
@@ -138,6 +144,7 @@ class GamepadHandler(threading.Thread):
         global inputRJSY
         self.inputRJSYNormed = self.filterInput(-inputRJSY)
         self.target[2, 3], self.speed[2] = self.updateMotion(self.inputRJSYNormed, self.target[2, 3], self.speed[2])
+        self.prevTime = self.currTime
         with self.cond:
             if not self.paused:
                 self.master.after(int(self.dt*1000), self.pollInputs)
@@ -168,7 +175,11 @@ class GamepadHandler(threading.Thread):
         u0 = speed
         F = inputForceMax*i - dragForceCoef*u0  # Force minus linear drag
         a = F/m
-        t = self.dt
+        t = self.currTime - self.prevTime
+        # Zero t if it's too large
+        if t > 0.5:
+            t = 0.0
+        #print t
         x0 = target
         # Equations of motion
         u = u0 + a*t
@@ -1006,7 +1017,7 @@ def drawLink(Ax, Ay, Az, Bx, By, Bz):
 def drawTarget(target, speed):
     # Target circle
     r = 32
-    borderCol = "#3D9140"
+    borderCol = "green"
     w = 10
     x = target[0, 3]
     y = target[1, 3]
@@ -1069,11 +1080,11 @@ def drawTarget(target, speed):
                                canvasW - canvasScale*lx + canvasOffset[0], canvasH + canvasScale*ly + canvasOffset[2],
                                fill = fillCol, width = w, tag = "clear" )
     # Speed vector
-    fillCol = borderCol
+    fillCol = "#39FF14"
     sx = speed[0]
     sy = speed[1]
     sz = speed[2]
-    k = 1000.0 / inputForceMax  # Arbitrary scaling, to make max. length of vector constant
+    k = 500.0 / inputForceMax  # Arbitrary scaling, to make max. length of vector constant
     sideViewCanvas.create_line( canvasW - canvasScale*x + canvasOffset[0], canvasH - canvasScale*z + canvasOffset[1],
                                 canvasW - canvasScale*x - sx*k + canvasOffset[0], canvasH - canvasScale*z - sz*k + canvasOffset[1],
                                 fill = fillCol, width = w, tag = "clear" )
@@ -1508,8 +1519,8 @@ if __name__ == '__main__':
     inputRJSY = 0
 
     global inputForceMax, dragForceCoef
-    inputForceMax = 2000
-    dragForceCoef = 10
+    inputForceMax = 1000
+    dragForceCoef = 5
 
     gamepadReader = GamepadReader(root)
     gamepadReader.start()
