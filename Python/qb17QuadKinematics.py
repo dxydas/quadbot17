@@ -1121,8 +1121,8 @@ def applyYawPitchRoll(T, yaw, pitch, roll):
 
 
 def selectLegCallback():
-	global selectedLeg
-	selectedLeg = rbLegVar.get()
+    global selectedLeg
+    selectedLeg = rbLegVar.get()
 
 
 def joint1SliderCallback(val):
