@@ -537,10 +537,46 @@ def runLegIK(leg, target):
     sp = math.sin(pitch)
     cp = math.cos(pitch)
 
+
     # Foot link projected onto axes
-    aFx = a[5]*cr*cp
-    aFy = a[5]*sr#*cp
-    aFz = a[5]*sp#cr*sp
+    #aFx = a[5]*cr*cp
+    #aFy = a[5]*sr
+    #aFz = a[5]*sp
+
+    s2r = math.pow(sr, 2)
+    c2r = math.pow(cr, 2)
+    s2p = math.pow(sp, 2)
+    c2p = math.pow(cp, 2)
+
+    aFSq = math.pow(a[5], 2)
+
+    eps = 1e-10
+    if abs(roll) < eps:
+        aFx = a[5]*cp
+        aFy = 0
+        aFz = a[5]*sp
+    elif abs(pitch) < eps:
+        aFx = a[5]*cr
+        aFy = a[5]*sr
+        aFz = 0
+    elif abs( abs(roll) - math.pi/2 ) < eps:
+        aFx = 0
+        aFy = np.sign(roll)*a[5]
+        aFz = 0
+    elif abs( abs(pitch) - math.pi/2 ) < eps:
+        aFx = 0
+        aFy = a[5]*sr
+        aFz = a[5]*cr
+    else:
+        A = math.sqrt( aFSq * c2p / (1 - s2r*s2p) )
+        C = A*cr/cp
+
+        aFx = A*cr
+        aFy = A*sr
+        aFz = C*sp
+
+        #B = math.sqrt( math.pow(aFy, 2) + math.pow(aFz, 2) )
+
 
     # Solve Joint 1
     num = Ty + aFy
@@ -1127,7 +1163,7 @@ def targetZSliderCallback(val):
 def targetRollSliderCallback(val):
     # Roll is rotation around X
     applyYawPitchRoll( targets[selectedLeg],
-                       0.0,#targetYawSlider.get(),
+                       0,#targetYawSlider.get(),
                        targetPitchSlider.get(),
                        float(val))
     runLegIK(legs[selectedLeg], targets[selectedLeg])
@@ -1136,7 +1172,7 @@ def targetRollSliderCallback(val):
 def targetPitchSliderCallback(val):
     # Pitch is rotation around Y
     applyYawPitchRoll( targets[selectedLeg],
-                       0.0,#targetYawSlider.get(),
+                       0,#targetYawSlider.get(),
                        float(val),
                        targetRollSlider.get() )
     runLegIK(legs[selectedLeg], targets[selectedLeg])
@@ -1457,6 +1493,7 @@ if __name__ == '__main__':
     speeds = [0, 0, 0, 0]
     for i, leg in enumerate(legs):
         targetsHome[i] = deepcopy(leg.joints[5].tfJointInWorld)
+        applyYawPitchRoll( targetsHome[i], 0, 0, 0)
         speeds[i] = [0, 0, 0]
     targets = deepcopy(targetsHome)
     showTargets = True
