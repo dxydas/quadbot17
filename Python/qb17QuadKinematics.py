@@ -146,7 +146,7 @@ class GamepadHandler(threading.Thread):
         global targets, speeds
         targets[selectedLeg] = deepcopy(self.target)
         speeds[selectedLeg] = deepcopy(self.speed)
-        runLegIK(legs[selectedLeg], target[selectedLeg])
+        runLegIK(legs[selectedLeg], targets[selectedLeg])
         with self.cond:
             if not self.paused:
                 self.master.after(int(self.dt*1000), self.pollIK)
