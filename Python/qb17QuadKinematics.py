@@ -17,11 +17,17 @@ from copy import deepcopy
 class App:
     def __init__(self, master):
         self.master = master
+        self.dt = 0.01  # 10 ms
+        self.prevTime = time()
+        self.currTime = time()
         self.poll()  # Start polling
 
     def poll(self):
+        self.currTime = time()
+        #print "App time diff.", self.currTime - self.prevTime
         redraw()
-        self.master.after(10, self.poll)
+        self.prevTime = self.currTime
+        self.master.after(int(self.dt*1000), self.poll)
 
 
 class GamepadReader(threading.Thread):
@@ -103,8 +109,10 @@ class GamepadHandler(threading.Thread):
         # TODO: Find out why lower dt values cause program to crash, when
         #       toggling pause (does not occur in qb17Kinematics.py).
         #       It might have something to do with pollIK() ...
-        self.prevTime = time()
-        self.currTime = time()
+        self.prevTimeInputs = time()
+        self.currTimeInputs = time()
+        self.prevTimeIK = time()
+        self.currTimeIK = time()
 
     def stop(self):
         self.terminate = True
@@ -131,7 +139,8 @@ class GamepadHandler(threading.Thread):
             self.cond.notify()  # Unblock self if waiting
 
     def pollInputs(self):
-        self.currTime = time()
+        self.currTimeInputs = time()
+        #print "Poll Inputs time diff.", self.currTimeInputs - self.prevTimeInputs
         # World X
         global inputLJSY
         self.inputLJSYNormed = self.filterInput(-inputLJSY)
@@ -144,16 +153,19 @@ class GamepadHandler(threading.Thread):
         global inputRJSY
         self.inputRJSYNormed = self.filterInput(-inputRJSY)
         self.target[2, 3], self.speed[2] = self.updateMotion(self.inputRJSYNormed, self.target[2, 3], self.speed[2])
-        self.prevTime = self.currTime
+        self.prevTimeInputs = self.currTimeInputs
         with self.cond:
             if not self.paused:
                 self.master.after(int(self.dt*1000), self.pollInputs)
 
     def pollIK(self):
+        self.currTimeIK = time()
+        #print "Poll IK time diff.", self.currTimeIK - self.prevTimeIK
         global targets, speeds
         targets[selectedLeg] = deepcopy(self.target)
         speeds[selectedLeg] = deepcopy(self.speed)
         runLegIK(legs[selectedLeg], targets[selectedLeg])
+        self.prevTimeIK = self.currTimeIK
         with self.cond:
             if not self.paused:
                 self.master.after(int(self.dt*1000), self.pollIK)
@@ -175,11 +187,10 @@ class GamepadHandler(threading.Thread):
         u0 = speed
         F = inputForceMax*i - dragForceCoef*u0  # Force minus linear drag
         a = F/m
-        t = self.currTime - self.prevTime
+        t = self.currTimeInputs - self.prevTimeInputs
         # Zero t if it's too large
         if t > 0.5:
             t = 0.0
-        #print t
         x0 = target
         # Equations of motion
         u = u0 + a*t
@@ -202,6 +213,8 @@ class SerialHandler(threading.Thread):
         self.serialOK = False
         self.serialDisconnected = False
         self.dt = 0.05  # 50 ms
+        self.prevTime = time()
+        self.currTime = time()
         self.pollSerial()
 
     def stop(self):
@@ -225,6 +238,8 @@ class SerialHandler(threading.Thread):
                 sleep(2)
 
     def pollSerial(self):
+        self.currTime = time()
+        #print "Poll Serial time diff.", self.currTime - self.prevTime
         if self.serialOK:
             writeStr = ""
             for i, leg in enumerate(legs):
@@ -256,6 +271,7 @@ class SerialHandler(threading.Thread):
                 logMessage("Serial write error")
                 self.ser.close()
                 self.serialOK = False
+        self.prevTime = self.currTime
         self.master.after(int(self.dt*1000), self.pollSerial)
 
     def closeSerial(self):
