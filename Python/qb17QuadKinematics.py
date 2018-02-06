@@ -707,7 +707,8 @@ def loadFromFile(filename):
 
     arraySize = 100
     rowOffset = 2
-    amplAdjust = 50
+    upDownAmplAdjust = 50
+    fwdBackamplAdjust = 40
     with open(filename, 'rb') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         for r, row in enumerate(reader):
@@ -717,21 +718,21 @@ def loadFromFile(filename):
                     if c in range(2, 10):
                         #print c, col
                         if c == 2:
-                            FLUpDown.append(amplAdjust*float(col))
+                            FLUpDown.append(upDownAmplAdjust*float(col))
                         if c == 3:
-                            FLFwdBack.append(amplAdjust*float(col))
+                            FLFwdBack.append(fwdBackamplAdjust*float(col))
                         if c == 4:
-                            FRUpDown.append(amplAdjust*float(col))
+                            FRUpDown.append(upDownAmplAdjust*float(col))
                         if c == 5:
-                            FRFwdBack.append(amplAdjust*float(col))
+                            FRFwdBack.append(fwdBackamplAdjust*float(col))
                         if c == 6:
-                            RLUpDown.append(amplAdjust*float(col))
+                            RLUpDown.append(upDownAmplAdjust*float(col))
                         if c == 7:
-                            RLFwdBack.append(amplAdjust*float(col))
+                            RLFwdBack.append(fwdBackamplAdjust*float(col))
                         if c == 8:
-                            RRUpDown.append(amplAdjust*float(col))
+                            RRUpDown.append(upDownAmplAdjust*float(col))
                         if c == 9:
-                            RRFwdBack.append(amplAdjust*float(col))
+                            RRFwdBack.append(fwdBackamplAdjust*float(col))
     csvfile.close()
 
 
