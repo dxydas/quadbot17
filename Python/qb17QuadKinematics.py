@@ -893,38 +893,38 @@ def toggleJoystick():
 
 
 def initViews():
-    axisW = 4
-    axisL = 60
-    borderDist = 40
+    axisW = scsz*2
+    axisL = scsz*30
+    borderDist = scsz*20
 
     # Side view axis widget
     sideViewCanvas.create_line( canvasW - (borderDist + axisL), borderDist + axisL, canvasW - borderDist, borderDist + axisL,
                                 fill = "red", width = axisW, tag = "alwaysShown" )  # x-axis
-    sideViewCanvas.create_text( canvasW - (borderDist + axisL), borderDist + axisL + 20, text = "X",
+    sideViewCanvas.create_text( canvasW - (borderDist + axisL), borderDist + axisL + scsz*10, text = "X",
                                 font = defaultFont, fill = "red", tag = "alwaysShown" )
     sideViewCanvas.create_line( canvasW - borderDist, borderDist, canvasW - borderDist, borderDist + axisL,
                                 fill = "blue", width = axisW, tag = "alwaysShown" )  # z-axis
-    sideViewCanvas.create_text( canvasW - borderDist + 20, borderDist, text = "Z",
+    sideViewCanvas.create_text( canvasW - borderDist + scsz*10, borderDist, text = "Z",
                                 font = defaultFont, fill = "blue", tag = "alwaysShown" )
 
     # Front view axis widget
     frontViewCanvas.create_line( canvasW - (borderDist + axisL), borderDist + axisL, canvasW - borderDist, borderDist + axisL,
                                  fill = "green", width = axisW, tag = "alwaysShown" )  # y-axis
-    frontViewCanvas.create_text( canvasW - borderDist, borderDist + axisL + 20, text = "Y",
+    frontViewCanvas.create_text( canvasW - borderDist, borderDist + axisL + scsz*10, text = "Y",
                                  font = defaultFont, fill = "green", tag = "alwaysShown" )
     frontViewCanvas.create_line( canvasW - (borderDist + axisL), borderDist, canvasW - (borderDist + axisL), borderDist + axisL,
                                  fill = "blue", width = axisW, tag = "alwaysShown" )  # z-axis
-    frontViewCanvas.create_text( canvasW - (borderDist + axisL) - 20, borderDist, text = "Z",
+    frontViewCanvas.create_text( canvasW - (borderDist + axisL) - scsz*10, borderDist, text = "Z",
                                  font = defaultFont, fill = "blue", tag = "alwaysShown" )
 
     # Top view axis widget
     topViewCanvas.create_line( canvasW - (borderDist + axisL), borderDist, canvasW - borderDist, borderDist,
                                fill = "red", width = axisW, tag = "alwaysShown" )  # x-axis
-    topViewCanvas.create_text( canvasW - (borderDist + axisL), borderDist - 20, text = "X",
+    topViewCanvas.create_text( canvasW - (borderDist + axisL), borderDist - scsz*10, text = "X",
                                font = defaultFont, fill = "red", tag = "alwaysShown" )
     topViewCanvas.create_line( canvasW - borderDist, borderDist, canvasW - borderDist, borderDist + axisL,
                                fill = "green", width = axisW, tag = "alwaysShown" )  # y-axis
-    topViewCanvas.create_text( canvasW - borderDist + 20, borderDist + axisL, text = "Y",
+    topViewCanvas.create_text( canvasW - borderDist + scsz*10, borderDist + axisL, text = "Y",
                                font = defaultFont, fill = "green", tag = "alwaysShown" )
 
 
@@ -969,10 +969,10 @@ def redraw():
 
 
 def drawJoint(id, x, y, z):
-    r = 25
+    r = scsz*13
     fillCol = "#FFFFE0"
     borderCol = "#00008B"
-    w = 6
+    w = scsz*3
     sideViewCanvas.create_oval( canvasW - canvasScale*x - r + canvasOffset[0], canvasH - canvasScale*z - r + canvasOffset[1],
                                 canvasW - canvasScale*x + r + canvasOffset[0], canvasH - canvasScale*z + r + canvasOffset[1],
                                 fill = fillCol, outline = borderCol, width = w, tag = "clear" )
@@ -993,10 +993,10 @@ def drawJoint(id, x, y, z):
 
 
 def drawEE(id, x, y, z):
-    r = 25
+    r = scsz*13
     fillCol = "#00008B"
     borderCol = "#00008B"
-    w = 6
+    w = scsz*3
     sideViewCanvas.create_oval( canvasW - canvasScale*x - r + canvasOffset[0], canvasH - canvasScale*z - r + canvasOffset[1],
                                 canvasW - canvasScale*x + r + canvasOffset[0], canvasH - canvasScale*z + r + canvasOffset[1],
                                 fill = fillCol, outline = borderCol, width = w, tag = "clear" )
@@ -1018,7 +1018,7 @@ def drawEE(id, x, y, z):
 
 def drawLink(Ax, Ay, Az, Bx, By, Bz):
     fillCol = "#00008B"
-    w = 10
+    w = scsz*5
     sideViewCanvas.create_line( canvasW - canvasScale*Ax + canvasOffset[0], canvasH - canvasScale*Az + canvasOffset[1],
                                 canvasW - canvasScale*Bx + canvasOffset[0], canvasH - canvasScale*Bz + canvasOffset[1],
                                 fill = fillCol, width = w, tag = "clear" )
@@ -1032,9 +1032,9 @@ def drawLink(Ax, Ay, Az, Bx, By, Bz):
 
 def drawTarget(target, speed):
     # Target circle
-    r = 32
+    r = scsz*16
     borderCol = "green"
-    w = 10
+    w = scsz*5
     x = target[0, 3]
     y = target[1, 3]
     z = target[2, 3]
@@ -1274,6 +1274,7 @@ def quit():
     root.destroy()
 
 
+global scsz
 global sideViewCanvas, frontViewCanvas, topViewCanvas
 global canvasW, canvasH
 global canvasScale, canvasOffset
@@ -1281,16 +1282,24 @@ global targetXSlider, targetYSlider, targetZSlider
 
 startTime = strftime("%a, %d %b %Y %H:%M:%S", localtime())
 
+# Screen size var
+# For HD screen, use 1
+# For 4K screen, use 2
+scsz = 1
+
 root = Tk()
 root.title("Quadbot 17 Kinematics")
-rootWidth = 2600
-rootHeight = 1660
+rootWidth = scsz*1320#2600
+rootHeight = scsz*830
 root.geometry("%dx%d" % (rootWidth, rootHeight))
 
 
-# Scaling for 4K screens
-root.tk.call('tk', 'scaling', 4.0)
 defaultFont = ("System", 12)
+
+
+# Scaling for 4K screens
+if scsz == 2:
+    root.tk.call('tk', 'scaling', 4.0)
 
 
 Grid.rowconfigure(root, 0, weight=1)
@@ -1306,11 +1315,11 @@ frontViewFrame.grid(row=0, column=1, sticky=N+E)
 topViewFrame.grid(row=1, column=0, sticky=S+W)
 controlsFrame.grid(row=1, column=1, sticky=S+E)
 
-canvasW = 1170
-canvasH = 760
+canvasW = scsz*585
+canvasH = scsz*380
 
-canvasScale = 2  # 1 mm -> 2 pixels
-canvasOffset = [-canvasW/2, -canvasH + 200, -canvasH + 370]  # 3rd offset is for top view only
+canvasScale = scsz  # 1 mm -> scsz pixels
+canvasOffset = [-canvasW/2, -canvasH + scsz*100, -canvasH + scsz*185]  # 3rd offset is for top view only
 
 sideViewLabel = Label(sideViewFrame, text="Side View", font = defaultFont)
 sideViewLabel.grid(row=0, column=0)
@@ -1379,25 +1388,28 @@ FLRadiobutton.select()  # Set default
 fkLabel = Label(jointSlidersFrame, text="FK - Joints", font = defaultFont)
 fkLabel.grid(row=0, column=0)
 
+jsLength = scsz*100
+jsWidth = scsz*20
+
 jsRange = 180.0
 joint1Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = joint1SliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint1SliderCallback )
 joint1Slider.grid(row=1, column=0)
 
 joint2Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j2",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = joint2SliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint2SliderCallback )
 joint2Slider.grid(row=2, column=0)
 
 joint3Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j3",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = joint3SliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint3SliderCallback )
 joint3Slider.grid(row=3, column=0)
 
 joint4Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j4",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = joint4SliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint4SliderCallback )
 joint4Slider.grid(row=4, column=0)
 
 joint5Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j5",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = joint5SliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint5SliderCallback )
 joint5Slider.grid(row=5, column=0)
 
 
@@ -1406,29 +1418,29 @@ ikLabel.grid(row=0, column=0)
 
 tsRange = 300.0
 targetXSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "X",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetXSliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = targetXSliderCallback )
 targetXSlider.grid(row=1, column=0)
 
 targetYSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Y",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetYSliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = targetYSliderCallback )
 targetYSlider.grid(row=2, column=0)
 
 targetZSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Z",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetZSliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = targetZSliderCallback )
 targetZSlider.grid(row=3, column=0)
 
 tsRange = 90.0
 targetRollSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Roll",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetRollSliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = targetRollSliderCallback )
 targetRollSlider.grid(row=4, column=0)
 
 targetPitchSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Pitch",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetPitchSliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = targetPitchSliderCallback )
 targetPitchSlider.grid(row=5, column=0)
 
 # Target Yaw has no effect
 #targetYawSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Yaw",
-#                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = targetYawSliderCallback )
+#                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = targetYawSliderCallback )
 #targetYawSlider.grid(row=6, column=0)
 #targetYawSlider.config(state=DISABLED)
 
@@ -1438,24 +1450,24 @@ rpyLabel.grid(row=0, column=0)
 
 tsRange = 180.0
 spineRollSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Roll",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = spineRollSliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineRollSliderCallback )
 spineRollSlider.grid(row=1, column=0)
 
 spinePitchSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Pitch",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = spinePitchSliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spinePitchSliderCallback )
 spinePitchSlider.grid(row=2, column=0)
 
 spineYawSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Yaw",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = spineYawSliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineYawSliderCallback )
 spineYawSlider.grid(row=3, column=0)
 
 tsRange = 180.0
 spineJoint1Slider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "j1",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = spineJoint1SliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineJoint1SliderCallback )
 spineJoint1Slider.grid(row=4, column=0)
 
 spineJoint2Slider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "j2",
-                      length = 200, width = 40, font = ("System", 9), orient=HORIZONTAL, command = spineJoint2SliderCallback )
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineJoint2SliderCallback )
 spineJoint2Slider.grid(row=5, column=0)
 
 
