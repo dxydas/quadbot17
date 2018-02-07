@@ -1242,7 +1242,9 @@ def spineJoint1SliderCallback(val):
     y = spineYawSlider.get()
     spine.angles[0] = float(val)
     runSpineFK(spine, r, p, y)
-
+    # Dummy adjustment while IMU is not present:
+    spineRollSlider.set( (spineAngleOffsets[0] + spine.angles[0]) / 2.0 )
+    spinePitchSlider.set( (spineAngleOffsets[2] - spine.angles[2]) / 2.0 )
 
 def spineJoint2SliderCallback(val):
     r = spineRollSlider.get()
@@ -1250,6 +1252,9 @@ def spineJoint2SliderCallback(val):
     y = spineYawSlider.get()
     spine.angles[2] = float(val)
     runSpineFK(spine, r, p, y)
+    # Dummy adjustment while IMU is not present
+    spineRollSlider.set( (spineAngleOffsets[0] + spine.angles[0]) / 2.0 )
+    spinePitchSlider.set( (spineAngleOffsets[2] - spine.angles[2]) / 2.0 )
 
 
 def messageBoxModifiedCallback(self):
@@ -1392,23 +1397,27 @@ fkLabel.grid(row=0, column=0)
 jsLength = scsz*100
 jsWidth = scsz*20
 
-jsRange = 180.0
+jsRange = 90.0
 joint1Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint1SliderCallback )
 joint1Slider.grid(row=1, column=0)
 
+jsRange = 90.0
 joint2Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j2",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint2SliderCallback )
 joint2Slider.grid(row=2, column=0)
 
+jsRange = 150.0
 joint3Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j3",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint3SliderCallback )
 joint3Slider.grid(row=3, column=0)
 
+jsRange = 150.0
 joint4Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j4",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint4SliderCallback )
 joint4Slider.grid(row=4, column=0)
 
+jsRange = 90.0
 joint5Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j5",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint5SliderCallback )
 joint5Slider.grid(row=5, column=0)
@@ -1449,7 +1458,7 @@ targetPitchSlider.grid(row=5, column=0)
 rpyLabel = Label(spineSlidersFrame, text="Spine", font = defaultFont)
 rpyLabel.grid(row=0, column=0)
 
-tsRange = 180.0
+tsRange = 90.0
 spineRollSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Roll",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineRollSliderCallback )
 spineRollSlider.grid(row=1, column=0)
@@ -1462,12 +1471,12 @@ spineYawSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resol
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineYawSliderCallback )
 spineYawSlider.grid(row=3, column=0)
 
-tsRange = 180.0
-spineJoint1Slider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "j1",
+jsRange = 90.0
+spineJoint1Slider = Scale( spineSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineJoint1SliderCallback )
 spineJoint1Slider.grid(row=4, column=0)
 
-spineJoint2Slider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "j2",
+spineJoint2Slider = Scale( spineSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j2",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineJoint2SliderCallback )
 spineJoint2Slider.grid(row=5, column=0)
 
