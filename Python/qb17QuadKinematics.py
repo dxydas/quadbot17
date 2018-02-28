@@ -9,6 +9,7 @@ import numpy as np
 import threading
 import Queue
 import inputs
+from pynput import keyboard
 import serial
 import csv
 from copy import deepcopy
@@ -89,7 +90,58 @@ class GamepadReader(threading.Thread):
             inputRJSY = event.state
 
 
-class GamepadHandler(threading.Thread):
+class KeyboardListener(threading.Thread):
+    def __init__(self, master):
+        self.master = master
+        threading.Thread.__init__(self)
+        self.terminate = False
+
+    def on_press(self, key):
+        #try:
+        #    print('alphanumeric key {0} pressed'.format(
+        #        key.char))
+        #except AttributeError:
+        #    print('special key {0} pressed'.format(
+        #        key))
+        global inputKBSX, inputKBSY
+        if key == keyboard.Key.up:
+            inputKBSY = -32768
+        elif key == keyboard.Key.down:
+            inputKBSY = 32767
+        elif key == keyboard.Key.right:
+            inputKBSX = 32767
+        elif key == keyboard.Key.left:
+            inputKBSX = -32768
+
+    def on_release(self, key):
+        #print('{0} released'.format(
+        #    key))
+        #if key == keyboard.Key.esc:
+        #    # Stop listener
+        #    return False
+        global inputKBSX, inputKBSY
+        if key == keyboard.Key.up:
+            inputKBSY = 0
+        elif key == keyboard.Key.down:
+            inputKBSY = 0
+        elif key == keyboard.Key.right:
+            inputKBSX = 0
+        elif key == keyboard.Key.left:
+            inputKBSX = 0
+
+    def stop(self):
+        self.terminate = True
+        self._Thread__stop()
+
+    def run(self):
+        # Collect events until released
+        with keyboard.Listener(
+                on_press = self.on_press,
+                on_release = self.on_release) as listener:
+            listener.join()
+
+
+class InputHandler(threading.Thread):
     def __init__(self, master):
         self.master = master
         # Threading vars
@@ -141,17 +193,21 @@ class GamepadHandler(threading.Thread):
     def pollInputs(self):
         self.currTimeInputs = time()
         #print "Poll Inputs time diff.", self.currTimeInputs - self.prevTimeInputs
+        if selectedInput == 0:
+            # Keyboard
+            self.inputLJSYNormed = self.filterInput(-inputKBSY)
+            self.inputLJSXNormed = self.filterInput(-inputKBSX)
+            self.inputRJSYNormed = self.filterInput(0.0)
+        else:
+            # Joystick
+            self.inputLJSYNormed = self.filterInput(-inputLJSY)
+            self.inputLJSXNormed = self.filterInput(-inputLJSX)
+            self.inputRJSYNormed = self.filterInput(-inputRJSY)
         # World X
-        global inputLJSY
-        self.inputLJSYNormed = self.filterInput(-inputLJSY)
         self.target[0, 3], self.speed[0] = self.updateMotion(self.inputLJSYNormed, self.target[0, 3], self.speed[0])
         # World Y
-        global inputLJSX
-        self.inputLJSXNormed = self.filterInput(-inputLJSX)
         self.target[1, 3], self.speed[1] = self.updateMotion(self.inputLJSXNormed, self.target[1, 3], self.speed[1])
         # World Z
-        global inputRJSY
-        self.inputRJSYNormed = self.filterInput(-inputRJSY)
         self.target[2, 3], self.speed[2] = self.updateMotion(self.inputRJSYNormed, self.target[2, 3], self.speed[2])
         self.prevTimeInputs = self.currTimeInputs
         with self.cond:
@@ -886,13 +942,6 @@ def loadTargetsCallback():
         showTargets = True
 
 
-def toggleJoystick():
-    if jsVar.get() == 0:
-        gamepadHandler.pause()
-    else:
-        gamepadHandler.resume()
-
-
 def initViews():
     axisW = scsz*2
     axisL = scsz*30
@@ -1246,6 +1295,7 @@ def spineJoint1SliderCallback(val):
     spineRollSlider.set( (spineAngleOffsets[0] + spine.angles[0]) / 2.0 )
     spinePitchSlider.set( (spineAngleOffsets[2] - spine.angles[2]) / 2.0 )
 
+
 def spineJoint2SliderCallback(val):
     r = spineRollSlider.get()
     p = spinePitchSlider.get()
@@ -1255,6 +1305,18 @@ def spineJoint2SliderCallback(val):
     # Dummy adjustment while IMU is not present
     spineRollSlider.set( (spineAngleOffsets[0] + spine.angles[0]) / 2.0 )
     spinePitchSlider.set( (spineAngleOffsets[2] - spine.angles[2]) / 2.0 )
+
+
+def toggleInput():
+    if toggleIpVar.get() == 0:
+        inputHandler.pause()
+    else:
+        inputHandler.resume()
+
+
+def selectInput():
+    global selectedInput
+    selectedInput = rbIpVar.get()
 
 
 def messageBoxModifiedCallback(self):
@@ -1269,11 +1331,12 @@ def logMessage(msg):
 def quit():
     serialHandler.closeSerial()
     gamepadReader.stop()
-    gamepadHandler.stop()
+    inputHandler.stop()
     serialHandler.stop()
+    keyboardListener.stop()
     # Wait for threads to finish
     #print threading.active_count()
-    while gamepadReader.isAlive() or gamepadHandler.isAlive() or serialHandler.isAlive():
+    while gamepadReader.isAlive() or inputHandler.isAlive() or serialHandler.isAlive():
         #print "waiting"
         sleep(0.1)
     #print threading.active_count()
@@ -1481,26 +1544,36 @@ spineJoint2Slider = Scale( spineSlidersFrame, from_ = -jsRange, to = jsRange, re
 spineJoint2Slider.grid(row=5, column=0)
 
 
-jsVar = IntVar()
-joystickCheckButton = Checkbutton(buttonsFrame, text="Joystick", var=jsVar, command=toggleJoystick, font = defaultFont)
-joystickCheckButton.grid(row=0, column=0)
-#joystickCheckButton.select()  # Set default
+toggleIpVar = IntVar()
+inputCheckButton = Checkbutton(buttonsFrame, text="Input", var=toggleIpVar, command=toggleInput, font = defaultFont)
+inputCheckButton.grid(row=0, column=0)
+#inputCheckButton.select()  # Set default
+
+rbIpVar = IntVar()
+kbInputRadioButton = Radiobutton( buttonsFrame, text="Keyboard", font = defaultFont, variable=rbIpVar,
+                                  value = 0, command = selectInput )
+jsInputRadioButton = Radiobutton( buttonsFrame, text="Joystick", font = defaultFont, variable=rbIpVar,
+                                  value = 1, command = selectInput )
+kbInputRadioButton.grid(row=0, column=1)
+jsInputRadioButton.grid(row=0, column=2)
+kbInputRadioButton.select()  # Set default
 
 testIKButton = Button(buttonsFrame, text="Test IK", command=testIK, font = defaultFont)
-testIKButton.grid(row=0, column=1)
+testIKButton.grid(row=0, column=3)
 
 loadTargets1Button = Button(buttonsFrame, text="Load 1", command=loadTargets1, font = defaultFont)
-loadTargets1Button.grid(row=0, column=2)
+loadTargets1Button.grid(row=0, column=4)
 
 loadTargets2Button = Button(buttonsFrame, text="Load 2", command=loadTargets2, font = defaultFont)
-loadTargets2Button.grid(row=0, column=3)
+loadTargets2Button.grid(row=0, column=5)
 
 quitButton = Button(buttonsFrame, text="Quit", command=quit, font = defaultFont)
-quitButton.grid(row=0, column=4)
+quitButton.grid(row=0, column=6)
 
 
 if __name__ == '__main__':
     global selectedLeg
+    global selectedInput
     global a
     global spineAngleOffsets
     global legAngleOffsets
@@ -1510,6 +1583,7 @@ if __name__ == '__main__':
     initLegs()
     initViews()
     selectedLeg = 0
+    selectedInput = 0
 
     # Link lengths "a-1" (last value is the foot offset)
     a = [0, 29.05, 76.919, 72.96, 45.032, 33.596]
@@ -1556,6 +1630,11 @@ if __name__ == '__main__':
     global inputRJSY
     inputRJSY = 0
 
+    global inputKBSY
+    inputKBSY = 0
+    global inputKBSX
+    inputKBSX = 0
+
     global inputForceMax, dragForceCoef
     inputForceMax = 1000
     dragForceCoef = 5
@@ -1563,8 +1642,11 @@ if __name__ == '__main__':
     gamepadReader = GamepadReader(root)
     gamepadReader.start()
 
-    gamepadHandler = GamepadHandler(root)
-    gamepadHandler.start()
+    keyboardListener = KeyboardListener(root)
+    keyboardListener.start()
+
+    inputHandler = InputHandler(root)
+    inputHandler.start()
 
     serialHandler = SerialHandler(root)
     serialHandler.start()
