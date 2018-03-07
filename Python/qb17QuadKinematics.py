@@ -469,9 +469,14 @@ def rescale(old, oldMin, oldMax, newMin, newMax):
     return (old - oldMin) * newRange / oldRange + newMin
 
 
-def runSpineFK(spine, roll, pitch, yaw):
+def runSpineFK(spine, x, y, z, roll, pitch, yaw):
     # Spine front: In the future this can be controlled by e.g. orientation from IMU
     spine.tfSpineBaseInWorld = identityTF()
+
+    spine.tfSpineBaseInWorld[0, 3] = x
+    spine.tfSpineBaseInWorld[1, 3] = y
+    spine.tfSpineBaseInWorld[2, 3] = z
+
     applyYawPitchRoll(spine.tfSpineBaseInWorld, yaw, pitch, roll)
 
     # TODO: Get this translation accurate e.g. at location of IMU
@@ -535,7 +540,8 @@ def runSpineIK():
     #TODO
     # ...
     #
-    runSpineFK()
+    #runSpineFK()
+    pass
 
 
 def runLegFK(leg):
@@ -979,6 +985,15 @@ def initViews():
     topViewCanvas.create_text( canvasW - borderDist + scsz*10, borderDist + axisL, text = "Y",
                                font = defaultFont, fill = "green", tag = "alwaysShown" )
 
+    # Origin point on canvas
+    r = scsz*3
+    fillCol = "black"
+    borderCol = "black"
+    w = scsz*1
+    sideViewCanvas.create_oval( canvasW - r + canvasOffset[0], canvasH - r + canvasOffset[1],
+                                canvasW + r + canvasOffset[0], canvasH + r + canvasOffset[1],
+                                fill = fillCol, outline = borderCol, width = w, tag = "alwaysShown" )
+
 
 def redraw():
     # Redraw views
@@ -1266,44 +1281,89 @@ def targetPitchSliderCallback(val):
 #    runLegIK(legs[selectedLeg], targets[selectedLeg])
 
 
+def spineXSliderCallback(val):
+    x = float(val)
+    y = spineYSlider.get()
+    z = spineZSlider.get()
+    roll = spineRollSlider.get()
+    pitch = spinePitchSlider.get()
+    yaw = spineYawSlider.get()
+    runSpineFK(spine, x, y, z, roll, pitch, yaw)
+
+
+def spineYSliderCallback(val):
+    x = spineXSlider.get()
+    y = float(val)
+    z = spineZSlider.get()
+    roll = spineRollSlider.get()
+    pitch = spinePitchSlider.get()
+    yaw = spineYawSlider.get()
+    runSpineFK(spine, x, y, z, roll, pitch, yaw)
+
+
+def spineZSliderCallback(val):
+    x = spineXSlider.get()
+    y = spineYSlider.get()
+    z = float(val)
+    roll = spineRollSlider.get()
+    pitch = spinePitchSlider.get()
+    yaw = spineYawSlider.get()
+    runSpineFK(spine, x, y, z, roll, pitch, yaw)
+
+
 def spineRollSliderCallback(val):
-    r = float(val)
-    p = spinePitchSlider.get()
-    y = spineYawSlider.get()
-    runSpineFK(spine, r, p, y)
+    x = spineXSlider.get()
+    y = spineYSlider.get()
+    z = spineZSlider.get()
+    roll = float(val)
+    pitch = spinePitchSlider.get()
+    yaw = spineYawSlider.get()
+    runSpineFK(spine, x, y, z, roll, pitch, yaw)
 
 
 def spinePitchSliderCallback(val):
-    r = spineRollSlider.get()
-    p = float(val)
-    y = spineYawSlider.get()
-    runSpineFK(spine, r, p, y)
+    x = spineXSlider.get()
+    y = spineYSlider.get()
+    z = spineZSlider.get()
+    roll = spineRollSlider.get()
+    pitch = float(val)
+    yaw = spineYawSlider.get()
+    runSpineFK(spine, x, y, z, roll, pitch, yaw)
 
 
 def spineYawSliderCallback(val):
-    r = spineRollSlider.get()
-    p = spinePitchSlider.get()
-    y = float(val)
-    runSpineFK(spine, r, p, y)
+    x = spineXSlider.get()
+    y = spineYSlider.get()
+    z = spineZSlider.get()
+    roll = spineRollSlider.get()
+    pitch = spinePitchSlider.get()
+    yaw = float(val)
+    runSpineFK(spine, x, y, z, roll, pitch, yaw)
 
 
 def spineJoint1SliderCallback(val):
-    r = spineRollSlider.get()
-    p = spinePitchSlider.get()
-    y = spineYawSlider.get()
+    x = spineXSlider.get()
+    y = spineYSlider.get()
+    z = spineZSlider.get()
+    roll = spineRollSlider.get()
+    pitch = spinePitchSlider.get()
+    yaw = spineYawSlider.get()
     spine.angles[0] = float(val)
-    runSpineFK(spine, r, p, y)
+    runSpineFK(spine, x, y, z, roll, pitch, yaw)
     # Dummy adjustment while IMU is not present:
     spineRollSlider.set( (spineAngleOffsets[0] + spine.angles[0]) / 2.0 )
     spinePitchSlider.set( (spineAngleOffsets[2] - spine.angles[2]) / 2.0 )
 
 
 def spineJoint2SliderCallback(val):
-    r = spineRollSlider.get()
-    p = spinePitchSlider.get()
-    y = spineYawSlider.get()
+    x = spineXSlider.get()
+    y = spineYSlider.get()
+    z = spineZSlider.get()
+    roll = spineRollSlider.get()
+    pitch = spinePitchSlider.get()
+    yaw = spineYawSlider.get()
     spine.angles[2] = float(val)
-    runSpineFK(spine, r, p, y)
+    runSpineFK(spine, x, y, z, roll, pitch, yaw)
     # Dummy adjustment while IMU is not present
     spineRollSlider.set( (spineAngleOffsets[0] + spine.angles[0]) / 2.0 )
     spinePitchSlider.set( (spineAngleOffsets[2] - spine.angles[2]) / 2.0 )
@@ -1360,7 +1420,7 @@ scsz = 1
 
 root = Tk()
 root.title("Quadbot 17 Kinematics")
-rootWidth = scsz*1320#2600
+rootWidth = scsz*1420
 rootHeight = scsz*830
 root.geometry("%dx%d" % (rootWidth, rootHeight))
 
@@ -1520,30 +1580,46 @@ targetPitchSlider.grid(row=5, column=0)
 #targetYawSlider.config(state=DISABLED)
 
 
-rpyLabel = Label(spineSlidersFrame, text="Spine", font = defaultFont)
-rpyLabel.grid(row=0, column=0)
+xyzLabel = Label(spineSlidersFrame, text="Spine - Trans.", font = defaultFont)
+xyzLabel.grid(row=0, column=0)
+
+tsRange = 300.0
+spineXSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "X",
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineXSliderCallback )
+spineXSlider.grid(row=1, column=0)
+
+spineYSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Y",
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineYSliderCallback )
+spineYSlider.grid(row=2, column=0)
+
+spineZSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Z",
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineZSliderCallback )
+spineZSlider.grid(row=3, column=0)
+
+rpyLabel = Label(spineSlidersFrame, text="Spine - Rot.", font = defaultFont)
+rpyLabel.grid(row=0, column=1)
 
 tsRange = 90.0
 spineRollSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Roll",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineRollSliderCallback )
-spineRollSlider.grid(row=1, column=0)
+spineRollSlider.grid(row=1, column=1)
 
 spinePitchSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Pitch",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spinePitchSliderCallback )
-spinePitchSlider.grid(row=2, column=0)
+spinePitchSlider.grid(row=2, column=1)
 
 spineYawSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Yaw",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineYawSliderCallback )
-spineYawSlider.grid(row=3, column=0)
+spineYawSlider.grid(row=3, column=1)
 
 jsRange = 90.0
 spineJoint1Slider = Scale( spineSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineJoint1SliderCallback )
-spineJoint1Slider.grid(row=4, column=0)
+spineJoint1Slider.grid(row=4, column=1)
 
 spineJoint2Slider = Scale( spineSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j2",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineJoint2SliderCallback )
-spineJoint2Slider.grid(row=5, column=0)
+spineJoint2Slider.grid(row=5, column=1)
 
 
 toggleIpVar = IntVar()
@@ -1600,7 +1676,7 @@ if __name__ == '__main__':
         targets[i] = identityTF()
 
     spine.angles = deepcopy(spineAngleOffsets)
-    runSpineFK(spine, 0, 0, 0)
+    runSpineFK(spine, 0, 0, 0, 0, 0, 0)
     spineJoint1Slider.set(spine.angles[0])
     spineJoint2Slider.set(spine.angles[2])
 
