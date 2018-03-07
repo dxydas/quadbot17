@@ -103,15 +103,19 @@ class KeyboardListener(threading.Thread):
         #except AttributeError:
         #    print('special key {0} pressed'.format(
         #        key))
-        global inputKBSX, inputKBSY
-        if key == keyboard.Key.up:
-            inputKBSY = -32768
-        elif key == keyboard.Key.down:
-            inputKBSY = 32767
-        elif key == keyboard.Key.right:
-            inputKBSX = 32767
+        global inputKBX, inputKBY, inputKBZ
+        if key == keyboard.Key.right:
+            inputKBX = 32767
         elif key == keyboard.Key.left:
-            inputKBSX = -32768
+            inputKBX = -32768
+        elif key == keyboard.Key.up:
+            inputKBY = -32768
+        elif key == keyboard.Key.down:
+            inputKBY = 32767
+        elif key == keyboard.Key.shift:
+            inputKBZ = -32768
+        elif key == keyboard.Key.ctrl:
+            inputKBZ = 32767
 
     def on_release(self, key):
         #print('{0} released'.format(
@@ -119,15 +123,13 @@ class KeyboardListener(threading.Thread):
         #if key == keyboard.Key.esc:
         #    # Stop listener
         #    return False
-        global inputKBSX, inputKBSY
-        if key == keyboard.Key.up:
-            inputKBSY = 0
-        elif key == keyboard.Key.down:
-            inputKBSY = 0
-        elif key == keyboard.Key.right:
-            inputKBSX = 0
-        elif key == keyboard.Key.left:
-            inputKBSX = 0
+        global inputKBX, inputKBY, inputKBZ
+        if (key == keyboard.Key.right) or (key == keyboard.Key.left):
+            inputKBX = 0
+        elif (key == keyboard.Key.up) or (key == keyboard.Key.down):
+            inputKBY = 0
+        elif (key == keyboard.Key.shift) or (key == keyboard.Key.ctrl):
+            inputKBZ = 0
 
     def stop(self):
         self.terminate = True
@@ -195,13 +197,13 @@ class InputHandler(threading.Thread):
         #print "Poll Inputs time diff.", self.currTimeInputs - self.prevTimeInputs
         if selectedInput == 0:
             # Keyboard
-            self.inputLJSYNormed = self.filterInput(-inputKBSY)
-            self.inputLJSXNormed = self.filterInput(-inputKBSX)
-            self.inputRJSYNormed = self.filterInput(0.0)
+            self.inputLJSXNormed = self.filterInput(-inputKBX)
+            self.inputLJSYNormed = self.filterInput(-inputKBY)
+            self.inputRJSYNormed = self.filterInput(-inputKBZ)
         else:
             # Joystick
-            self.inputLJSYNormed = self.filterInput(-inputLJSY)
             self.inputLJSXNormed = self.filterInput(-inputLJSX)
+            self.inputLJSYNormed = self.filterInput(-inputLJSY)
             self.inputRJSYNormed = self.filterInput(-inputRJSY)
         # World X
         self.target[0, 3], self.speed[0] = self.updateMotion(self.inputLJSYNormed, self.target[0, 3], self.speed[0])
@@ -1630,10 +1632,12 @@ if __name__ == '__main__':
     global inputRJSY
     inputRJSY = 0
 
-    global inputKBSY
-    inputKBSY = 0
-    global inputKBSX
-    inputKBSX = 0
+    global inputKBX
+    inputKBX = 0
+    global inputKBY
+    inputKBY = 0
+    global inputKBZ
+    inputKBZ = 0
 
     global inputForceMax, dragForceCoef
     inputForceMax = 1000
