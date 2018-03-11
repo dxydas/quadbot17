@@ -76,17 +76,16 @@ class GamepadReader(threading.Thread):
 
     def processEvent(self, event):
         #print(event.ev_type, event.code, event.state)
-        if event.code == 'ABS_X':
-            global inputLJSX
+        global inputModeSelect, inputLJSX, inputLJSY, inputRJSX, inputRJSY
+        if event.code == 'KEY_A':
+            inputModeSelect = (inputModeSelect + 1) % 3
+        elif event.code == 'ABS_X':
             inputLJSX = event.state
         elif event.code == 'ABS_Y':
-            global inputLJSY
             inputLJSY = event.state
         elif event.code == 'ABS_RX':
-            global inputRJSX
             inputRJSX = event.state
         elif event.code == 'ABS_RY':
-            global inputRJSY
             inputRJSY = event.state
 
 
@@ -97,14 +96,10 @@ class KeyboardListener(threading.Thread):
         self.terminate = False
 
     def on_press(self, key):
-        #try:
-        #    print('alphanumeric key {0} pressed'.format(
-        #        key.char))
-        #except AttributeError:
-        #    print('special key {0} pressed'.format(
-        #        key))
-        global inputKBX, inputKBY, inputKBZ
-        if key == keyboard.Key.right:
+        global inputModeSelect, inputKBX, inputKBY, inputKBZ
+        if key == keyboard.Key.space:
+            inputModeSelect = (inputModeSelect + 1) % 3
+        elif key == keyboard.Key.right:
             inputKBX = 32767
         elif key == keyboard.Key.left:
             inputKBX = -32768
@@ -118,11 +113,6 @@ class KeyboardListener(threading.Thread):
             inputKBZ = 32767
 
     def on_release(self, key):
-        #print('{0} released'.format(
-        #    key))
-        #if key == keyboard.Key.esc:
-        #    # Stop listener
-        #    return False
         global inputKBX, inputKBY, inputKBZ
         if (key == keyboard.Key.right) or (key == keyboard.Key.left):
             inputKBX = 0
@@ -205,12 +195,17 @@ class InputHandler(threading.Thread):
             self.inputLJSXNormed = self.filterInput(-inputLJSX)
             self.inputLJSYNormed = self.filterInput(-inputLJSY)
             self.inputRJSYNormed = self.filterInput(-inputRJSY)
-        # World X
-        self.target[0, 3], self.speed[0] = self.updateMotion(self.inputLJSYNormed, self.target[0, 3], self.speed[0])
-        # World Y
-        self.target[1, 3], self.speed[1] = self.updateMotion(self.inputLJSXNormed, self.target[1, 3], self.speed[1])
-        # World Z
-        self.target[2, 3], self.speed[2] = self.updateMotion(self.inputRJSYNormed, self.target[2, 3], self.speed[2])
+        if inputModeSelect == 0:
+            # World X
+            self.target[0, 3], self.speed[0] = self.updateMotion(self.inputLJSYNormed, self.target[0, 3], self.speed[0])
+            # World Y
+            self.target[1, 3], self.speed[1] = self.updateMotion(self.inputLJSXNormed, self.target[1, 3], self.speed[1])
+            # World Z
+            self.target[2, 3], self.speed[2] = self.updateMotion(self.inputRJSYNormed, self.target[2, 3], self.speed[2])
+        elif inputModeSelect == 1:
+            pass
+        elif inputModeSelect == 2:
+            pass
         self.prevTimeInputs = self.currTimeInputs
         with self.cond:
             if not self.paused:
@@ -1699,20 +1694,18 @@ if __name__ == '__main__':
     targets = deepcopy(targetsHome)
     showTargets = True
 
-    global inputLJSX
+    global inputModeSelect
+    inputModeSelect = 0
+
+    global inputLJSX, inputLJSY, inputRJSX, inputRJSY
     inputLJSX = 0
-    global inputLJSY
     inputLJSY = 0
-    global inputRJSX
     inputRJSX = 0
-    global inputRJSY
     inputRJSY = 0
 
-    global inputKBX
+    global inputKBX, inputKBY, inputKBZ
     inputKBX = 0
-    global inputKBY
     inputKBY = 0
-    global inputKBZ
     inputKBZ = 0
 
     global inputForceMax, dragForceCoef
