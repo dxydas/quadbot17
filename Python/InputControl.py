@@ -1,5 +1,5 @@
 import Globals
-import Kinematics
+import Robot
 from HelperFunctions import rescale
 
 import threading
@@ -220,7 +220,7 @@ class InputHandler(threading.Thread):
         #print "Poll IK time diff.", self.currTimeIK - self.prevTimeIK
         Globals.targets[Globals.selectedLeg] = deepcopy(self.target)
         Globals.speeds[Globals.selectedLeg] = deepcopy(self.speed)
-        Kinematics.runLegIK(self.robot, Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
+        self.robot.runLegIK(Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
         self.prevTimeIK = self.currTimeIK
         with self.cond:
             if not self.paused:
