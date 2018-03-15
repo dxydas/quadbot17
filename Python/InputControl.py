@@ -129,8 +129,9 @@ class KeyboardListener(threading.Thread):
 
 
 class InputHandler(threading.Thread):
-    def __init__(self, master, inputForceMax, dragForceCoef):        
+    def __init__(self, master, robot, inputForceMax, dragForceCoef):
         self.master = master
+        self.robot = robot
         self.inputForceMax = inputForceMax
         self.dragForceCoef = dragForceCoef
         # Threading vars
@@ -219,7 +220,7 @@ class InputHandler(threading.Thread):
         #print "Poll IK time diff.", self.currTimeIK - self.prevTimeIK
         Globals.targets[Globals.selectedLeg] = deepcopy(self.target)
         Globals.speeds[Globals.selectedLeg] = deepcopy(self.speed)
-        Kinematics.runLegIK(Globals.spine, Globals.legs[Globals.selectedLeg], Globals.targets[Globals.selectedLeg])
+        Kinematics.runLegIK(self.robot, Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
         self.prevTimeIK = self.currTimeIK
         with self.cond:
             if not self.paused:

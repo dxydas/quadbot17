@@ -3,9 +3,6 @@
 from Tkinter import Text, END
 
 
-spine = None
-legs = None
-
 targetsHome = None
 targets = None
 speeds = None

@@ -13,19 +13,19 @@ spineAngleOffsets = [0, 0, -45]
 legAngleOffsets = [0, -34, 67.5, -33.5, 0]
 
 
-def runSpineFK(spine, legs, targets, x, y, z, roll, pitch, yaw):
+def runSpineFK(robot, targets, x, y, z, roll, pitch, yaw):
     # Spine front: In the future this can be controlled by e.g. orientation from IMU
-    spine.tfSpineBaseInWorld = identityTF()
+    robot.spine.tfSpineBaseInWorld = identityTF()
 
-    spine.tfSpineBaseInWorld[0, 3] = x
-    spine.tfSpineBaseInWorld[1, 3] = y
-    spine.tfSpineBaseInWorld[2, 3] = z
+    robot.spine.tfSpineBaseInWorld[0, 3] = x
+    robot.spine.tfSpineBaseInWorld[1, 3] = y
+    robot.spine.tfSpineBaseInWorld[2, 3] = z
 
-    applyYawPitchRoll(spine.tfSpineBaseInWorld, yaw, pitch, roll)
+    applyYawPitchRoll(robot.spine.tfSpineBaseInWorld, yaw, pitch, roll)
 
     # TODO: Get this translation accurate e.g. at location of IMU
     # Translation (to get from world to robot spine)
-    spine.tfSpineBaseInWorld *= np.matrix( [ [  1,  0,  0, -50],
+    robot.spine.tfSpineBaseInWorld *= np.matrix( [ [  1,  0,  0, -50],
                                              [  0,  1,  0,   0],
                                              [  0,  0,  1,   0],
                                              [  0,  0,  0,   1] ] )
@@ -33,7 +33,7 @@ def runSpineFK(spine, legs, targets, x, y, z, roll, pitch, yaw):
     # -45 around Y (to get from world to robot spine)
     s = math.sin( -math.pi/4 )
     c = math.cos( -math.pi/4 )
-    spine.tfSpineBaseInWorld *= np.matrix( [ [  c,  0,  s,   0],
+    robot.spine.tfSpineBaseInWorld *= np.matrix( [ [  c,  0,  s,   0],
                                              [  0,  1,  0,   0],
                                              [ -s,  0,  c,   0],
                                              [  0,  0,  0,   1] ] )
@@ -43,8 +43,8 @@ def runSpineFK(spine, legs, targets, x, y, z, roll, pitch, yaw):
     s = [0, 0, 0, 0]
     c = [0, 0, 0, 0]
     for i in range(1, 4):
-        s[i] = math.sin( math.radians(spine.angles[i-1]) )
-        c[i] = math.cos( math.radians(spine.angles[i-1]) )
+        s[i] = math.sin( math.radians(robot.spine.angles[i-1]) )
+        c[i] = math.cos( math.radians(robot.spine.angles[i-1]) )
 
     tfJointInPrevJoint = [0, 0, 0]
 
@@ -68,16 +68,16 @@ def runSpineFK(spine, legs, targets, x, y, z, roll, pitch, yaw):
 
     for j in range(0, 3):
         # Assign joint transforms, in preceeding joint coords and in world coords
-        spine.joints[j].tfJointInPrevJoint = deepcopy(tfJointInPrevJoint[j])
+        robot.spine.joints[j].tfJointInPrevJoint = deepcopy(tfJointInPrevJoint[j])
         if j == 0:
-            T = spine.tfSpineBaseInWorld
+            T = robot.spine.tfSpineBaseInWorld
         else:
-            T = spine.joints[j-1].tfJointInWorld
-        spine.joints[j].tfJointInWorld = T * tfJointInPrevJoint[j]
+            T = robot.spine.joints[j-1].tfJointInWorld
+        robot.spine.joints[j].tfJointInWorld = T * tfJointInPrevJoint[j]
 
     # Update legs
-    for i, leg in enumerate(legs):
-        runLegIK(spine, leg, targets[i])
+    for i, leg in enumerate(robot.legs):
+        runLegIK(robot, i, targets[i])
 
 
 def runSpineIK():
@@ -85,7 +85,9 @@ def runSpineIK():
     pass
 
 
-def runLegFK(spine, leg):
+def runLegFK(robot, legIndex):
+    leg = robot.legs[legIndex]
+
     s = [0, 0, 0, 0, 0]
     c = [0, 0, 0, 0, 0]
     for i in range(0, 5):
@@ -129,22 +131,23 @@ def runLegFK(spine, leg):
         leg.joints[j].tfJointInPrevJoint = deepcopy(tfJointInPrevJoint[j])
         if j == 0:
             if (leg.id == "FL") or (leg.id == "FR"):
-                T = spine.tfSpineBaseInWorld * leg.tfLegBaseInSpineBase
+                T = robot.spine.tfSpineBaseInWorld * leg.tfLegBaseInSpineBase
             else:
-                T = spine.joints[2].tfJointInWorld * leg.tfLegBaseInSpineBase
+                T = robot.spine.joints[2].tfJointInWorld * leg.tfLegBaseInSpineBase
         else:
             T = leg.joints[j-1].tfJointInWorld
         leg.joints[j].tfJointInWorld = T * tfJointInPrevJoint[j]
 
 
-def runLegIK(spine, leg, target):
+def runLegIK(robot, legIndex, target):
     # Convert target in world to be in leg base
+    leg = robot.legs[legIndex]
     tfSpineBaseInLegBase = np.linalg.inv(leg.tfLegBaseInSpineBase)
     if (leg.id == "FL") or (leg.id == "FR"):
-        T = spine.tfSpineBaseInWorld
-        worldInSpineBase = np.linalg.inv(spine.tfSpineBaseInWorld)
+        T = robot.spine.tfSpineBaseInWorld
+        worldInSpineBase = np.linalg.inv(robot.spine.tfSpineBaseInWorld)
     else:
-        worldInSpineBase = np.linalg.inv(spine.joints[2].tfJointInWorld)
+        worldInSpineBase = np.linalg.inv(robot.spine.joints[2].tfJointInWorld)
     targetInLegBase = tfSpineBaseInLegBase * worldInSpineBase * target
 
     Tx = targetInLegBase[0, 3]
@@ -258,7 +261,7 @@ def runLegIK(spine, leg, target):
     # Solve Joint 5
     leg.angles[4] = - math.degrees(a0 + roll)
 
-    runLegFK(spine, leg)
+    runLegFK(robot, legIndex)
 
     #print "target: ", target
     #print "targetInLegBase: ", targetInLegBase

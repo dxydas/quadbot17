@@ -4,6 +4,12 @@ import math
 import numpy as np
 
 
+class Robot():
+    def __init__(self):
+        self.spine = initSpine()
+        self.legs = initLegs()
+
+
 class Spine():
     def __init__(self, id, joints, angles, tfSpineBaseInWorld):
         self.id = id

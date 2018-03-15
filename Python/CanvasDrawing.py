@@ -1,10 +1,8 @@
-import Globals
-
 import numpy as np
 
 
 class CanvasDrawing():
-    def __init__(self, scsz, canvasW, canvasH, defaultFont, sideViewCanvas, frontViewCanvas, topViewCanvas):
+    def __init__(self, scsz, canvasW, canvasH, defaultFont, sideViewCanvas, frontViewCanvas, topViewCanvas, robot, inputForceMax):
         self.scsz = scsz
         self.canvasW = canvasW
         self.canvasH = canvasH
@@ -12,6 +10,8 @@ class CanvasDrawing():
         self.sideViewCanvas = sideViewCanvas
         self.frontViewCanvas = frontViewCanvas
         self.topViewCanvas = topViewCanvas
+        self.robot = robot
+        self.inputForceMax = inputForceMax
         # 1 mm -> scsz pixels
         self.canvasScale = self.scsz 
         # 3rd offset is for top view only
@@ -63,7 +63,7 @@ class CanvasDrawing():
                                             fill = fillCol, outline = borderCol, width = w, tag = "alwaysShown" )
 
 
-    def redraw(self, spine, legs, targets, speeds, showTargets, inputForceMax):
+    def redraw(self, targets, speeds, showTargets):
         # Redraw views
         self.sideViewCanvas.delete("clear")
         self.frontViewCanvas.delete("clear")
@@ -71,13 +71,13 @@ class CanvasDrawing():
 
         # Spine
         for j in range(2, -1, -2):  # Skip dummy joint
-            self.drawJoint( spine.joints[j].id,
-                            spine.joints[j].tfJointInWorld[0, 3],
-                            spine.joints[j].tfJointInWorld[1, 3],
-                            spine.joints[j].tfJointInWorld[2, 3] )
+            self.drawJoint( self.robot.spine.joints[j].id,
+                            self.robot.spine.joints[j].tfJointInWorld[0, 3],
+                            self.robot.spine.joints[j].tfJointInWorld[1, 3],
+                            self.robot.spine.joints[j].tfJointInWorld[2, 3] )
 
         # Legs
-        for leg in reversed(legs):
+        for leg in reversed(self.robot.legs):
             for j in range(4, -1, -1):
                 self.drawLink( leg.joints[j].tfJointInWorld[0, 3],
                                leg.joints[j].tfJointInWorld[1, 3],
@@ -98,7 +98,7 @@ class CanvasDrawing():
         # Target
         if showTargets:
             for i, target in enumerate(targets):
-                self.drawTarget( target, speeds[i], inputForceMax )
+                self.drawTarget(target, speeds[i])
 
 
     def drawJoint(self, id, x, y, z):
@@ -163,7 +163,7 @@ class CanvasDrawing():
                                             fill = fillCol, width = w, tag = "clear" )
 
 
-    def drawTarget(self, target, speed, inputForceMax):
+    def drawTarget(self, target, speed):
         # Target circle
         r = self.scsz*16
         borderCol = "green"
@@ -233,7 +233,7 @@ class CanvasDrawing():
         sx = speed[0]
         sy = speed[1]
         sz = speed[2]
-        k = 500.0 / inputForceMax  # Arbitrary scaling, to make max. length of vector constant
+        k = 500.0 / self.inputForceMax  # Arbitrary scaling, to make max. length of vector constant
         self.sideViewCanvas.create_line( self.canvasW - self.canvasScale*x + self.canvasOffset[0], self.canvasH - self.canvasScale*z + self.canvasOffset[1],
                                             self.canvasW - self.canvasScale*x - sx*k + self.canvasOffset[0], self.canvasH - self.canvasScale*z - sz*k + self.canvasOffset[1],
                                             fill = fillCol, width = w, tag = "clear" )

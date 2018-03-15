@@ -26,7 +26,7 @@ class App:
     def poll(self):
         self.currTime = time()
         #print "App time diff.", self.currTime - self.prevTime
-        canvasDrawing.redraw(Globals.spine, Globals.legs, Globals.targets, Globals.speeds, Globals.showTargets, inputForceMax)
+        canvasDrawing.redraw(Globals.targets, Globals.speeds, Globals.showTargets)
         self.prevTime = self.currTime
         self.master.after(int(self.dt*1000), self.poll)
 
@@ -37,49 +37,49 @@ def selectLegCallback():
 
 
 def joint1SliderCallback(val):
-    Globals.legs[Globals.selectedLeg].angles[0] = float(val)
-    Kinematics.runLegFK(Globals.spine, Globals.legs[Globals.selectedLeg])
+    robot.legs[Globals.selectedLeg].angles[0] = float(val)
+    Kinematics.runLegFK(robot, Globals.selectedLeg)
 
 
 def joint2SliderCallback(val):
-    Globals.legs[Globals.selectedLeg].angles[1] = float(val)
-    Kinematics.runLegFK(Globals.spine, Globals.legs[Globals.selectedLeg])
+    robot.legs[Globals.selectedLeg].angles[1] = float(val)
+    Kinematics.runLegFK(robot, Globals.selectedLeg)
 
 
 def joint3SliderCallback(val):
-    Globals.legs[Globals.selectedLeg].angles[2] = float(val)
-    Kinematics.runLegFK(Globals.spine, Globals.legs[Globals.selectedLeg])
+    robot.legs[Globals.selectedLeg].angles[2] = float(val)
+    Kinematics.runLegFK(robot, Globals.selectedLeg)
 
 
 def joint4SliderCallback(val):
-    Globals.legs[Globals.selectedLeg].angles[3] = float(val)
-    Kinematics.runLegFK(Globals.spine, Globals.legs[Globals.selectedLeg])
+    robot.legs[Globals.selectedLeg].angles[3] = float(val)
+    Kinematics.runLegFK(robot, Globals.selectedLeg)
 
 
 def joint5SliderCallback(val):
-    Globals.legs[Globals.selectedLeg].angles[4] = float(val)
-    Kinematics.runLegFK(Globals.spine, Globals.legs[Globals.selectedLeg])
+    robot.legs[Globals.selectedLeg].angles[4] = float(val)
+    Kinematics.runLegFK(robot, Globals.selectedLeg)
 
 
 def targetXSliderCallback(val):
     Globals.targets[Globals.selectedLeg][0, 3] = Globals.targetsHome[Globals.selectedLeg][0, 3] + float(val)
     Globals.targets[Globals.selectedLeg][1, 3] = Globals.targetsHome[Globals.selectedLeg][1, 3] + float(targetYSlider.get())
     Globals.targets[Globals.selectedLeg][2, 3] = Globals.targetsHome[Globals.selectedLeg][2, 3] + float(targetZSlider.get())
-    Kinematics.runLegIK(Globals.spine, Globals.legs[Globals.selectedLeg], Globals.targets[Globals.selectedLeg])
+    Kinematics.runLegIK(robot, Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
 
 
 def targetYSliderCallback(val):
     Globals.targets[Globals.selectedLeg][0, 3] = Globals.targetsHome[Globals.selectedLeg][0, 3] + float(targetXSlider.get())
     Globals.targets[Globals.selectedLeg][1, 3] = Globals.targetsHome[Globals.selectedLeg][1, 3] + float(val)
     Globals.targets[Globals.selectedLeg][2, 3] = Globals.targetsHome[Globals.selectedLeg][2, 3] + float(targetZSlider.get())
-    Kinematics.runLegIK(Globals.spine, Globals.legs[Globals.selectedLeg], Globals.targets[Globals.selectedLeg])
+    Kinematics.runLegIK(robot, Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
 
 
 def targetZSliderCallback(val):
     Globals.targets[Globals.selectedLeg][0, 3] = Globals.targetsHome[Globals.selectedLeg][0, 3] + float(targetXSlider.get())
     Globals.targets[Globals.selectedLeg][1, 3] = Globals.targetsHome[Globals.selectedLeg][1, 3] + float(targetYSlider.get())
     Globals.targets[Globals.selectedLeg][2, 3] = Globals.targetsHome[Globals.selectedLeg][2, 3] + float(val)
-    Kinematics.runLegIK(Globals.spine, Globals.legs[Globals.selectedLeg], Globals.targets[Globals.selectedLeg])
+    Kinematics.runLegIK(robot, Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
 
 
 def targetRollSliderCallback(val):
@@ -88,7 +88,7 @@ def targetRollSliderCallback(val):
                        0,#targetYawSlider.get(),
                        targetPitchSlider.get(),
                        float(val))
-    Kinematics.runLegIK(Globals.spine, Globals.legs[Globals.selectedLeg], Globals.targets[Globals.selectedLeg])
+    Kinematics.runLegIK(robot, Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
 
 
 def targetPitchSliderCallback(val):
@@ -97,7 +97,7 @@ def targetPitchSliderCallback(val):
                        0,#targetYawSlider.get(),
                        float(val),
                        targetRollSlider.get() )
-    Kinematics.runLegIK(Globals.spine, Globals.legs[Globals.selectedLeg], Globals.targets[Globals.selectedLeg])
+    Kinematics.runLegIK(robot, Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
 
 
 #def targetYawSliderCallback(val):
@@ -106,7 +106,7 @@ def targetPitchSliderCallback(val):
 #                       float(val),
 #                       targetPitchSlider.get(),
 #                       targetRollSlider.get() )
-#    Kinematics.runLegIK(Globals.spine, Globals.legs[Globals.selectedLeg], Globals.targets[Globals.selectedLeg])
+#    Kinematics.runLegIK(robot, Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
 
 
 def spineXSliderCallback(val):
@@ -116,7 +116,7 @@ def spineXSliderCallback(val):
     roll = spineRollSlider.get()
     pitch = spinePitchSlider.get()
     yaw = spineYawSlider.get()
-    Kinematics.runSpineFK(Globals.spine, Globals.legs, Globals.targets, x, y, z, roll, pitch, yaw)
+    Kinematics.runSpineFK(robot, Globals.targets, x, y, z, roll, pitch, yaw)
 
 
 def spineYSliderCallback(val):
@@ -126,7 +126,7 @@ def spineYSliderCallback(val):
     roll = spineRollSlider.get()
     pitch = spinePitchSlider.get()
     yaw = spineYawSlider.get()
-    Kinematics.runSpineFK(Globals.spine, Globals.legs, Globals.targets, x, y, z, roll, pitch, yaw)
+    Kinematics.runSpineFK(robot, Globals.targets, x, y, z, roll, pitch, yaw)
 
 
 def spineZSliderCallback(val):
@@ -136,7 +136,7 @@ def spineZSliderCallback(val):
     roll = spineRollSlider.get()
     pitch = spinePitchSlider.get()
     yaw = spineYawSlider.get()
-    Kinematics.runSpineFK(Globals.spine, Globals.legs, Globals.targets, x, y, z, roll, pitch, yaw)
+    Kinematics.runSpineFK(robot, Globals.targets, x, y, z, roll, pitch, yaw)
 
 
 def spineRollSliderCallback(val):
@@ -146,7 +146,7 @@ def spineRollSliderCallback(val):
     roll = float(val)
     pitch = spinePitchSlider.get()
     yaw = spineYawSlider.get()
-    Kinematics.runSpineFK(Globals.spine, Globals.legs, Globals.targets, x, y, z, roll, pitch, yaw)
+    Kinematics.runSpineFK(robot, Globals.targets, x, y, z, roll, pitch, yaw)
 
 
 def spinePitchSliderCallback(val):
@@ -156,7 +156,7 @@ def spinePitchSliderCallback(val):
     roll = spineRollSlider.get()
     pitch = float(val)
     yaw = spineYawSlider.get()
-    Kinematics.runSpineFK(Globals.spine, Globals.legs, Globals.targets, x, y, z, roll, pitch, yaw)
+    Kinematics.runSpineFK(robot, Globals.targets, x, y, z, roll, pitch, yaw)
 
 
 def spineYawSliderCallback(val):
@@ -166,7 +166,7 @@ def spineYawSliderCallback(val):
     roll = spineRollSlider.get()
     pitch = spinePitchSlider.get()
     yaw = float(val)
-    Kinematics.runSpineFK(Globals.spine, Globals.legs, Globals.targets, x, y, z, roll, pitch, yaw)
+    Kinematics.runSpineFK(robot, Globals.targets, x, y, z, roll, pitch, yaw)
 
 
 def spineJoint1SliderCallback(val):
@@ -176,11 +176,11 @@ def spineJoint1SliderCallback(val):
     roll = spineRollSlider.get()
     pitch = spinePitchSlider.get()
     yaw = spineYawSlider.get()
-    Globals.spine.angles[0] = float(val)
-    Kinematics.runSpineFK(Globals.spine, Globals.legs, Globals.targets, x, y, z, roll, pitch, yaw)
+    robot.spine.angles[0] = float(val)
+    Kinematics.runSpineFK(robot, Globals.targets, x, y, z, roll, pitch, yaw)
     # Dummy adjustment while IMU is not present:
-    spineRollSlider.set( (Kinematics.spineAngleOffsets[0] + Globals.spine.angles[0]) / 2.0 )
-    spinePitchSlider.set( (Kinematics.spineAngleOffsets[2] - Globals.spine.angles[2]) / 2.0 )
+    spineRollSlider.set( (Kinematics.spineAngleOffsets[0] + robot.spine.angles[0]) / 2.0 )
+    spinePitchSlider.set( (Kinematics.spineAngleOffsets[2] - robot.spine.angles[2]) / 2.0 )
 
 
 def spineJoint2SliderCallback(val):
@@ -190,11 +190,11 @@ def spineJoint2SliderCallback(val):
     roll = spineRollSlider.get()
     pitch = spinePitchSlider.get()
     yaw = spineYawSlider.get()
-    Globals.spine.angles[2] = float(val)
-    Kinematics.runSpineFK(Globals.spine, Globals.legs, Globals.targets, x, y, z, roll, pitch, yaw)
+    robot.spine.angles[2] = float(val)
+    Kinematics.runSpineFK(robot, Globals.targets, x, y, z, roll, pitch, yaw)
     # Dummy adjustment while IMU is not present
-    spineRollSlider.set( (Kinematics.spineAngleOffsets[0] + Globals.spine.angles[0]) / 2.0 )
-    spinePitchSlider.set( (Kinematics.spineAngleOffsets[2] - Globals.spine.angles[2]) / 2.0 )
+    spineRollSlider.set( (Kinematics.spineAngleOffsets[0] + robot.spine.angles[0]) / 2.0 )
+    spinePitchSlider.set( (Kinematics.spineAngleOffsets[2] - robot.spine.angles[2]) / 2.0 )
 
 
 def toggleInput():
@@ -231,7 +231,7 @@ def testIKCallback():
         y = 2*bEll*u / (u2 + 1)
         Globals.targets[Globals.selectedLeg][0, 3] = Globals.targetsHome[Globals.selectedLeg][0, 3] + x + xAdjust
         Globals.targets[Globals.selectedLeg][2, 3] = Globals.targetsHome[Globals.selectedLeg][2, 3] + y + yAdjust
-        Kinematics.runLegIK(Globals.spine, Globals.legs[Globals.selectedLeg], Globals.targets[Globals.selectedLeg])
+        Kinematics.runLegIK(robot, Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
         root.after(rateMsTIK, testIKCallback)
 
 
@@ -304,9 +304,6 @@ topViewLabel = Label(topViewFrame, text="Top View", font = defaultFont)
 topViewLabel.grid(row=0, column=0)
 topViewCanvas = Canvas(topViewFrame, background="#E0EEE0", width = canvasW, height = canvasH)
 topViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
-
-canvasDrawing = CanvasDrawing.CanvasDrawing(scsz, canvasW, canvasH, defaultFont, sideViewCanvas, frontViewCanvas, topViewCanvas)
-canvasDrawing.initViews()
 
 
 controlsSubFrame = Frame(controlsFrame)
@@ -494,34 +491,33 @@ quitButton.grid(row=0, column=6)
 
 
 if __name__ == '__main__':
-    Globals.spine = RobotParts.initSpine()
-    Globals.legs = RobotParts.initLegs()
+    robot = RobotParts.Robot()
     Globals.selectedLeg = 0
     Globals.selectedInput = 0
 
     # Dummy targets (because of runSpikeIK, which calls runLegFK at the end)
     Globals.targets = [0, 0, 0, 0]
-    for i, leg in enumerate(Globals.legs):
+    for i, leg in enumerate(robot.legs):
         Globals.targets[i] = identityTF()
 
-    Globals.spine.angles = deepcopy(Kinematics.spineAngleOffsets)
-    Kinematics.runSpineFK(Globals.spine, Globals.legs, Globals.targets, 0, 0, 0, 0, 0, 0)
-    spineJoint1Slider.set(Globals.spine.angles[0])
-    spineJoint2Slider.set(Globals.spine.angles[2])
+    robot.spine.angles = deepcopy(Kinematics.spineAngleOffsets)
+    Kinematics.runSpineFK(robot, Globals.targets, 0, 0, 0, 0, 0, 0)
+    spineJoint1Slider.set(robot.spine.angles[0])
+    spineJoint2Slider.set(robot.spine.angles[2])
 
-    for leg in Globals.legs:
+    for i, leg in enumerate(robot.legs):
         leg.angles = deepcopy(Kinematics.legAngleOffsets)
-        Kinematics.runLegFK(Globals.spine, leg)
-    joint1Slider.set(Globals.legs[Globals.selectedLeg].angles[0])
-    joint2Slider.set(Globals.legs[Globals.selectedLeg].angles[1])
-    joint3Slider.set(Globals.legs[Globals.selectedLeg].angles[2])
-    joint4Slider.set(Globals.legs[Globals.selectedLeg].angles[3])
-    joint5Slider.set(Globals.legs[Globals.selectedLeg].angles[4])
+        Kinematics.runLegFK(robot, i)
+    joint1Slider.set(robot.legs[Globals.selectedLeg].angles[0])
+    joint2Slider.set(robot.legs[Globals.selectedLeg].angles[1])
+    joint3Slider.set(robot.legs[Globals.selectedLeg].angles[2])
+    joint4Slider.set(robot.legs[Globals.selectedLeg].angles[3])
+    joint5Slider.set(robot.legs[Globals.selectedLeg].angles[4])
 
     # Targets: Foot in world
     Globals.targetsHome = [0, 0, 0, 0]
     Globals.speeds = [0, 0, 0, 0]
-    for i, leg in enumerate(Globals.legs):
+    for i, leg in enumerate(robot.legs):
         Globals.targetsHome[i] = deepcopy(leg.joints[5].tfJointInWorld)
         applyYawPitchRoll( Globals.targetsHome[i], 0, 0, 0)
         Globals.speeds[i] = [0, 0, 0]
@@ -530,13 +526,18 @@ if __name__ == '__main__':
     inputForceMax = 1000
     dragForceCoef = 5
 
+    canvasDrawing = CanvasDrawing.CanvasDrawing(scsz, canvasW, canvasH, defaultFont,
+                                                sideViewCanvas, frontViewCanvas, topViewCanvas,
+                                                robot, inputForceMax)
+    canvasDrawing.initViews()
+
     gamepadReader = InputControl.GamepadReader()
     gamepadReader.start()
 
     keyboardListener = InputControl.KeyboardListener()
     keyboardListener.start()
 
-    inputHandler = InputControl.InputHandler(root, inputForceMax, dragForceCoef)
+    inputHandler = InputControl.InputHandler(root, robot, inputForceMax, dragForceCoef)
     inputHandler.start()
 
     serialHandler = SerialHandler.SerialHandler(root)
