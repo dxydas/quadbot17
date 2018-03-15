@@ -1663,7 +1663,7 @@ if __name__ == '__main__':
     spineAngleOffsets = [0, 0, -45]
     legAngleOffsets = [0, -34, 67.5, -33.5, 0]
 
-    # Dummy targets (because of runSpikeIK, which calls runLegFK at the end)
+    # Dummy targets (because of runLegIK, which calls runLegFK at the end)
     targets = [0, 0, 0, 0]
     for i, leg in enumerate(legs):
         targets[i] = identityTF()
