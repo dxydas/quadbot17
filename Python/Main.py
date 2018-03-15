@@ -4,7 +4,7 @@ import Globals
 import CanvasDrawing
 import InputControl
 import SerialHandler
-import RobotParts
+import Robot
 from HelperFunctions import identityTF, applyYawPitchRoll
 import Kinematics
 import Gaits
@@ -491,7 +491,7 @@ quitButton.grid(row=0, column=6)
 
 
 if __name__ == '__main__':
-    robot = RobotParts.Robot()
+    robot = Robot.Robot()
     Globals.selectedLeg = 0
     Globals.selectedInput = 0
 
