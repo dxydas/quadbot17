@@ -32,8 +32,7 @@ class App:
 
 
 class GamepadReader(threading.Thread):
-    def __init__(self, master):
-        self.master = master
+    def __init__(self):
         threading.Thread.__init__(self)
         self.terminate = False
         self.gamepadOK = False
@@ -90,8 +89,7 @@ class GamepadReader(threading.Thread):
 
 
 class KeyboardListener(threading.Thread):
-    def __init__(self, master):
-        self.master = master
+    def __init__(self):
         threading.Thread.__init__(self)
         self.terminate = False
 
@@ -1388,9 +1386,9 @@ def logMessage(msg):
 def quit():
     serialHandler.closeSerial()
     gamepadReader.stop()
+    keyboardListener.stop()
     inputHandler.stop()
     serialHandler.stop()
-    keyboardListener.stop()
     # Wait for threads to finish
     #print threading.active_count()
     while gamepadReader.isAlive() or inputHandler.isAlive() or serialHandler.isAlive():
@@ -1712,10 +1710,10 @@ if __name__ == '__main__':
     inputForceMax = 1000
     dragForceCoef = 5
 
-    gamepadReader = GamepadReader(root)
+    gamepadReader = GamepadReader()
     gamepadReader.start()
 
-    keyboardListener = KeyboardListener(root)
+    keyboardListener = KeyboardListener()
     keyboardListener.start()
 
     inputHandler = InputHandler(root)
