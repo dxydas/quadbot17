@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import sys
-from std_msgs.msg import String
 from Tkinter import *
 from time import time, localtime, strftime, sleep
 import math
@@ -1374,7 +1372,7 @@ def selectInput():
     selectedInput = rbIpVar.get()
 
 
-def messageBoxModifiedCallback(self):
+def messageBoxModifiedCallback(event):
     messageBox.see(END)
     messageBox.edit_modified(False)
 
@@ -1665,7 +1663,7 @@ if __name__ == '__main__':
 
     # Dummy targets (because of runLegIK, which calls runLegFK at the end)
     targets = [0, 0, 0, 0]
-    for i, leg in enumerate(legs):
+    for i in range(0, len(legs)):
         targets[i] = identityTF()
 
     spine.angles = deepcopy(spineAngleOffsets)

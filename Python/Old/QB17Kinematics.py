@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import sys
-from std_msgs.msg import String
 from Tkinter import *
 from time import localtime, strftime, sleep
 import math
