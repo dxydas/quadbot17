@@ -1,5 +1,3 @@
-import Globals
-import Robot
 from HelperFunctions import rescale
 
 import threading
@@ -10,109 +8,48 @@ from pynput import keyboard
 from time import time, sleep
 
 
-inputModeSelect = 0
-
-inputLJSX = 0
-inputLJSY = 0
-inputRJSX = 0
-inputRJSY = 0
-
-inputKBX = 0
-inputKBY = 0
-inputKBZ = 0
-
-
-class GamepadReader(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.terminate = False
-        self.gamepadOK = False
-        self.gamepadUnplugged = False
-        self.gamepadIOError = False
-
-
-    def stop(self):
-        self.terminate = True
-        self._Thread__stop()
-
-
-    def run(self):
-        while not self.terminate:
-            if not self.gamepadOK:
-                self.devices = inputs.DeviceManager()
-                try:
-                    gamepad = self.devices.gamepads[0]
-                    Globals.logMessage("Gamepad connected")
-                    self.gamepadOK = True
-                    self.gamepadUnplugged = False
-                except IndexError:
-                    self.gamepadOK = False
-                    if self.gamepadUnplugged == False:
-                        Globals.logMessage("Gamepad not found")
-                        self.gamepadUnplugged = True
-                    sleep(1)
-                    continue
-            try:
-                # Get joystick input
-                events = gamepad.read()
-                for event in events:
-                    self.processEvent(event)
-                self.gamepadIOError = False
-            except IOError:
-                self.gamepadOK = False
-                if self.gamepadIOError == False:
-                    Globals.logMessage("Gamepad I/O error")
-                    self.gamepadIOError = True
-                sleep(1)
-                continue
-
-
-    def processEvent(self, event):
-        #print(event.ev_type, event.code, event.state)
-        #global inputModeSelect, inputLJSX, inputLJSY, inputRJSX, inputRJSY
-        if event.code == 'KEY_A':
-            inputModeSelect = (inputModeSelect + 1) % 3
-        elif event.code == 'ABS_X':
-            inputLJSX = event.state
-        elif event.code == 'ABS_Y':
-            inputLJSY = event.state
-        elif event.code == 'ABS_RX':
-            inputRJSX = event.state
-        elif event.code == 'ABS_RY':
-            inputRJSY = event.state
-
-
 class KeyboardListener(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.terminate = False
 
+        self.inputModeSelect = 0
+        self.inputKBX1 = 0
+        self.inputKBY1 = 0
+        self.inputKBX2 = 0
+        self.inputKBY2 = 0
+
+
     def on_press(self, key):
-        global inputModeSelect, inputKBX, inputKBY, inputKBZ
         if key == keyboard.Key.space:
-            inputModeSelect = (inputModeSelect + 1) % 3
-        elif key == keyboard.Key.right:
-            inputKBX = 32767
+            self.inputModeSelect = (self.inputModeSelect + 1) % 3
         elif key == keyboard.Key.left:
-            inputKBX = -32768
+            self.inputKBX1 = -32768
+        elif key == keyboard.Key.right:
+            self.inputKBX1 = 32767
         elif key == keyboard.Key.up:
-            inputKBY = -32768
+            self.inputKBY1 = -32768
         elif key == keyboard.Key.down:
-            inputKBY = 32767
+            self.inputKBY1 = 32767
+        elif key == keyboard.KeyCode.from_char('['):
+            self.inputKBX2 = -32768
+        elif key == keyboard.KeyCode.from_char(']'):
+            self.inputKBX2 = 32767
         elif key == keyboard.Key.shift:
-            inputKBZ = -32768
+            self.inputKBY2 = -32768
         elif key == keyboard.Key.ctrl:
-            inputKBZ = 32767
+            self.inputKBY2 = 32767
 
 
     def on_release(self, key):
-        global inputKBX, inputKBY, inputKBZ
         if (key == keyboard.Key.right) or (key == keyboard.Key.left):
-            inputKBX = 0
+            self.inputKBX1 = 0
         elif (key == keyboard.Key.up) or (key == keyboard.Key.down):
-            inputKBY = 0
+            self.inputKBY1 = 0
+        elif (key == keyboard.KeyCode.from_char('[')) or (key == keyboard.KeyCode.from_char(']')):
+            self.inputKBX2 = 0
         elif (key == keyboard.Key.shift) or (key == keyboard.Key.ctrl):
-            inputKBZ = 0
+            self.inputKBY2 = 0
 
 
     def stop(self):
@@ -128,25 +65,98 @@ class KeyboardListener(threading.Thread):
             listener.join()
 
 
+class GamepadReader(threading.Thread):
+    def __init__(self, messageLogger):
+        self.messageLogger = messageLogger
+
+        threading.Thread.__init__(self)
+        self.terminate = False
+        self.gamepadOK = False
+        self.gamepadUnplugged = False
+        self.gamepadIOError = False
+
+        self.inputModeSelect = 0
+        self.inputLJSX = 0
+        self.inputLJSY = 0
+        self.inputRJSX = 0
+        self.inputRJSY = 0
+
+
+    def stop(self):
+        self.terminate = True
+        self._Thread__stop()
+
+
+    def run(self):
+        while not self.terminate:
+            if not self.gamepadOK:
+                self.devices = inputs.DeviceManager()
+                try:
+                    gamepad = self.devices.gamepads[0]
+                    self.messageLogger.log("Gamepad connected")
+                    self.gamepadOK = True
+                    self.gamepadUnplugged = False
+                except IndexError:
+                    self.gamepadOK = False
+                    if self.gamepadUnplugged == False:
+                        self.messageLogger.log("Gamepad not found")
+                        self.gamepadUnplugged = True
+                    sleep(1)
+                    continue
+            try:
+                # Get joystick input
+                events = gamepad.read()
+                for event in events:
+                    self.processEvent(event)
+                self.gamepadIOError = False
+            except IOError:
+                self.gamepadOK = False
+                if self.gamepadIOError == False:
+                    self.messageLogger.log("Gamepad I/O error")
+                    self.gamepadIOError = True
+                sleep(1)
+                continue
+
+
+    def processEvent(self, event):
+        #print(event.ev_type, event.code, event.state)
+        if event.code == 'KEY_A':
+            self.inputModeSelect = (self.inputModeSelect + 1) % 3
+        elif event.code == 'ABS_X':
+            self.inputLJSX = event.state
+        elif event.code == 'ABS_Y':
+            self.inputLJSY = event.state
+        elif event.code == 'ABS_RX':
+            self.inputRJSX = event.state
+        elif event.code == 'ABS_RY':
+            self.inputRJSY = event.state
+
+
 class InputHandler(threading.Thread):
-    def __init__(self, master, robot, inputForceMax, dragForceCoef):
+    def __init__(self, master, robot, keyboardListener, gamepadReader):
         self.master = master
         self.robot = robot
-        self.inputForceMax = inputForceMax
-        self.dragForceCoef = dragForceCoef
+        self.keyboardListener = keyboardListener
+        self.gamepadReader = gamepadReader
+
         # Threading vars
         threading.Thread.__init__(self)
         self.terminate = False
         self.paused = True
         self.triggerPolling = True
         self.cond = threading.Condition()
+
         # Input vars
-        self.target = deepcopy(Globals.targetsHome[Globals.selectedLeg])
+        self.inputForceMax = 1000
+        self.dragForceCoef = 5
+        self.selectedInput = 0
+        self.inputModeSelect = 0
+        self.target = deepcopy(self.robot.targetsHome[self.robot.selectedLeg])
         self.speed = [0, 0, 0]
-        self.inputLJSXNormed = 0
-        self.inputLJSYNormed = 0
-        self.inputRJSXNormed = 0
-        self.inputRJSYNormed = 0
+        self.inputX1Normed = 0
+        self.inputY1Normed = 0
+        self.inputX2Normed = 0
+        self.inputY2Normed = 0
         self.dt = 0.05  # 50 ms
         # TODO: Find out why lower dt values cause program to crash, when
         #       toggling pause (does not occur in qb17Kinematics.py).
@@ -188,27 +198,34 @@ class InputHandler(threading.Thread):
     def pollInputs(self):
         self.currTimeInputs = time()
         #print "Poll Inputs time diff.", self.currTimeInputs - self.prevTimeInputs
-        if Globals.selectedInput == 0:
+
+        if self.selectedInput == 0:
             # Keyboard
-            self.inputLJSXNormed = self.filterInput(-inputKBX)
-            self.inputLJSYNormed = self.filterInput(-inputKBY)
-            self.inputRJSYNormed = self.filterInput(-inputKBZ)
+            self.inputX1Normed = self.filterInput(-self.keyboardListener.inputKBX1)
+            self.inputY1Normed = self.filterInput(-self.keyboardListener.inputKBY1)
+            self.inputX2Normed = self.filterInput(-self.keyboardListener.inputKBX2)
+            self.inputY2Normed = self.filterInput(-self.keyboardListener.inputKBY2)
+            self.inputModeSelect = self.keyboardListener.inputModeSelect
         else:
             # Joystick
-            self.inputLJSXNormed = self.filterInput(-inputLJSX)
-            self.inputLJSYNormed = self.filterInput(-inputLJSY)
-            self.inputRJSYNormed = self.filterInput(-inputRJSY)
-        if inputModeSelect == 0:
+            self.inputX1Normed = self.filterInput(-self.gamepadReader.inputLJSX)
+            self.inputY1Normed = self.filterInput(-self.gamepadReader.inputLJSY)
+            self.inputX2Normed = self.filterInput(-self.gamepadReader.inputRJSX)
+            self.inputY2Normed = self.filterInput(-self.gamepadReader.inputRJSY)
+            self.inputModeSelect = self.gamepadReader.inputModeSelect
+
+        if self.inputModeSelect == 0:
             # World X
-            self.target[0, 3], self.speed[0] = self.updateMotion(self.inputLJSYNormed, self.target[0, 3], self.speed[0])
+            self.target[0, 3], self.speed[0] = self.updateMotion(self.inputY1Normed, self.target[0, 3], self.speed[0])
             # World Y
-            self.target[1, 3], self.speed[1] = self.updateMotion(self.inputLJSXNormed, self.target[1, 3], self.speed[1])
+            self.target[1, 3], self.speed[1] = self.updateMotion(self.inputX1Normed, self.target[1, 3], self.speed[1])
             # World Z
-            self.target[2, 3], self.speed[2] = self.updateMotion(self.inputRJSYNormed, self.target[2, 3], self.speed[2])
-        elif inputModeSelect == 1:
+            self.target[2, 3], self.speed[2] = self.updateMotion(self.inputY2Normed, self.target[2, 3], self.speed[2])
+        elif self.inputModeSelect == 1:
             pass
-        elif inputModeSelect == 2:
+        elif self.inputModeSelect == 2:
             pass
+
         self.prevTimeInputs = self.currTimeInputs
         with self.cond:
             if not self.paused:
@@ -218,9 +235,9 @@ class InputHandler(threading.Thread):
     def pollIK(self):
         self.currTimeIK = time()
         #print "Poll IK time diff.", self.currTimeIK - self.prevTimeIK
-        Globals.targets[Globals.selectedLeg] = deepcopy(self.target)
-        Globals.speeds[Globals.selectedLeg] = deepcopy(self.speed)
-        self.robot.runLegIK(Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
+        self.robot.targets[self.robot.selectedLeg] = deepcopy(self.target)
+        self.robot.speeds[self.robot.selectedLeg] = deepcopy(self.speed)
+        self.robot.runLegIK(self.robot.selectedLeg)
         self.prevTimeIK = self.currTimeIK
         with self.cond:
             if not self.paused:

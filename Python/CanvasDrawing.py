@@ -2,7 +2,7 @@ import numpy as np
 
 
 class CanvasDrawing():
-    def __init__(self, scsz, canvasW, canvasH, defaultFont, sideViewCanvas, frontViewCanvas, topViewCanvas, robot, inputForceMax):
+    def __init__(self, scsz, canvasW, canvasH, defaultFont, sideViewCanvas, frontViewCanvas, topViewCanvas, robot, inputHandler):
         self.scsz = scsz
         self.canvasW = canvasW
         self.canvasH = canvasH
@@ -11,11 +11,15 @@ class CanvasDrawing():
         self.frontViewCanvas = frontViewCanvas
         self.topViewCanvas = topViewCanvas
         self.robot = robot
-        self.inputForceMax = inputForceMax
+        self.inputHandler = inputHandler
+
         # 1 mm -> scsz pixels
         self.canvasScale = self.scsz 
+
         # 3rd offset is for top view only
         self.canvasOffset = [-self.canvasW/2, -self.canvasH + self.scsz*100, -self.canvasH + self.scsz*185]
+
+        self.showTargets = True
 
 
     def initViews(self):
@@ -63,7 +67,7 @@ class CanvasDrawing():
                                             fill = fillCol, outline = borderCol, width = w, tag = "alwaysShown" )
 
 
-    def redraw(self, targets, speeds, showTargets):
+    def redraw(self):
         # Redraw views
         self.sideViewCanvas.delete("clear")
         self.frontViewCanvas.delete("clear")
@@ -96,9 +100,9 @@ class CanvasDrawing():
                          leg.joints[5].tfJointInWorld[2, 3] )
 
         # Target
-        if showTargets:
-            for i, target in enumerate(targets):
-                self.drawTarget(target, speeds[i])
+        if self.showTargets:
+            for i, target in enumerate(self.robot.targets):
+                self.drawTarget(target, self.robot.speeds[i])
 
 
     def drawJoint(self, id, x, y, z):
@@ -233,7 +237,7 @@ class CanvasDrawing():
         sx = speed[0]
         sy = speed[1]
         sz = speed[2]
-        k = 500.0 / self.inputForceMax  # Arbitrary scaling, to make max. length of vector constant
+        k = 500.0 / self.inputHandler.inputForceMax  # Arbitrary scaling, to make max. length of vector constant
         self.sideViewCanvas.create_line( self.canvasW - self.canvasScale*x + self.canvasOffset[0], self.canvasH - self.canvasScale*z + self.canvasOffset[1],
                                             self.canvasW - self.canvasScale*x - sx*k + self.canvasOffset[0], self.canvasH - self.canvasScale*z - sz*k + self.canvasOffset[1],
                                             fill = fillCol, width = w, tag = "clear" )

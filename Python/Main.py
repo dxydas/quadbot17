@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 
-import Globals
+
+# Install Python, TKinter and modules:
+# sudo apt-get install python python-pip python-tk
+# sudo pip install numpy pynput inputs pyserial
+
+
+import Robot
 import CanvasDrawing
 import InputControl
 import SerialHandler
-import Robot
 from HelperFunctions import identityTF, applyYawPitchRoll
 import Gaits
 
@@ -14,7 +19,7 @@ import math
 from copy import deepcopy
 
 
-class App:
+class App():
     def __init__(self, master):
         self.master = master
         self.dt = 0.01  # 10 ms
@@ -25,87 +30,99 @@ class App:
     def poll(self):
         self.currTime = time()
         #print "App time diff.", self.currTime - self.prevTime
-        canvasDrawing.redraw(Globals.targets, Globals.speeds, Globals.showTargets)
+        canvasDrawing.redraw()
         self.prevTime = self.currTime
         self.master.after(int(self.dt*1000), self.poll)
 
 
+class MessageLogger():
+    def __init__(self, messageBox):
+        self.messageBox = messageBox
+        self.messageBox.bind("<<Modified>>", self.messageBoxModifiedCallback)
+
+    def log(self, msg):
+        self.messageBox.insert(END, msg + "\n")
+
+    def messageBoxModifiedCallback(self, event):
+        self.messageBox.see(END)
+        self.messageBox.edit_modified(False)
+
+
 def selectLegCallback():
-    global selectedLeg
-    Globals.selectedLeg = rbLegVar.get()
+    robot.selectedLeg = rbLegVar.get()
 
 
 def joint1SliderCallback(val):
-    robot.legs[Globals.selectedLeg].angles[0] = float(val)
-    robot.runLegFK(Globals.selectedLeg)
+    robot.legs[robot.selectedLeg].angles[0] = float(val)
+    robot.runLegFK(robot.selectedLeg)
 
 
 def joint2SliderCallback(val):
-    robot.legs[Globals.selectedLeg].angles[1] = float(val)
-    robot.runLegFK(Globals.selectedLeg)
+    robot.legs[robot.selectedLeg].angles[1] = float(val)
+    robot.runLegFK(robot.selectedLeg)
 
 
 def joint3SliderCallback(val):
-    robot.legs[Globals.selectedLeg].angles[2] = float(val)
-    robot.runLegFK(Globals.selectedLeg)
+    robot.legs[robot.selectedLeg].angles[2] = float(val)
+    robot.runLegFK(robot.selectedLeg)
 
 
 def joint4SliderCallback(val):
-    robot.legs[Globals.selectedLeg].angles[3] = float(val)
-    robot.runLegFK(Globals.selectedLeg)
+    robot.legs[robot.selectedLeg].angles[3] = float(val)
+    robot.runLegFK(robot.selectedLeg)
 
 
 def joint5SliderCallback(val):
-    robot.legs[Globals.selectedLeg].angles[4] = float(val)
-    robot.runLegFK(Globals.selectedLeg)
+    robot.legs[robot.selectedLeg].angles[4] = float(val)
+    robot.runLegFK(robot.selectedLeg)
 
 
 def targetXSliderCallback(val):
-    Globals.targets[Globals.selectedLeg][0, 3] = Globals.targetsHome[Globals.selectedLeg][0, 3] + float(val)
-    Globals.targets[Globals.selectedLeg][1, 3] = Globals.targetsHome[Globals.selectedLeg][1, 3] + float(targetYSlider.get())
-    Globals.targets[Globals.selectedLeg][2, 3] = Globals.targetsHome[Globals.selectedLeg][2, 3] + float(targetZSlider.get())
-    robot.runLegIK(Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
+    robot.targets[robot.selectedLeg][0, 3] = robot.targetsHome[robot.selectedLeg][0, 3] + float(val)
+    robot.targets[robot.selectedLeg][1, 3] = robot.targetsHome[robot.selectedLeg][1, 3] + float(targetYSlider.get())
+    robot.targets[robot.selectedLeg][2, 3] = robot.targetsHome[robot.selectedLeg][2, 3] + float(targetZSlider.get())
+    robot.runLegIK(robot.selectedLeg)
 
 
 def targetYSliderCallback(val):
-    Globals.targets[Globals.selectedLeg][0, 3] = Globals.targetsHome[Globals.selectedLeg][0, 3] + float(targetXSlider.get())
-    Globals.targets[Globals.selectedLeg][1, 3] = Globals.targetsHome[Globals.selectedLeg][1, 3] + float(val)
-    Globals.targets[Globals.selectedLeg][2, 3] = Globals.targetsHome[Globals.selectedLeg][2, 3] + float(targetZSlider.get())
-    robot.runLegIK(Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
+    robot.targets[robot.selectedLeg][0, 3] = robot.targetsHome[robot.selectedLeg][0, 3] + float(targetXSlider.get())
+    robot.targets[robot.selectedLeg][1, 3] = robot.targetsHome[robot.selectedLeg][1, 3] + float(val)
+    robot.targets[robot.selectedLeg][2, 3] = robot.targetsHome[robot.selectedLeg][2, 3] + float(targetZSlider.get())
+    robot.runLegIK(robot.selectedLeg)
 
 
 def targetZSliderCallback(val):
-    Globals.targets[Globals.selectedLeg][0, 3] = Globals.targetsHome[Globals.selectedLeg][0, 3] + float(targetXSlider.get())
-    Globals.targets[Globals.selectedLeg][1, 3] = Globals.targetsHome[Globals.selectedLeg][1, 3] + float(targetYSlider.get())
-    Globals.targets[Globals.selectedLeg][2, 3] = Globals.targetsHome[Globals.selectedLeg][2, 3] + float(val)
-    robot.runLegIK(Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
+    robot.targets[robot.selectedLeg][0, 3] = robot.targetsHome[robot.selectedLeg][0, 3] + float(targetXSlider.get())
+    robot.targets[robot.selectedLeg][1, 3] = robot.targetsHome[robot.selectedLeg][1, 3] + float(targetYSlider.get())
+    robot.targets[robot.selectedLeg][2, 3] = robot.targetsHome[robot.selectedLeg][2, 3] + float(val)
+    robot.runLegIK(robot.selectedLeg)
 
 
 def targetRollSliderCallback(val):
     # Roll is rotation around X
-    applyYawPitchRoll( Globals.targets[Globals.selectedLeg],
+    applyYawPitchRoll( robot.targets[robot.selectedLeg],
                        0,#targetYawSlider.get(),
                        targetPitchSlider.get(),
                        float(val))
-    robot.runLegIK(Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
+    robot.runLegIK(robot.selectedLeg)
 
 
 def targetPitchSliderCallback(val):
     # Pitch is rotation around Y
-    applyYawPitchRoll( Globals.targets[Globals.selectedLeg],
+    applyYawPitchRoll( robot.targets[robot.selectedLeg],
                        0,#targetYawSlider.get(),
                        float(val),
                        targetRollSlider.get() )
-    robot.runLegIK(Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
+    robot.runLegIK(robot.selectedLeg)
 
 
 #def targetYawSliderCallback(val):
 #    # Yaw is rotation around Z
-#    applyYawPitchRoll( Globals.targets[Globals.selectedLeg],
+#    applyYawPitchRoll( robot.targets[robot.selectedLeg],
 #                       float(val),
 #                       targetPitchSlider.get(),
 #                       targetRollSlider.get() )
-#    robot.runLegIK(Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
+#    robot.runLegIK(robot.selectedLeg)
 
 
 def spineXSliderCallback(val):
@@ -115,7 +132,7 @@ def spineXSliderCallback(val):
     roll = spineRollSlider.get()
     pitch = spinePitchSlider.get()
     yaw = spineYawSlider.get()
-    robot.runSpineFK(Globals.targets, x, y, z, roll, pitch, yaw)
+    robot.runSpineFK(x, y, z, roll, pitch, yaw)
 
 
 def spineYSliderCallback(val):
@@ -125,7 +142,7 @@ def spineYSliderCallback(val):
     roll = spineRollSlider.get()
     pitch = spinePitchSlider.get()
     yaw = spineYawSlider.get()
-    robot.runSpineFK(Globals.targets, x, y, z, roll, pitch, yaw)
+    robot.runSpineFK(x, y, z, roll, pitch, yaw)
 
 
 def spineZSliderCallback(val):
@@ -135,7 +152,7 @@ def spineZSliderCallback(val):
     roll = spineRollSlider.get()
     pitch = spinePitchSlider.get()
     yaw = spineYawSlider.get()
-    robot.runSpineFK(Globals.targets, x, y, z, roll, pitch, yaw)
+    robot.runSpineFK(x, y, z, roll, pitch, yaw)
 
 
 def spineRollSliderCallback(val):
@@ -145,7 +162,7 @@ def spineRollSliderCallback(val):
     roll = float(val)
     pitch = spinePitchSlider.get()
     yaw = spineYawSlider.get()
-    robot.runSpineFK(Globals.targets, x, y, z, roll, pitch, yaw)
+    robot.runSpineFK(x, y, z, roll, pitch, yaw)
 
 
 def spinePitchSliderCallback(val):
@@ -155,7 +172,7 @@ def spinePitchSliderCallback(val):
     roll = spineRollSlider.get()
     pitch = float(val)
     yaw = spineYawSlider.get()
-    robot.runSpineFK(Globals.targets, x, y, z, roll, pitch, yaw)
+    robot.runSpineFK(x, y, z, roll, pitch, yaw)
 
 
 def spineYawSliderCallback(val):
@@ -165,7 +182,7 @@ def spineYawSliderCallback(val):
     roll = spineRollSlider.get()
     pitch = spinePitchSlider.get()
     yaw = float(val)
-    robot.runSpineFK(Globals.targets, x, y, z, roll, pitch, yaw)
+    robot.runSpineFK(x, y, z, roll, pitch, yaw)
 
 
 def spineJoint1SliderCallback(val):
@@ -176,7 +193,7 @@ def spineJoint1SliderCallback(val):
     pitch = spinePitchSlider.get()
     yaw = spineYawSlider.get()
     robot.spine.angles[0] = float(val)
-    robot.runSpineFK(Globals.targets, x, y, z, roll, pitch, yaw)
+    robot.runSpineFK(x, y, z, roll, pitch, yaw)
     # Dummy adjustment while IMU is not present:
     spineRollSlider.set( (robot.spineAngleOffsets[0] + robot.spine.angles[0]) / 2.0 )
     spinePitchSlider.set( (robot.spineAngleOffsets[2] - robot.spine.angles[2]) / 2.0 )
@@ -190,7 +207,7 @@ def spineJoint2SliderCallback(val):
     pitch = spinePitchSlider.get()
     yaw = spineYawSlider.get()
     robot.spine.angles[2] = float(val)
-    robot.runSpineFK(Globals.targets, x, y, z, roll, pitch, yaw)
+    robot.runSpineFK(x, y, z, roll, pitch, yaw)
     # Dummy adjustment while IMU is not present
     spineRollSlider.set( (robot.spineAngleOffsets[0] + robot.spine.angles[0]) / 2.0 )
     spinePitchSlider.set( (robot.spineAngleOffsets[2] - robot.spine.angles[2]) / 2.0 )
@@ -204,34 +221,7 @@ def toggleInput():
 
 
 def selectInput():
-    #global selectedInput
-    Globals.selectedInput = rbIpVar.get()
-
-
-def testIK():
-    global tTIK
-    global rateMsTIK
-    tTIK = 2*math.pi
-    rateMsTIK = 50
-    root.after(rateMsTIK, testIKCallback)
-
-
-def testIKCallback():
-    global tTIK
-    aEll = 60
-    bEll = 20
-    xAdjust = 0
-    yAdjust = 30
-    tTIK = tTIK - 0.1
-    if tTIK >= 0:
-        u = math.tan(tTIK/2.0)
-        u2 = math.pow(u, 2)
-        x = aEll*(1 - u2) / (u2 + 1)
-        y = 2*bEll*u / (u2 + 1)
-        Globals.targets[Globals.selectedLeg][0, 3] = Globals.targetsHome[Globals.selectedLeg][0, 3] + x + xAdjust
-        Globals.targets[Globals.selectedLeg][2, 3] = Globals.targetsHome[Globals.selectedLeg][2, 3] + y + yAdjust
-        robot.runLegIK(Globals.selectedLeg, Globals.targets[Globals.selectedLeg])
-        root.after(rateMsTIK, testIKCallback)
+    inputHandler.selectedInput = rbIpVar.get()
 
 
 def quit():
@@ -251,14 +241,12 @@ def quit():
 
 
 
-global targetXSlider, targetYSlider, targetZSlider
-
 startTime = strftime("%a, %d %b %Y %H:%M:%S", localtime())
 
 # Screen size var
 # For HD screen, use 1
 # For 4K screen, use 2
-scsz = 1
+scsz = 2
 
 root = Tk()
 root.title("Quadbot 17 Kinematics")
@@ -326,13 +314,14 @@ legSelectSubFrame.grid(row=0, column=0, sticky=N)
 controlsSubFrame.grid(row=0, column=0, sticky=N)
 buttonsFrame.grid(row=1, column=0, sticky=N)
 
-Globals.messageBox = Text(messageBoxFrame, width = 32, height=18, font = defaultFont)
-Globals.messageBox.grid(row=0, column=0, sticky=N+S+W+E)
-scrl = Scrollbar(messageBoxFrame, command=Globals.messageBox.yview)
+messageBox = Text(messageBoxFrame, width = 32, height=18, font = defaultFont)
+messageBox.grid(row=0, column=0, sticky=N+S+W+E)
+scrl = Scrollbar(messageBoxFrame, command=messageBox.yview)
 scrl.grid(row=0, column=1, sticky=N+S)
-Globals.messageBox.config(yscrollcommand=scrl.set)
-Globals.messageBox.bind("<<Modified>>", Globals.messageBoxModifiedCallback)
-Globals.logMessage("Started at: " + startTime)
+messageBox.config(yscrollcommand=scrl.set)
+
+messageLogger = MessageLogger(messageBox)
+messageLogger.log("Started at: " + startTime)
 
 
 legSelectLabel = Label(legSelectSubFrame, text="Leg", font = defaultFont)
@@ -474,15 +463,13 @@ kbInputRadioButton.grid(row=0, column=1)
 jsInputRadioButton.grid(row=0, column=2)
 kbInputRadioButton.select()  # Set default
 
-testIKButton = Button(buttonsFrame, text="Test IK", command=testIK, font = defaultFont)
+testIKButton = Button(buttonsFrame, text="Test IK", font = defaultFont)  # Callback gets defined later
 testIKButton.grid(row=0, column=3)
 
-gaits = Gaits.Gaits(root)
-
-loadTargets1Button = Button(buttonsFrame, text="Load 1", command=gaits.loadTargets1, font = defaultFont)
+loadTargets1Button = Button(buttonsFrame, text="Load 1", font = defaultFont)  # Callback gets defined later
 loadTargets1Button.grid(row=0, column=4)
 
-loadTargets2Button = Button(buttonsFrame, text="Load 2", command=gaits.loadTargets2, font = defaultFont)
+loadTargets2Button = Button(buttonsFrame, text="Load 2", font = defaultFont)  # Callback gets defined later
 loadTargets2Button.grid(row=0, column=5)
 
 quitButton = Button(buttonsFrame, text="Quit", command=quit, font = defaultFont)
@@ -492,59 +479,39 @@ quitButton.grid(row=0, column=6)
 
 
 if __name__ == '__main__':
-    Globals.selectedLeg = 0
-    Globals.selectedInput = 0
-
-    robot = Robot.Robot()
-
-    # Dummy targets (because of runLegIK, which calls runLegFK at the end)
-    Globals.targets = [0, 0, 0, 0]
-    for i, leg in enumerate(robot.legs):
-        Globals.targets[i] = identityTF()
-
-    robot.spine.angles = deepcopy(robot.spineAngleOffsets)
-    robot.runSpineFK(Globals.targets, 0, 0, 0, 0, 0, 0)
-    spineJoint1Slider.set(robot.spine.angles[0])
-    spineJoint2Slider.set(robot.spine.angles[2])
-
-    for i, leg in enumerate(robot.legs):
-        leg.angles = deepcopy(robot.legAngleOffsets)
-        robot.runLegFK(i)
-
-    joint1Slider.set(robot.legs[Globals.selectedLeg].angles[0])
-    joint2Slider.set(robot.legs[Globals.selectedLeg].angles[1])
-    joint3Slider.set(robot.legs[Globals.selectedLeg].angles[2])
-    joint4Slider.set(robot.legs[Globals.selectedLeg].angles[3])
-    joint5Slider.set(robot.legs[Globals.selectedLeg].angles[4])
-
-    # Targets: Foot in world
-    Globals.targetsHome = [0, 0, 0, 0]
-    Globals.speeds = [0, 0, 0, 0]
-    for i, leg in enumerate(robot.legs):
-        Globals.targetsHome[i] = deepcopy(leg.joints[5].tfJointInWorld)
-        applyYawPitchRoll( Globals.targetsHome[i], 0, 0, 0)
-        Globals.speeds[i] = [0, 0, 0]
-    Globals.targets = deepcopy(Globals.targetsHome)
-
-    inputForceMax = 1000
-    dragForceCoef = 5
-
-    canvasDrawing = CanvasDrawing.CanvasDrawing(scsz, canvasW, canvasH, defaultFont,
-                                                sideViewCanvas, frontViewCanvas, topViewCanvas,
-                                                robot, inputForceMax)
-    canvasDrawing.initViews()
-
-    gamepadReader = InputControl.GamepadReader()
-    gamepadReader.start()
+    robot = Robot.Robot(root)
 
     keyboardListener = InputControl.KeyboardListener()
     keyboardListener.start()
 
-    inputHandler = InputControl.InputHandler(root, robot, inputForceMax, dragForceCoef)
+    gamepadReader = InputControl.GamepadReader(messageLogger)
+    gamepadReader.start()
+
+    inputHandler = InputControl.InputHandler(root, robot, keyboardListener, gamepadReader)
     inputHandler.start()
 
-    serialHandler = SerialHandler.SerialHandler(root)
+    serialHandler = SerialHandler.SerialHandler(root, messageLogger, robot)
     serialHandler.start()
+
+    canvasDrawing = CanvasDrawing.CanvasDrawing(scsz, canvasW, canvasH, defaultFont,
+                                                sideViewCanvas, frontViewCanvas, topViewCanvas,
+                                                robot, inputHandler)
+    canvasDrawing.initViews()
+
+    gaits = Gaits.Gaits(root, robot, canvasDrawing)
+
+    spineJoint1Slider.set(robot.spine.angles[0])
+    spineJoint2Slider.set(robot.spine.angles[2])
+
+    joint1Slider.set(robot.legs[robot.selectedLeg].angles[0])
+    joint2Slider.set(robot.legs[robot.selectedLeg].angles[1])
+    joint3Slider.set(robot.legs[robot.selectedLeg].angles[2])
+    joint4Slider.set(robot.legs[robot.selectedLeg].angles[3])
+    joint5Slider.set(robot.legs[robot.selectedLeg].angles[4])
+
+    testIKButton.config(command=robot.testIK)
+    loadTargets1Button.config(command=gaits.loadTargets1)
+    loadTargets2Button.config(command=gaits.loadTargets1)
 
     App(root)
     root.mainloop()

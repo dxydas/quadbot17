@@ -1,14 +1,14 @@
-import Globals
-import Kinematics
-
 import threading
 import csv
 import numpy as np
 
 
 class Gaits():
-    def __init__(self, master):
+    def __init__(self, master, robot, canvasDrawing):
         self.master = master
+        self.robot = robot
+        self.canvasDrawing = canvasDrawing
+
         self.FLUpDown = []
         self.FLFwdBack = []
         self.FRUpDown = []
@@ -163,7 +163,7 @@ class Gaits():
 
 
     def loadTargetsCallback(self):
-        Globals.showTargets = False
+        self.canvasDrawing.showTargets = False
         xAdjust = -20
         zAdjust = 20
         #print "i: ", self.iLT
@@ -171,28 +171,28 @@ class Gaits():
         if self.iLT < len(self.FLUpDown):
             # FL
             i = 0
-            Globals.targets[i][0, 3] = Globals.targetsHome[i][0, 3] + self.FLFwdBack[self.iLT] + xAdjust
-            Globals.targets[i][1, 3] = Globals.targetsHome[i][1, 3]
-            Globals.targets[i][2, 3] = Globals.targetsHome[i][2, 3] + self.FLUpDown[self.iLT] + zAdjust
-            Kinematics.runLegIK(Globals.spine, Globals.legs[i], Globals.targets[i])
+            self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.FLFwdBack[self.iLT] + xAdjust
+            self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
+            self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.FLUpDown[self.iLT] + zAdjust
+            self.robot.runLegIK(i)
             # FR
             i = 1
-            Globals.targets[i][0, 3] = Globals.targetsHome[i][0, 3] + self.FRFwdBack[self.iLT] + xAdjust
-            Globals.targets[i][1, 3] = Globals.targetsHome[i][1, 3]
-            Globals.targets[i][2, 3] = Globals.targetsHome[i][2, 3] + self.FRUpDown[self.iLT] + zAdjust
-            Kinematics.runLegIK(Globals.spine, Globals.legs[i], Globals.targets[i])
+            self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.FRFwdBack[self.iLT] + xAdjust
+            self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
+            self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.FRUpDown[self.iLT] + zAdjust
+            self.robot.runLegIK(i)
             # RL
             i = 2
-            Globals.targets[i][0, 3] = Globals.targetsHome[i][0, 3] + self.RLFwdBack[self.iLT] + xAdjust
-            Globals.targets[i][1, 3] = Globals.targetsHome[i][1, 3]
-            Globals.targets[i][2, 3] = Globals.targetsHome[i][2, 3] + self.RLUpDown[self.iLT] + zAdjust
-            Kinematics.runLegIK(Globals.spine, Globals.legs[i], Globals.targets[i])
+            self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.RLFwdBack[self.iLT] + xAdjust
+            self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
+            self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.RLUpDown[self.iLT] + zAdjust
+            self.robot.runLegIK(i)
             # RR
             i = 3
-            Globals.targets[i][0, 3] = Globals.targetsHome[i][0, 3] + self.RRFwdBack[self.iLT] + xAdjust
-            Globals.targets[i][1, 3] = Globals.targetsHome[i][1, 3]
-            Globals.targets[i][2, 3] = Globals.targetsHome[i][2, 3] + self.RRUpDown[self.iLT] + zAdjust
-            Kinematics.runLegIK(Globals.spine, Globals.legs[i], Globals.targets[i])
+            self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.RRFwdBack[self.iLT] + xAdjust
+            self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
+            self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.RRUpDown[self.iLT] + zAdjust
+            self.robot.runLegIK(i)
 
             self.savePose(self.iLT)
 
@@ -203,4 +203,4 @@ class Gaits():
         else:
             #print "Done"
             self.gaitCallbackRunning = False
-            Globals.showTargets = True
+            self.canvasDrawing.showTargets = True

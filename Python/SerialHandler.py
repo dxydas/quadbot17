@@ -1,13 +1,13 @@
-import Globals
-
 import threading
 import serial
 from time import time, sleep
 
 
 class SerialHandler(threading.Thread):
-    def __init__(self, master):
+    def __init__(self, master, messageLogger, robot):
         self.master = master
+        self.messageLogger = messageLogger
+        self.robot = robot
         threading.Thread.__init__(self)
         self.terminate = False
         self.cond = threading.Condition()
@@ -32,13 +32,13 @@ class SerialHandler(threading.Thread):
             if not self.serialOK:
                 try:
                     self.ser = serial.Serial(self.port, 38400)
-                    Globals.logMessage("Serial port " + self.port + " connected")
+                    self.messageLogger.log("Serial port " + self.port + " connected")
                     self.serialOK = True
                     self.serialDisconnected = False
                 except serial.SerialException:
                     self.serialOK = False
                     if self.serialDisconnected == False:
-                        Globals.logMessage("Serial port " + self.port + " not connected")
+                        self.messageLogger.log("Serial port " + self.port + " not connected")
                         self.serialDisconnected = True
             else:
                 sleep(2)
@@ -49,7 +49,7 @@ class SerialHandler(threading.Thread):
         #print "Poll Serial time diff.", self.currTime - self.prevTime
         if self.serialOK:
             writeStr = ""
-            for i, leg in enumerate(Globals.legs):
+            for i, leg in enumerate(self.robot.legs):
                 #print "leg:", leg.id, "angles:", leg.angles
                 for j in range(len(leg.angles)):
                     if (i % 2 == 0):
@@ -75,7 +75,7 @@ class SerialHandler(threading.Thread):
             try:
                 self.ser.write(writeStr)
             except serial.SerialException:
-                Globals.logMessage("Serial write error")
+                self.messageLogger.log("Serial write error")
                 self.ser.close()
                 self.serialOK = False
         self.prevTime = self.currTime

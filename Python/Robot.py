@@ -127,17 +127,43 @@ def initLegJoints(startingJoint):
 
 
 class Robot():
-    def __init__(self):
+    def __init__(self, master):
+        self.master = master
+
         self.spine = initSpine()
         self.legs = initLegs()
+
         # Link lengths "a-1" (last value is the foot offset)
         self.a = [0, 29.05, 76.919, 72.96, 45.032, 33.596]
         # Offsets for natural "home" position
         self.spineAngleOffsets = [0, 0, -45]
         self.legAngleOffsets = [0, -34, 67.5, -33.5, 0]
 
+        self.targets = [0, 0, 0, 0]
+        self.targetsHome = [0, 0, 0, 0]
+        self.speeds = [0, 0, 0, 0]
+        self.selectedLeg = 0
 
-    def runSpineFK(self, targets, x, y, z, roll, pitch, yaw):
+        # Dummy targets (because of runLegIK, which calls runLegFK at the end)
+        for i in range(0, len(self.legs)):
+            self.targets[i] = identityTF()
+
+        self.spine.angles = deepcopy(self.spineAngleOffsets)
+        self.runSpineFK(0, 0, 0, 0, 0, 0)
+
+        for i, leg in enumerate(self.legs):
+            leg.angles = deepcopy(self.legAngleOffsets)
+            self.runLegFK(i)
+
+        # Targets: Foot in world
+        for i, leg in enumerate(self.legs):
+            self.targetsHome[i] = deepcopy(leg.joints[5].tfJointInWorld)
+            applyYawPitchRoll(self.targetsHome[i], 0, 0, 0)
+            self.speeds[i] = [0, 0, 0]
+        self.targets = deepcopy(self.targetsHome)
+
+
+    def runSpineFK(self, x, y, z, roll, pitch, yaw):
         # Spine front: In the future this can be controlled by e.g. orientation from IMU
         self.spine.tfSpineBaseInWorld = identityTF()
 
@@ -200,8 +226,8 @@ class Robot():
             self.spine.joints[j].tfJointInWorld = T * tfJointInPrevJoint[j]
 
         # Update legs
-        for i, leg in enumerate(self.legs):
-            self.runLegIK(i, targets[i])
+        for i in range(0, len(self.legs)):
+            self.runLegIK(i)
 
 
     def runSpineIK(self):
@@ -263,7 +289,8 @@ class Robot():
             leg.joints[j].tfJointInWorld = T * tfJointInPrevJoint[j]
 
 
-    def runLegIK(self, legIndex, target):
+    def runLegIK(self, legIndex):
+        target = self.targets[legIndex]
         # Convert target in world to be in leg base
         leg = self.legs[legIndex]
         tfSpineBaseInLegBase = np.linalg.inv(leg.tfLegBaseInSpineBase)
@@ -390,3 +417,29 @@ class Robot():
         #print "target: ", target
         #print "targetInLegBase: ", targetInLegBase
         #print "leg.angles: ", leg.angles
+
+
+    def testIK(self):
+        global tTIK
+        global rateMsTIK
+        tTIK = 2*math.pi
+        rateMsTIK = 50
+        self.master.after(rateMsTIK, self.testIKCallback)
+
+
+    def testIKCallback(self):
+        global tTIK
+        aEll = 60
+        bEll = 20
+        xAdjust = 0
+        yAdjust = 30
+        tTIK = tTIK - 0.1
+        if tTIK >= 0:
+            u = math.tan(tTIK/2.0)
+            u2 = math.pow(u, 2)
+            x = aEll*(1 - u2) / (u2 + 1)
+            y = 2*bEll*u / (u2 + 1)
+            self.targets[self.selectedLeg][0, 3] = self.targetsHome[self.selectedLeg][0, 3] + x + xAdjust
+            self.targets[self.selectedLeg][2, 3] = self.targetsHome[self.selectedLeg][2, 3] + y + yAdjust
+            self.runLegIK(self.selectedLeg)
+            self.master.after(rateMsTIK, self.testIKCallback)
