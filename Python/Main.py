@@ -10,13 +10,11 @@ import Robot
 import CanvasDrawing
 import InputControl
 import SerialHandler
-from HelperFunctions import identityTF, applyYawPitchRoll
+from HelperFunctions import applyYawPitchRoll
 import Gaits
 
 from Tkinter import *
 from time import time, localtime, strftime, sleep
-import math
-from copy import deepcopy
 
 
 class App():

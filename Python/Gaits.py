@@ -1,4 +1,3 @@
-import threading
 import csv
 import numpy as np
 
