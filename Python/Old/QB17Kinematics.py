@@ -159,7 +159,6 @@ class GamepadHandler(threading.Thread):
         return inputNormed
 
     def updateMotion(self, i, target, speed):
-        mu = 1.0
         m = 1.0
         u0 = speed
         F = inputForceMax*i - dragForceCoef*u0  # Force minus linear drag

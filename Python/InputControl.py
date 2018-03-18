@@ -257,7 +257,6 @@ class InputHandler(threading.Thread):
 
 
     def updateMotion(self, i, target, speed):
-        mu = 1.0
         m = 1.0
         u0 = speed
         F = self.inputForceMax*i - self.dragForceCoef*u0  # Force minus linear drag
