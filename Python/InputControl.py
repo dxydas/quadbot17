@@ -120,7 +120,7 @@ class GamepadReader(threading.Thread):
 
     def processEvent(self, event):
         #print(event.ev_type, event.code, event.state)
-        if event.code == 'KEY_A':
+        if event.code == 'BTN_SOUTH':  # Button A
             self.inputModeSelect = (self.inputModeSelect + 1) % 3
         elif event.code == 'ABS_X':
             self.inputLJSX = event.state
