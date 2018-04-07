@@ -494,7 +494,6 @@ if __name__ == '__main__':
     canvasDrawing = CanvasDrawing.CanvasDrawing(scsz, canvasW, canvasH, defaultFont,
                                                 sideViewCanvas, frontViewCanvas, topViewCanvas,
                                                 robot, inputHandler)
-    canvasDrawing.initViews()
 
     gaits = Gaits.Gaits(root, robot, canvasDrawing)
 

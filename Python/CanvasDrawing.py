@@ -21,6 +21,8 @@ class CanvasDrawing():
 
         self.showTargets = True
 
+        self.initViews()
+
 
     def initViews(self):
         axisW = self.scsz*2
