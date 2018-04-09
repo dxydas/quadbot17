@@ -41,14 +41,14 @@ class Gaits():
         rowOffset = 2
         upDownAmplAdjust = 50
         fwdBackamplAdjust = 40
-        with open(filename, 'rb') as csvfile:
+        with open(filename, 'r') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             for r, row in enumerate(reader):
                 if r in range(rowOffset, rowOffset + arraySize):
-                    #print r, row
+                    #print(r, row)
                     for c, col in enumerate(row):
                         if c in range(2, 10):
-                            #print c, col
+                            #print(c, col)
                             if c == 2:
                                 self.FLUpDown.append(upDownAmplAdjust*float(col))
                             if c == 3:
@@ -125,10 +125,10 @@ class Gaits():
                 minDist = distanceMetric
                 idx = i
 
-        #print "Current index:", self.iLT
-        #print "Closest new index:", idx
-        #print "Dist:", minDist
-        #print "Index diff (abs):", abs(self.iLT - idx)
+        #print("Current index:", self.iLT)
+        #print("Closest new index:", idx)
+        #print("Dist:", minDist)
+        #print("Index diff (abs):", abs(self.iLT - idx))
 
         return idx
 
@@ -165,7 +165,7 @@ class Gaits():
         self.canvasDrawing.showTargets = False
         xAdjust = -20
         zAdjust = 20
-        #print "i: ", self.iLT
+        #print("i: ", self.iLT)
 
         if self.iLT < len(self.FLUpDown):
             # FL
@@ -200,6 +200,6 @@ class Gaits():
             self.master.after(self.rateMsLT, self.loadTargetsCallback)
 
         else:
-            #print "Done"
+            #print("Done")
             self.gaitCallbackRunning = False
             self.canvasDrawing.showTargets = True

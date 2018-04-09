@@ -1,23 +1,28 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 
 # Install Python, TKinter and modules:
 # sudo apt-get install python python-pip python-tk
-# sudo pip install numpy pynput inputs pyserial
+# sudo pip install numpy matplotlib pynput inputs pyserial
 
 
 import Robot
+import CanvasDrawing3D
 import CanvasDrawing
 import InputControl
 import SerialHandler
 from HelperFunctions import applyYawPitchRoll
 import Gaits
 
-from Tkinter import *
 from time import time, localtime, strftime, sleep
+import sys
+if sys.version_info[0] < 3:
+    from Tkinter import *
+else:
+    from tkinter import *
 
 
-class App():
+class App:
     def __init__(self, master):
         self.master = master
         self.dt = 0.01  # 10 ms
@@ -27,8 +32,11 @@ class App():
 
     def poll(self):
         self.currTime = time()
-        #print "App time diff.", self.currTime - self.prevTime
-        canvasDrawing.redraw()
+        #print("App time diff.", self.currTime - self.prevTime)
+        if use2D:
+            canvasDrawing.redraw()
+        else:
+            pass
         self.prevTime = self.currTime
         self.master.after(int(self.dt*1000), self.poll)
 
@@ -224,16 +232,14 @@ def selectInput():
 
 def quit():
     serialHandler.closeSerial()
+    keyboardReader.stopListener()
     gamepadReader.stop()
-    keyboardListener.stop()
+    inputHandler.resume()
     inputHandler.stop()
     serialHandler.stop()
     # Wait for threads to finish
-    #print threading.active_count()
     while gamepadReader.isAlive() or inputHandler.isAlive() or serialHandler.isAlive():
-        #print "waiting"
         sleep(0.1)
-    #print threading.active_count()
     root.destroy()
 
 
@@ -246,10 +252,17 @@ startTime = strftime("%a, %d %b %Y %H:%M:%S", localtime())
 # For 4K screen, use 2
 scsz = 2
 
+# Choose between 2D or 3D representation
+use2D = True
+
 root = Tk()
 root.title("Quadbot 17 Kinematics")
-rootWidth = scsz*1420
-rootHeight = scsz*830
+if use2D:
+    rootWidth = scsz*1420
+    rootHeight = scsz*830
+else:
+    rootWidth = scsz*860
+    rootHeight = scsz*820
 root.geometry("%dx%d" % (rootWidth, rootHeight))
 
 # Scaling for 4K screens
@@ -262,33 +275,44 @@ defaultFont = ("System", 12)
 Grid.rowconfigure(root, 0, weight=1)
 Grid.columnconfigure(root, 0, weight=1)
 
-sideViewFrame = Frame(root)
-topViewFrame = Frame(root)
-frontViewFrame = Frame(root)
-controlsFrame = Frame(root)
-
-sideViewFrame.grid(row=0, column=0, sticky=N+W)
-frontViewFrame.grid(row=0, column=1, sticky=N+E)
-topViewFrame.grid(row=1, column=0, sticky=S+W)
-controlsFrame.grid(row=1, column=1, sticky=S+E)
 
 canvasW = scsz*585
 canvasH = scsz*380
 
-sideViewLabel = Label(sideViewFrame, text="Side View", font = defaultFont)
-sideViewLabel.grid(row=0, column=0)
-sideViewCanvas = Canvas(sideViewFrame, background="#E0FFFF", width = canvasW, height = canvasH)
-sideViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
+controlsFrame = Frame(root)
 
-frontViewLabel = Label(frontViewFrame, text="Front View", font = defaultFont)
-frontViewLabel.grid(row=0, column=0)
-frontViewCanvas = Canvas(frontViewFrame, background="#FFFACD", width = canvasW, height = canvasH)
-frontViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
+if use2D:
+    sideViewFrame = Frame(root)
+    topViewFrame = Frame(root)
+    frontViewFrame = Frame(root)
 
-topViewLabel = Label(topViewFrame, text="Top View", font = defaultFont)
-topViewLabel.grid(row=0, column=0)
-topViewCanvas = Canvas(topViewFrame, background="#E0EEE0", width = canvasW, height = canvasH)
-topViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
+    sideViewFrame.grid(row=0, column=0, sticky=N+W)
+    frontViewFrame.grid(row=0, column=1, sticky=N+E)
+    topViewFrame.grid(row=1, column=0, sticky=S+W)
+    controlsFrame.grid(row=1, column=1, sticky=S+E)
+
+    sideViewLabel = Label(sideViewFrame, text="Side View", font = defaultFont)
+    sideViewLabel.grid(row=0, column=0)
+    sideViewCanvas = Canvas(sideViewFrame, background="#E0FFFF", width = canvasW, height = canvasH)
+    sideViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
+
+    frontViewLabel = Label(frontViewFrame, text="Front View", font = defaultFont)
+    frontViewLabel.grid(row=0, column=0)
+    frontViewCanvas = Canvas(frontViewFrame, background="#FFFACD", width = canvasW, height = canvasH)
+    frontViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
+
+    topViewLabel = Label(topViewFrame, text="Top View", font = defaultFont)
+    topViewLabel.grid(row=0, column=0)
+    topViewCanvas = Canvas(topViewFrame, background="#E0EEE0", width = canvasW, height = canvasH)
+    topViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
+else:
+    canvasFrame = Frame(root)
+
+    canvasFrame.grid(row=0, column=0)
+    controlsFrame.grid(row=1, column=0)
+
+    canvas = Canvas(canvasFrame, width = canvasW, height = canvasH)
+    canvas.grid(row=0, column=0, sticky=N+S+W+E)
 
 
 controlsSubFrame = Frame(controlsFrame)
@@ -312,7 +336,7 @@ legSelectSubFrame.grid(row=0, column=0, sticky=N)
 controlsSubFrame.grid(row=0, column=0, sticky=N)
 buttonsFrame.grid(row=1, column=0, sticky=N)
 
-messageBox = Text(messageBoxFrame, width = 32, height=18, font = defaultFont)
+messageBox = Text(messageBoxFrame, width = 32, height=16, font = defaultFont)
 messageBox.grid(row=0, column=0, sticky=N+S+W+E)
 scrl = Scrollbar(messageBoxFrame, command=messageBox.yview)
 scrl.grid(row=0, column=1, sticky=N+S)
@@ -479,21 +503,23 @@ quitButton.grid(row=0, column=6)
 if __name__ == '__main__':
     robot = Robot.Robot(root)
 
-    keyboardListener = InputControl.KeyboardListener()
-    keyboardListener.start()
+    keyboardReader = InputControl.KeyboardReader()
 
     gamepadReader = InputControl.GamepadReader(messageLogger)
     gamepadReader.start()
 
-    inputHandler = InputControl.InputHandler(root, robot, keyboardListener, gamepadReader)
+    inputHandler = InputControl.InputHandler(root, robot, keyboardReader, gamepadReader)
     inputHandler.start()
 
     serialHandler = SerialHandler.SerialHandler(root, messageLogger, robot)
     serialHandler.start()
 
-    canvasDrawing = CanvasDrawing.CanvasDrawing(scsz, canvasW, canvasH, defaultFont,
-                                                sideViewCanvas, frontViewCanvas, topViewCanvas,
-                                                robot, inputHandler)
+    if use2D:
+        canvasDrawing = CanvasDrawing.CanvasDrawing(scsz, canvasW, canvasH, defaultFont,
+                                                    sideViewCanvas, frontViewCanvas, topViewCanvas,
+                                                    robot, inputHandler)
+    else:
+        canvasDrawing = CanvasDrawing3D.CanvasDrawing3D(defaultFont, canvas, robot, inputHandler)
 
     gaits = Gaits.Gaits(root, robot, canvasDrawing)
 

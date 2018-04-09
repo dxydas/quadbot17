@@ -14,7 +14,7 @@ class CanvasDrawing():
         self.inputHandler = inputHandler
 
         # 1 mm -> scsz pixels
-        self.canvasScale = self.scsz 
+        self.canvasScale = self.scsz
 
         # 3rd offset is for top view only
         self.canvasOffset = [-self.canvasW/2, -self.canvasH + self.scsz*100, -self.canvasH + self.scsz*185]

@@ -30,7 +30,6 @@ class Joint():
 
 def initSpine():
     tmpTF = identityTF()
-    global spine
     spineAngles = [0, 0, 0]
     spine = Spine( "B", initSpineJoints(21), spineAngles, tmpTF )
     return spine
@@ -414,32 +413,29 @@ class Robot():
 
         self.runLegFK(legIndex)
 
-        #print "target: ", target
-        #print "targetInLegBase: ", targetInLegBase
-        #print "leg.angles: ", leg.angles
+        #print("target: ", target)
+        #print("targetInLegBase: ", targetInLegBase)
+        #print("leg.angles: ", leg.angles)
 
 
     def testIK(self):
-        global tTIK
-        global rateMsTIK
-        tTIK = 2*math.pi
-        rateMsTIK = 50
-        self.master.after(rateMsTIK, self.testIKCallback)
+        self.tTIK = 2*math.pi
+        self.rateMsTIK = 50
+        self.master.after(self.rateMsTIK, self.testIKCallback)
 
 
     def testIKCallback(self):
-        global tTIK
         aEll = 60
         bEll = 20
         xAdjust = 0
         yAdjust = 30
-        tTIK = tTIK - 0.1
-        if tTIK >= 0:
-            u = math.tan(tTIK/2.0)
+        self.tTIK = self.tTIK - 0.1
+        if self.tTIK >= 0:
+            u = math.tan(self.tTIK/2.0)
             u2 = math.pow(u, 2)
             x = aEll*(1 - u2) / (u2 + 1)
             y = 2*bEll*u / (u2 + 1)
             self.targets[self.selectedLeg][0, 3] = self.targetsHome[self.selectedLeg][0, 3] + x + xAdjust
             self.targets[self.selectedLeg][2, 3] = self.targetsHome[self.selectedLeg][2, 3] + y + yAdjust
             self.runLegIK(self.selectedLeg)
-            self.master.after(rateMsTIK, self.testIKCallback)
+            self.master.after(self.rateMsTIK, self.testIKCallback)

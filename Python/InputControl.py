@@ -8,16 +8,16 @@ from pynput import keyboard
 from time import time, sleep
 
 
-class KeyboardListener(threading.Thread):
+class KeyboardReader():
     def __init__(self):
-        threading.Thread.__init__(self)
-        self.terminate = False
-
         self.inputModeSelect = 0
         self.inputKBX1 = 0
         self.inputKBY1 = 0
         self.inputKBX2 = 0
         self.inputKBY2 = 0
+
+        self.listener = keyboard.Listener(on_press = self.on_press, on_release = self.on_release)
+        self.listener.start()
 
 
     def on_press(self, key):
@@ -52,17 +52,8 @@ class KeyboardListener(threading.Thread):
             self.inputKBY2 = 0
 
 
-    def stop(self):
-        self.terminate = True
-        self._Thread__stop()
-
-
-    def run(self):
-        # Collect events until released
-        with keyboard.Listener(
-                on_press = self.on_press,
-                on_release = self.on_release) as listener:
-            listener.join()
+    def stopListener(self):
+        self.listener.stop()
 
 
 class GamepadReader(threading.Thread):
@@ -84,7 +75,6 @@ class GamepadReader(threading.Thread):
 
     def stop(self):
         self.terminate = True
-        self._Thread__stop()
 
 
     def run(self):
@@ -133,10 +123,10 @@ class GamepadReader(threading.Thread):
 
 
 class InputHandler(threading.Thread):
-    def __init__(self, master, robot, keyboardListener, gamepadReader):
+    def __init__(self, master, robot, keyboardReader, gamepadReader):
         self.master = master
         self.robot = robot
-        self.keyboardListener = keyboardListener
+        self.keyboardReader = keyboardReader
         self.gamepadReader = gamepadReader
 
         # Threading vars
@@ -144,7 +134,6 @@ class InputHandler(threading.Thread):
         self.terminate = False
         self.paused = True
         self.triggerPolling = True
-        self.cond = threading.Condition()
 
         # Input vars
         self.inputForceMax = 1000
@@ -169,43 +158,38 @@ class InputHandler(threading.Thread):
 
     def stop(self):
         self.terminate = True
-        self._Thread__stop()
 
 
     def run(self):
         while not self.terminate:
-            with self.cond:
-                if self.paused:
-                    self.cond.wait()  # Block until notified
-                    self.triggerPolling = True
-                elif self.triggerPolling:
-                    self.pollInputs()
-                    self.pollIK()
-                    self.triggerPolling = False
+            if self.paused:
+                sleep(1)
+                self.triggerPolling = True
+            elif self.triggerPolling:
+                self.pollInputs()
+                self.pollIK()
+                self.triggerPolling = False
 
 
     def pause(self):
-        with self.cond:
-            self.paused = True
+        self.paused = True
 
 
     def resume(self):
-        with self.cond:
-            self.paused = False
-            self.cond.notify()  # Unblock self if waiting
+        self.paused = False
 
 
     def pollInputs(self):
         self.currTimeInputs = time()
-        #print "Poll Inputs time diff.", self.currTimeInputs - self.prevTimeInputs
+        #print("Poll Inputs time diff.", self.currTimeInputs - self.prevTimeInputs)
 
         if self.selectedInput == 0:
             # Keyboard
-            self.inputX1Normed = self.filterInput(-self.keyboardListener.inputKBX1)
-            self.inputY1Normed = self.filterInput(-self.keyboardListener.inputKBY1)
-            self.inputX2Normed = self.filterInput(-self.keyboardListener.inputKBX2)
-            self.inputY2Normed = self.filterInput(-self.keyboardListener.inputKBY2)
-            self.inputModeSelect = self.keyboardListener.inputModeSelect
+            self.inputX1Normed = self.filterInput(-self.keyboardReader.inputKBX1)
+            self.inputY1Normed = self.filterInput(-self.keyboardReader.inputKBY1)
+            self.inputX2Normed = self.filterInput(-self.keyboardReader.inputKBX2)
+            self.inputY2Normed = self.filterInput(-self.keyboardReader.inputKBY2)
+            self.inputModeSelect = self.keyboardReader.inputModeSelect
         else:
             # Joystick
             self.inputX1Normed = self.filterInput(-self.gamepadReader.inputLJSX)
@@ -227,21 +211,19 @@ class InputHandler(threading.Thread):
             pass
 
         self.prevTimeInputs = self.currTimeInputs
-        with self.cond:
-            if not self.paused:
-                self.master.after(int(self.dt*1000), self.pollInputs)
+        if not self.paused:
+            self.master.after(int(self.dt*1000), self.pollInputs)
 
 
     def pollIK(self):
         self.currTimeIK = time()
-        #print "Poll IK time diff.", self.currTimeIK - self.prevTimeIK
+        #print("Poll IK time diff.", self.currTimeIK - self.prevTimeIK)
         self.robot.targets[self.robot.selectedLeg] = deepcopy(self.target)
         self.robot.speeds[self.robot.selectedLeg] = deepcopy(self.speed)
         self.robot.runLegIK(self.robot.selectedLeg)
         self.prevTimeIK = self.currTimeIK
-        with self.cond:
-            if not self.paused:
-                self.master.after(int(self.dt*1000), self.pollIK)
+        if not self.paused:
+            self.master.after(int(self.dt*1000), self.pollIK)
 
 
     def filterInput(self, i):

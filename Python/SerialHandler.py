@@ -24,7 +24,6 @@ class SerialHandler(threading.Thread):
 
     def stop(self):
         self.terminate = True
-        self._Thread__stop()
 
 
     def run(self):
@@ -46,11 +45,11 @@ class SerialHandler(threading.Thread):
 
     def pollSerial(self):
         self.currTime = time()
-        #print "Poll Serial time diff.", self.currTime - self.prevTime
+        #print("Poll Serial time diff.", self.currTime - self.prevTime)
         if self.serialOK:
             writeStr = ""
             for i, leg in enumerate(self.robot.legs):
-                #print "leg:", leg.id, "angles:", leg.angles
+                #print("leg:", leg.id, "angles:", leg.angles)
                 for j in range(len(leg.angles)):
                     if (i % 2 == 0):
                         # Left side
@@ -71,7 +70,7 @@ class SerialHandler(threading.Thread):
                         writeStr += "\n"
                     else:
                         writeStr += ","
-            #print "writeStr: ", writeStr
+            #print("writeStr: ", writeStr)
             try:
                 self.ser.write(writeStr)
             except serial.SerialException:
