@@ -1,4 +1,4 @@
-from Globals import showTargets
+import Globals
 
 from matplotlib import use
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -27,9 +27,7 @@ class CanvasDrawing3D():
 
         self.initViews()
 
-
-    def run(self):
-        self.ani = animation.FuncAnimation(self.figure, self.redraw, interval=100)
+        self.ani = animation.FuncAnimation(self.figure, self.redraw, interval=40)
 
 
     def initViews(self):
@@ -88,7 +86,7 @@ class CanvasDrawing3D():
             self.drawLinks(xs, ys, zs)
 
         # Target
-        if showTargets:
+        if Globals.showTargets:
             for i, target in enumerate(self.robot.targets):
                 self.drawTarget(target, self.robot.speeds[i])
 
@@ -108,16 +106,15 @@ class CanvasDrawing3D():
         x = target[0, 3]
         y = target[1, 3]
         z = target[2, 3]
-        # TODO: Draw
+        self.axes.scatter(x, y, z, marker='o', s=600, c="green", alpha=0.5)
 
         # Line along X
         tmpVec = np.array([50, 0, 0, 1]).reshape(4, 1)
         tmpVec = target * tmpVec
-        fillCol = "red"
         lx = tmpVec[0, 0]
         ly = tmpVec[1, 0]
         lz = tmpVec[2, 0]
-        # TODO: Draw
+        self.axes.plot([x, lx], [y, ly], [z, lz], linewidth=2, c="red")
 
         # Line along Y
         tmpVec = np.array([0, 50, 0, 1]).reshape(4, 1)
@@ -125,7 +122,7 @@ class CanvasDrawing3D():
         lx = tmpVec[0, 0]
         ly = tmpVec[1, 0]
         lz = tmpVec[2, 0]
-        # TODO: Draw
+        self.axes.plot([x, lx], [y, ly], [z, lz], linewidth=2, c="green")
 
         # Line along Z
         tmpVec = np.array([0, 0, 50, 1]).reshape(4, 1)
@@ -133,11 +130,12 @@ class CanvasDrawing3D():
         lx = tmpVec[0, 0]
         ly = tmpVec[1, 0]
         lz = tmpVec[2, 0]
-        # TODO: Draw
+        self.axes.plot([x, lx], [y, ly], [z, lz], linewidth=2, c="blue")
 
         # Speed vector
         sx = speed[0]
         sy = speed[1]
         sz = speed[2]
-        k = 500.0 / self.inputHandler.inputForceMax  # Arbitrary scaling, to make max. length of vector constant
-        # TODO: Draw
+        # Arbitrary scaling, to make max. length of vector constant
+        k = 500.0 / Globals.inputForceMax
+        self.axes.plot([x, x+sx], [y, y+sy], [z, z+sz], linewidth=2, c="#39FF14")
