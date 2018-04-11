@@ -1,3 +1,4 @@
+import Globals
 from HelperFunctions import rescale
 
 import threading
@@ -60,25 +61,26 @@ class GamepadReader(threading.Thread):
     def __init__(self, messageLogger):
         self.messageLogger = messageLogger
 
+        # Threading/timing vars
         threading.Thread.__init__(self)
-        self.terminate = False
+        self.event = threading.Event()
+        self.dt = 0.05  # 50 ms
+
+        # Input vars
         self.gamepadOK = False
         self.gamepadUnplugged = False
         self.gamepadIOError = False
-
         self.inputModeSelect = 0
         self.inputLJSX = 0
         self.inputLJSY = 0
         self.inputRJSX = 0
         self.inputRJSY = 0
-
-
-    def stop(self):
-        self.terminate = True
+        self.prevTime = time()
+        self.currTime = time()
 
 
     def run(self):
-        while not self.terminate:
+        while not self.event.isSet():
             if not self.gamepadOK:
                 self.devices = inputs.DeviceManager()
                 try:
@@ -91,53 +93,57 @@ class GamepadReader(threading.Thread):
                     if self.gamepadUnplugged == False:
                         self.messageLogger.log("Gamepad not found")
                         self.gamepadUnplugged = True
-                    sleep(1)
-                    continue
-            try:
-                # Get joystick input
-                events = gamepad.read()
-                for event in events:
-                    self.processEvent(event)
-                self.gamepadIOError = False
-            except IOError:
-                self.gamepadOK = False
-                if self.gamepadIOError == False:
-                    self.messageLogger.log("Gamepad I/O error")
-                    self.gamepadIOError = True
-                sleep(1)
-                continue
+                    sleep(2)
+            else:
+                try:
+                    #print("GamepadReader poll gamepad time diff.:", self.currTime - self.prevTime)
+                    # Get joystick input
+                    gpEvents = gamepad.read()
+                    for gpEvent in gpEvents:
+                        self.processGamepadEvent(gpEvent)
+                    self.gamepadIOError = False
+                except IOError:
+                    self.gamepadOK = False
+                    if self.gamepadIOError == False:
+                        self.messageLogger.log("Gamepad I/O error")
+                        self.gamepadIOError = True
+                    sleep(2)
+            self.event.wait(self.dt)
 
 
-    def processEvent(self, event):
-        #print(event.ev_type, event.code, event.state)
-        if event.code == 'BTN_SOUTH':  # Button A
+    def stop(self):
+        self.event.set()
+
+
+    def processGamepadEvent(self, gpEvent):
+        self.currTime = time()
+        #print(gpEvent.ev_type, gpEvent.code, gpEvent.state)
+        if gpEvent.code == 'BTN_SOUTH':  # Button A
             self.inputModeSelect = (self.inputModeSelect + 1) % 3
-        elif event.code == 'ABS_X':
-            self.inputLJSX = event.state
-        elif event.code == 'ABS_Y':
-            self.inputLJSY = event.state
-        elif event.code == 'ABS_RX':
-            self.inputRJSX = event.state
-        elif event.code == 'ABS_RY':
-            self.inputRJSY = event.state
+        elif gpEvent.code == 'ABS_X':
+            self.inputLJSX = gpEvent.state
+        elif gpEvent.code == 'ABS_Y':
+            self.inputLJSY = gpEvent.state
+        elif gpEvent.code == 'ABS_RX':
+            self.inputRJSX = gpEvent.state
+        elif gpEvent.code == 'ABS_RY':
+            self.inputRJSY = gpEvent.state
+        self.prevTime = self.currTime
 
 
 class InputHandler(threading.Thread):
-    def __init__(self, master, robot, keyboardReader, gamepadReader):
-        self.master = master
+    def __init__(self, robot, keyboardReader, gamepadReader):
         self.robot = robot
         self.keyboardReader = keyboardReader
         self.gamepadReader = gamepadReader
 
-        # Threading vars
+        # Threading/timing vars
         threading.Thread.__init__(self)
-        self.terminate = False
+        self.event = threading.Event()
+        self.dt = 0.05  # 50 ms
         self.paused = True
-        self.triggerPolling = True
 
         # Input vars
-        self.inputForceMax = 1000
-        self.dragForceCoef = 5
         self.selectedInput = 0
         self.inputModeSelect = 0
         self.target = deepcopy(self.robot.targetsHome[self.robot.selectedLeg])
@@ -146,29 +152,18 @@ class InputHandler(threading.Thread):
         self.inputY1Normed = 0
         self.inputX2Normed = 0
         self.inputY2Normed = 0
-        self.dt = 0.05  # 50 ms
-        # TODO: Find out why lower dt values cause program to crash, when
-        #       toggling pause (does not occur in qb17Kinematics.py).
-        #       It might have something to do with pollIK() ...
         self.prevTimeInputs = time()
         self.currTimeInputs = time()
         self.prevTimeIK = time()
         self.currTimeIK = time()
 
 
-    def stop(self):
-        self.terminate = True
-
-
     def run(self):
-        while not self.terminate:
-            if self.paused:
-                sleep(1)
-                self.triggerPolling = True
-            elif self.triggerPolling:
+        while not self.event.isSet():
+            if not self.paused:
                 self.pollInputs()
                 self.pollIK()
-                self.triggerPolling = False
+            self.event.wait(self.dt)
 
 
     def pause(self):
@@ -179,10 +174,12 @@ class InputHandler(threading.Thread):
         self.paused = False
 
 
+    def stop(self):
+        self.event.set()
+
+
     def pollInputs(self):
         self.currTimeInputs = time()
-        #print("Poll Inputs time diff.", self.currTimeInputs - self.prevTimeInputs)
-
         if self.selectedInput == 0:
             # Keyboard
             self.inputX1Normed = self.filterInput(-self.keyboardReader.inputKBX1)
@@ -209,21 +206,15 @@ class InputHandler(threading.Thread):
             pass
         elif self.inputModeSelect == 2:
             pass
-
         self.prevTimeInputs = self.currTimeInputs
-        if not self.paused:
-            self.master.after(int(self.dt*1000), self.pollInputs)
 
 
     def pollIK(self):
         self.currTimeIK = time()
-        #print("Poll IK time diff.", self.currTimeIK - self.prevTimeIK)
         self.robot.targets[self.robot.selectedLeg] = deepcopy(self.target)
         self.robot.speeds[self.robot.selectedLeg] = deepcopy(self.speed)
         self.robot.runLegIK(self.robot.selectedLeg)
         self.prevTimeIK = self.currTimeIK
-        if not self.paused:
-            self.master.after(int(self.dt*1000), self.pollIK)
 
 
     def filterInput(self, i):
@@ -241,7 +232,8 @@ class InputHandler(threading.Thread):
     def updateMotion(self, i, target, speed):
         m = 1.0
         u0 = speed
-        F = self.inputForceMax*i - self.dragForceCoef*u0  # Force minus linear drag
+        # Force minus linear drag
+        F = Globals.inputForceMax*i - Globals.dragForceCoef*u0
         a = F/m
         t = self.currTimeInputs - self.prevTimeInputs
         # Zero t if it's too large

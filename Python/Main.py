@@ -6,6 +6,7 @@
 # sudo pip install numpy matplotlib pynput inputs pyserial
 
 
+import Globals
 import Robot
 import CanvasDrawing3D
 import CanvasDrawing
@@ -14,7 +15,9 @@ import SerialHandler
 from HelperFunctions import applyYawPitchRoll
 import Gaits
 
-from time import time, localtime, strftime, sleep
+import math
+import threading
+from time import localtime, strftime, sleep
 import sys
 if sys.version_info[0] < 3:
     from Tkinter import *
@@ -22,36 +25,68 @@ else:
     from tkinter import *
 
 
-class App:
-    def __init__(self, master):
-        self.master = master
-        self.dt = 0.01  # 10 ms
-        self.prevTime = time()
-        self.currTime = time()
-        self.poll()  # Start polling
-
-    def poll(self):
-        self.currTime = time()
-        #print("App time diff.", self.currTime - self.prevTime)
-        if use2D:
-            canvasDrawing.redraw()
-        else:
-            pass
-        self.prevTime = self.currTime
-        self.master.after(int(self.dt*1000), self.poll)
-
-
 class MessageLogger():
     def __init__(self, messageBox):
         self.messageBox = messageBox
         self.messageBox.bind("<<Modified>>", self.messageBoxModifiedCallback)
 
+
     def log(self, msg):
         self.messageBox.insert(END, msg + "\n")
+
 
     def messageBoxModifiedCallback(self, event):
         self.messageBox.see(END)
         self.messageBox.edit_modified(False)
+
+
+class TestIKTimer(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.event = threading.Event()
+
+
+    def run(self):
+        t = 2*math.pi
+        while not self.event.isSet():
+            if t >= 0:
+                robot.testIKStep(t)
+                t = t - 0.1
+            else:
+                self.stop()
+            self.event.wait(0.05)
+
+
+    def stop(self):
+        self.event.set()
+
+
+class LoadTargetsTimer(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.event = threading.Event()
+
+
+    def run(self):
+        t = 0
+        if not Globals.gaitCallbackRunning:
+            while not self.event.isSet():
+                if t < len(gaits.FLUpDown):
+                    gaits.loadTargetsStep(t)
+                    t = t + 1
+                    Globals.gaitCallbackRunning = True
+                    Globals.showTargets = False
+                else:
+                    Globals.gaitCallbackRunning = False
+                    Globals.showTargets = True
+                    self.stop()
+                self.event.wait(0.05)
+        else:
+            t = gaits.findClosestLegPose()
+
+
+    def stop(self):
+        self.event.set()
 
 
 def selectLegCallback():
@@ -230,16 +265,39 @@ def selectInput():
     inputHandler.selectedInput = rbIpVar.get()
 
 
+def testIKCallback():
+    testIKTimer = TestIKTimer()
+    testIKTimer.start()
+
+
+def loadTargets1Callback():
+    loadTargets1Timer = LoadTargetsTimer()
+    # Load from CSV
+    gaits.loadFromFile("Gait_Creep.csv")
+    loadTargets1Timer.start()
+
+
+def loadTargets2Callback():
+    loadTargets2Timer = LoadTargetsTimer()
+    # Load from csv
+    gaits.loadFromFile("Gait_Walk.csv")
+    loadTargets2Timer.start()
+
+
 def quit():
     serialHandler.closeSerial()
     keyboardReader.stopListener()
     gamepadReader.stop()
-    inputHandler.resume()
     inputHandler.stop()
     serialHandler.stop()
     # Wait for threads to finish
     while gamepadReader.isAlive() or inputHandler.isAlive() or serialHandler.isAlive():
+        #print(gamepadReader.isAlive())
+        #print(inputHandler.isAlive())
+        #print(serialHandler.isAlive())
+        #print("----")
         sleep(0.1)
+
     root.destroy()
 
 
@@ -248,18 +306,24 @@ def quit():
 startTime = strftime("%a, %d %b %Y %H:%M:%S", localtime())
 
 # Screen size var
-# For HD screen, use 1
-# For 4K screen, use 2
+# 1: HD screen
+# 2: 4K screen
 scsz = 2
 
-# Choose between 2D or 3D representation
-use2D = True
+# Graphical representation
+# 0: None
+# 1: 2D
+# 2: 3D
+gui = 2
 
 root = Tk()
 root.title("Quadbot 17 Kinematics")
-if use2D:
+if gui == 0:
+    rootWidth = scsz*860
+    rootHeight = scsz*370
+elif gui == 1:
     rootWidth = scsz*1420
-    rootHeight = scsz*830
+    rootHeight = scsz*820
 else:
     rootWidth = scsz*860
     rootHeight = scsz*820
@@ -281,7 +345,12 @@ canvasH = scsz*380
 
 controlsFrame = Frame(root)
 
-if use2D:
+if gui == 0:
+    emptyFrame = Frame(root)
+    emptyFrame.grid(row=0, column=0)
+    controlsFrame.grid(row=1, column=0)
+
+elif gui == 1:
     sideViewFrame = Frame(root)
     topViewFrame = Frame(root)
     frontViewFrame = Frame(root)
@@ -305,6 +374,7 @@ if use2D:
     topViewLabel.grid(row=0, column=0)
     topViewCanvas = Canvas(topViewFrame, background="#E0EEE0", width = canvasW, height = canvasH)
     topViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
+
 else:
     canvasFrame = Frame(root)
 
@@ -501,27 +571,29 @@ quitButton.grid(row=0, column=6)
 
 
 if __name__ == '__main__':
-    robot = Robot.Robot(root)
+    robot = Robot.Robot()
 
     keyboardReader = InputControl.KeyboardReader()
 
     gamepadReader = InputControl.GamepadReader(messageLogger)
     gamepadReader.start()
 
-    inputHandler = InputControl.InputHandler(root, robot, keyboardReader, gamepadReader)
+    inputHandler = InputControl.InputHandler(robot, keyboardReader, gamepadReader)
     inputHandler.start()
 
-    serialHandler = SerialHandler.SerialHandler(root, messageLogger, robot)
+    serialHandler = SerialHandler.SerialHandler(messageLogger, robot)
     serialHandler.start()
 
-    if use2D:
+    if gui == 0:
+        pass
+    elif gui == 1:
         canvasDrawing = CanvasDrawing.CanvasDrawing(scsz, canvasW, canvasH, defaultFont,
                                                     sideViewCanvas, frontViewCanvas, topViewCanvas,
                                                     robot, inputHandler)
     else:
         canvasDrawing = CanvasDrawing3D.CanvasDrawing3D(defaultFont, canvas, robot, inputHandler)
 
-    gaits = Gaits.Gaits(root, robot, canvasDrawing)
+    gaits = Gaits.Gaits(robot)
 
     spineJoint1Slider.set(robot.spine.angles[0])
     spineJoint2Slider.set(robot.spine.angles[2])
@@ -532,9 +604,8 @@ if __name__ == '__main__':
     joint4Slider.set(robot.legs[robot.selectedLeg].angles[3])
     joint5Slider.set(robot.legs[robot.selectedLeg].angles[4])
 
-    testIKButton.config(command=robot.testIK)
-    loadTargets1Button.config(command=gaits.loadTargets1)
-    loadTargets2Button.config(command=gaits.loadTargets1)
+    testIKButton.config(command=testIKCallback)
+    loadTargets1Button.config(command=loadTargets1Callback)
+    loadTargets2Button.config(command=loadTargets2Callback)
 
-    App(root)
     root.mainloop()

@@ -1,13 +1,13 @@
 import csv
 import numpy as np
+from time import time, sleep
 
 
 class Gaits():
-    def __init__(self, master, robot, canvasDrawing):
-        self.master = master
+    def __init__(self, robot):
         self.robot = robot
-        self.canvasDrawing = canvasDrawing
 
+        # Input vars
         self.FLUpDown = []
         self.FLFwdBack = []
         self.FRUpDown = []
@@ -17,9 +17,6 @@ class Gaits():
         self.RRUpDown = []
         self.RRFwdBack = []
         self.currentPose = []
-        self.iLT = 0
-        self.rateMsLT = 30
-        self.gaitCallbackRunning = False
 
 
     def savePose(self, i):
@@ -71,48 +68,48 @@ class Gaits():
     def findClosestLegPose(self):
         minDist = 0
         idx = 0
-        for i in range(0, len(self.FLUpDown)):
+        for t in range(0, len(self.FLUpDown)):
 
             distances = np.zeros(len(self.FLUpDown))
             minThresh = 20
             penalty = 10
 
-            x = abs(self.currentPose[0] - self.FLUpDown[i])
+            x = abs(self.currentPose[0] - self.FLUpDown[t])
             distances[0] = x
             if (x > minThresh):
                 distances[0] += penalty
 
-            x = abs(self.currentPose[1] - self.FLFwdBack[i])
+            x = abs(self.currentPose[1] - self.FLFwdBack[t])
             distances[1] = x
             if (x > minThresh):
                 distances[1] += penalty
 
-            x = abs(self.currentPose[2] - self.FRUpDown[i])
+            x = abs(self.currentPose[2] - self.FRUpDown[t])
             distances[2] = x
             if (x > minThresh):
                 distances[2] += penalty
 
-            x = abs(self.currentPose[3] - self.FRFwdBack[i])
+            x = abs(self.currentPose[3] - self.FRFwdBack[t])
             distances[3] = x
             if (x > minThresh):
                 distances[3] += penalty
 
-            x = abs(self.currentPose[4] - self.RLUpDown[i])
+            x = abs(self.currentPose[4] - self.RLUpDown[t])
             distances[4] = x
             if (x > minThresh):
                 distances[4] += penalty
 
-            x = abs(self.currentPose[5] - self.RLFwdBack[i])
+            x = abs(self.currentPose[5] - self.RLFwdBack[t])
             distances[5] = x
             if (x > minThresh):
                 distances[5] += penalty
 
-            x = abs(self.currentPose[6] - self.RRUpDown[i])
+            x = abs(self.currentPose[6] - self.RRUpDown[t])
             distances[6] = x
             if (x > minThresh):
                 distances[6] += penalty
 
-            x = abs(self.currentPose[7] - self.RRFwdBack[i])
+            x = abs(self.currentPose[7] - self.RRFwdBack[t])
             distances[7] = x
             if (x > minThresh):
                 distances[7] += penalty
@@ -121,85 +118,45 @@ class Gaits():
             for d in distances:
                 distanceMetric += d
 
-            if (i == 0) or (distanceMetric < minDist):
+            if (t == 0) or (distanceMetric < minDist):
                 minDist = distanceMetric
-                idx = i
+                idx = t
 
-        #print("Current index:", self.iLT)
         #print("Closest new index:", idx)
         #print("Dist:", minDist)
-        #print("Index diff (abs):", abs(self.iLT - idx))
 
         return idx
 
 
-    def loadTargets1(self):
-        # Load from csv
-        self.loadFromFile("Gait_Creep.csv")
-
-        # Run IK
-        if not 'self.gaitCallbackRunning' in globals():
-            self.gaitCallbackRunning = False
-        if not self.gaitCallbackRunning:
-            self.iLT = 0
-            self.master.after(self.rateMsLT, self.loadTargetsCallback)
-        else:
-            self.iLT = self.findClosestLegPose()
-
-
-    def loadTargets2(self):
-        # Load from csv
-        self.loadFromFile("Gait_Walk.csv")
-
-        # Run IK
-        if not 'self.gaitCallbackRunning' in globals():
-            self.gaitCallbackRunning = False
-        if not self.gaitCallbackRunning:
-            self.iLT = 0
-            self.master.after(self.rateMsLT, self.loadTargetsCallback)
-        else:
-            self.iLT = self.findClosestLegPose()
-
-
-    def loadTargetsCallback(self):
-        self.canvasDrawing.showTargets = False
+    def loadTargetsStep(self, t):
         xAdjust = -20
         zAdjust = 20
-        #print("i: ", self.iLT)
 
-        if self.iLT < len(self.FLUpDown):
-            # FL
-            i = 0
-            self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.FLFwdBack[self.iLT] + xAdjust
-            self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
-            self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.FLUpDown[self.iLT] + zAdjust
-            self.robot.runLegIK(i)
-            # FR
-            i = 1
-            self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.FRFwdBack[self.iLT] + xAdjust
-            self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
-            self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.FRUpDown[self.iLT] + zAdjust
-            self.robot.runLegIK(i)
-            # RL
-            i = 2
-            self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.RLFwdBack[self.iLT] + xAdjust
-            self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
-            self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.RLUpDown[self.iLT] + zAdjust
-            self.robot.runLegIK(i)
-            # RR
-            i = 3
-            self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.RRFwdBack[self.iLT] + xAdjust
-            self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
-            self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.RRUpDown[self.iLT] + zAdjust
-            self.robot.runLegIK(i)
+        # FL
+        i = 0
+        self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.FLFwdBack[t] + xAdjust
+        self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
+        self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.FLUpDown[t] + zAdjust
+        self.robot.runLegIK(i)
+        # FR
+        i = 1
+        self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.FRFwdBack[t] + xAdjust
+        self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
+        self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.FRUpDown[t] + zAdjust
+        self.robot.runLegIK(i)
+        # RL
+        i = 2
+        self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.RLFwdBack[t] + xAdjust
+        self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
+        self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.RLUpDown[t] + zAdjust
+        self.robot.runLegIK(i)
+        # RR
+        i = 3
+        self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.RRFwdBack[t] + xAdjust
+        self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
+        self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.RRUpDown[t] + zAdjust
+        self.robot.runLegIK(i)
 
-            self.savePose(self.iLT)
+        self.savePose(t)
 
-            self.iLT = self.iLT + 1
-            self.gaitCallbackRunning = True
-            self.master.after(self.rateMsLT, self.loadTargetsCallback)
-
-        else:
-            #print("Done")
-            self.gaitCallbackRunning = False
-            self.canvasDrawing.showTargets = True
+        #print("Current index:", t)

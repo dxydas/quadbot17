@@ -1,8 +1,14 @@
+from Globals import showTargets
+
+import threading
 import numpy as np
+from time import time, sleep
 
 
 class CanvasDrawing():
-    def __init__(self, scsz, canvasW, canvasH, defaultFont, sideViewCanvas, frontViewCanvas, topViewCanvas, robot, inputHandler):
+    def __init__(self, scsz, canvasW, canvasH, defaultFont,
+                 sideViewCanvas, frontViewCanvas, topViewCanvas,
+                 robot, inputHandler):
         self.scsz = scsz
         self.canvasW = canvasW
         self.canvasH = canvasH
@@ -13,15 +19,18 @@ class CanvasDrawing():
         self.robot = robot
         self.inputHandler = inputHandler
 
+        # Timing var
+        self.dt = 0.05  # 50 ms
+
         # 1 mm -> scsz pixels
         self.canvasScale = self.scsz
 
         # 3rd offset is for top view only
         self.canvasOffset = [-self.canvasW/2, -self.canvasH + self.scsz*100, -self.canvasH + self.scsz*185]
 
-        self.showTargets = True
-
         self.initViews()
+
+        self.redraw()
 
 
     def initViews(self):
@@ -102,9 +111,11 @@ class CanvasDrawing():
                          leg.joints[5].tfJointInWorld[2, 3] )
 
         # Target
-        if self.showTargets:
+        if showTargets:
             for i, target in enumerate(self.robot.targets):
                 self.drawTarget(target, self.robot.speeds[i])
+
+        self.sideViewCanvas.after(int(self.dt*1000), self.redraw)
 
 
     def drawJoint(self, id, x, y, z):

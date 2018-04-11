@@ -1,3 +1,5 @@
+from Globals import showTargets
+
 from matplotlib import use
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
@@ -22,9 +24,11 @@ class CanvasDrawing3D():
         self.figureCanvas = None
         self.axes = None
         #self.toolbar = None
-        self.showTargets = True
 
         self.initViews()
+
+
+    def run(self):
         self.ani = animation.FuncAnimation(self.figure, self.redraw, interval=100)
 
 
@@ -84,7 +88,7 @@ class CanvasDrawing3D():
             self.drawLinks(xs, ys, zs)
 
         # Target
-        if self.showTargets:
+        if showTargets:
             for i, target in enumerate(self.robot.targets):
                 self.drawTarget(target, self.robot.speeds[i])
 
