@@ -1404,9 +1404,9 @@ global targetXSlider, targetYSlider, targetZSlider
 startTime = strftime("%a, %d %b %Y %H:%M:%S", localtime())
 
 # Screen size var
-# For HD screen, use 1
-# For 4K screen, use 2
-scsz = 1
+# 1: HD screen
+# 2: 4K screen
+scsz = 2
 
 root = Tk()
 root.title("Quadbot 17 Kinematics")
