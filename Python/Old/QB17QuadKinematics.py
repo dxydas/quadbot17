@@ -983,6 +983,12 @@ def initViews():
     sideViewCanvas.create_oval( canvasW - r + canvasOffset[0], canvasH - r + canvasOffset[1],
                                 canvasW + r + canvasOffset[0], canvasH + r + canvasOffset[1],
                                 fill = fillCol, outline = borderCol, width = w, tag = "alwaysShown" )
+    frontViewCanvas.create_oval( canvasW - r + canvasOffset[0], canvasH - r + canvasOffset[1],
+                                 canvasW + r + canvasOffset[0], canvasH + r + canvasOffset[1],
+                                 fill = fillCol, outline = borderCol, width = w, tag = "alwaysShown" )
+    topViewCanvas.create_oval( canvasW - r + canvasOffset[0], canvasH - r + canvasOffset[2],
+                               canvasW + r + canvasOffset[0], canvasH + r + canvasOffset[2],
+                               fill = fillCol, outline = borderCol, width = w, tag = "alwaysShown" )
 
 
 def redraw():

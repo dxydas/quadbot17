@@ -40,33 +40,33 @@ class CanvasDrawing():
 
         # Side view axis widget
         self.sideViewCanvas.create_line( self.canvasW - (borderDist + axisL), borderDist + axisL, self.canvasW - borderDist, borderDist + axisL,
-                                            fill = "red", width = axisW, tag = "alwaysShown" )  # x-axis
+                                         fill = "red", width = axisW, tag = "alwaysShown" )  # x-axis
         self.sideViewCanvas.create_text( self.canvasW - (borderDist + axisL), borderDist + axisL + self.scsz*10, text = "X",
-                                            font = self.defaultFont, fill = "red", tag = "alwaysShown" )
+                                         font = self.defaultFont, fill = "red", tag = "alwaysShown" )
         self.sideViewCanvas.create_line( self.canvasW - borderDist, borderDist, self.canvasW - borderDist, borderDist + axisL,
-                                            fill = "blue", width = axisW, tag = "alwaysShown" )  # z-axis
+                                         fill = "blue", width = axisW, tag = "alwaysShown" )  # z-axis
         self.sideViewCanvas.create_text( self.canvasW - borderDist + self.scsz*10, borderDist, text = "Z",
-                                            font = self.defaultFont, fill = "blue", tag = "alwaysShown" )
+                                         font = self.defaultFont, fill = "blue", tag = "alwaysShown" )
 
         # Front view axis widget
         self.frontViewCanvas.create_line( self.canvasW - (borderDist + axisL), borderDist + axisL, self.canvasW - borderDist, borderDist + axisL,
-                                             fill = "green", width = axisW, tag = "alwaysShown" )  # y-axis
+                                          fill = "green", width = axisW, tag = "alwaysShown" )  # y-axis
         self.frontViewCanvas.create_text( self.canvasW - borderDist, borderDist + axisL + self.scsz*10, text = "Y",
-                                             font = self.defaultFont, fill = "green", tag = "alwaysShown" )
+                                          font = self.defaultFont, fill = "green", tag = "alwaysShown" )
         self.frontViewCanvas.create_line( self.canvasW - (borderDist + axisL), borderDist, self.canvasW - (borderDist + axisL), borderDist + axisL,
-                                             fill = "blue", width = axisW, tag = "alwaysShown" )  # z-axis
+                                          fill = "blue", width = axisW, tag = "alwaysShown" )  # z-axis
         self.frontViewCanvas.create_text( self.canvasW - (borderDist + axisL) - self.scsz*10, borderDist, text = "Z",
-                                             font = self.defaultFont, fill = "blue", tag = "alwaysShown" )
+                                          font = self.defaultFont, fill = "blue", tag = "alwaysShown" )
 
         # Top view axis widget
         self.topViewCanvas.create_line( self.canvasW - (borderDist + axisL), borderDist, self.canvasW - borderDist, borderDist,
-                                           fill = "red", width = axisW, tag = "alwaysShown" )  # x-axis
+                                        fill = "red", width = axisW, tag = "alwaysShown" )  # x-axis
         self.topViewCanvas.create_text( self.canvasW - (borderDist + axisL), borderDist - self.scsz*10, text = "X",
-                                           font = self.defaultFont, fill = "red", tag = "alwaysShown" )
+                                        font = self.defaultFont, fill = "red", tag = "alwaysShown" )
         self.topViewCanvas.create_line( self.canvasW - borderDist, borderDist, self.canvasW - borderDist, borderDist + axisL,
-                                           fill = "green", width = axisW, tag = "alwaysShown" )  # y-axis
+                                        fill = "green", width = axisW, tag = "alwaysShown" )  # y-axis
         self.topViewCanvas.create_text( self.canvasW - borderDist + self.scsz*10, borderDist + axisL, text = "Y",
-                                           font = self.defaultFont, fill = "green", tag = "alwaysShown" )
+                                        font = self.defaultFont, fill = "green", tag = "alwaysShown" )
 
         # Origin point on canvas
         r = self.scsz*3
@@ -74,8 +74,14 @@ class CanvasDrawing():
         borderCol = "black"
         w = self.scsz*1
         self.sideViewCanvas.create_oval( self.canvasW - r + self.canvasOffset[0], self.canvasH - r + self.canvasOffset[1],
-                                            self.canvasW + r + self.canvasOffset[0], self.canvasH + r + self.canvasOffset[1],
-                                            fill = fillCol, outline = borderCol, width = w, tag = "alwaysShown" )
+                                         self.canvasW + r + self.canvasOffset[0], self.canvasH + r + self.canvasOffset[1],
+                                         fill = fillCol, outline = borderCol, width = w, tag = "alwaysShown" )
+        self.frontViewCanvas.create_oval( self.canvasW - r + self.canvasOffset[0], self.canvasH - r + self.canvasOffset[1],
+                                          self.canvasW + r + self.canvasOffset[0], self.canvasH + r + self.canvasOffset[1],
+                                          fill = fillCol, outline = borderCol, width = w, tag = "alwaysShown" )
+        self.topViewCanvas.create_oval( self.canvasW - r + self.canvasOffset[0], self.canvasH - r + self.canvasOffset[2],
+                                        self.canvasW + r + self.canvasOffset[0], self.canvasH + r + self.canvasOffset[2],
+                                        fill = fillCol, outline = borderCol, width = w, tag = "alwaysShown" )
 
 
     def redraw(self):
