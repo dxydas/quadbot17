@@ -6,7 +6,7 @@
 # sudo pip install numpy matplotlib pynput inputs pyserial
 
 
-import Globals
+import Params
 import Robot
 import CanvasDrawing3D
 import CanvasDrawing
@@ -69,16 +69,16 @@ class LoadTargetsTimer(threading.Thread):
 
     def run(self):
         t = 0
-        if not Globals.gaitCallbackRunning:
+        if not Params.gaitCallbackRunning:
             while not self.event.isSet():
                 if t < len(gaits.FLUpDown):
                     gaits.loadTargetsStep(t)
                     t = t + 1
-                    Globals.gaitCallbackRunning = True
-                    Globals.showTargets = False
+                    Params.gaitCallbackRunning = True
+                    Params.showTargets = False
                 else:
-                    Globals.gaitCallbackRunning = False
-                    Globals.showTargets = True
+                    Params.gaitCallbackRunning = False
+                    Params.showTargets = True
                     self.stop()
                 self.event.wait(0.05)
         else:

@@ -1,4 +1,4 @@
-import Globals
+import Params
 from HelperFunctions import rescale
 
 import threading
@@ -233,7 +233,7 @@ class InputHandler(threading.Thread):
         m = 1.0
         u0 = speed
         # Force minus linear drag
-        F = Globals.inputForceMax*i - Globals.dragForceCoef*u0
+        F = Params.inputForceMax*i - Params.dragForceCoef*u0
         a = F/m
         t = self.currTimeInputs - self.prevTimeInputs
         # Zero t if it's too large

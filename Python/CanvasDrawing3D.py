@@ -1,4 +1,4 @@
-import Globals
+import Params
 
 from matplotlib import use
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -85,7 +85,7 @@ class CanvasDrawing3D():
             self.drawLinks(xs, ys, zs)
 
         # Target
-        if Globals.showTargets:
+        if Params.showTargets:
             for i, target in enumerate(self.robot.targets):
                 self.drawTarget(target, self.robot.speeds[i])
 
@@ -136,5 +136,5 @@ class CanvasDrawing3D():
         sy = speed[1]
         sz = speed[2]
         # Arbitrary scaling, to make max. length of vector constant
-        k = 500.0 / Globals.inputForceMax
+        k = 500.0 / Params.inputForceMax
         self.axes.plot([x, x+sx], [y, y+sy], [z, z+sz], linewidth=2, c="#39FF14")

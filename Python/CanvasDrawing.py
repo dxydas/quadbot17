@@ -1,4 +1,4 @@
-import Globals
+import Params
 
 import threading
 import numpy as np
@@ -115,7 +115,7 @@ class CanvasDrawing():
                                   leg.joints[5].tfJointInWorld[2, 3] )
 
         # Target
-        if Globals.showTargets:
+        if Params.showTargets:
             for i, target in enumerate(self.robot.targets):
                 self.drawTarget(target, self.robot.speeds[i])
 
@@ -156,7 +156,7 @@ class CanvasDrawing():
             endEffectorIdx = endEffectorIdx + 1
 
         # Target
-        if Globals.showTargets:
+        if Params.showTargets:
             for i, target in enumerate(self.robot.targets):
                 self.moveTarget(targetIdx, target, self.robot.speeds[i])
                 targetIdx = targetIdx + 1
@@ -365,7 +365,7 @@ class CanvasDrawing():
         sx = speed[0]
         sy = speed[1]
         sz = speed[2]
-        k = 500.0 / Globals.inputForceMax  # Arbitrary scaling, to make max. length of vector constant
+        k = 500.0 / Params.inputForceMax  # Arbitrary scaling, to make max. length of vector constant
         h = self.sideViewCanvas.create_line(
                 self.canvasW - self.canvasScale*x + self.canvasOffset[0], self.canvasH - self.canvasScale*z + self.canvasOffset[1],
                 self.canvasW - self.canvasScale*x - sx*k + self.canvasOffset[0], self.canvasH - self.canvasScale*z - sz*k + self.canvasOffset[1],
@@ -544,7 +544,7 @@ class CanvasDrawing():
         sx = speed[0]
         sy = speed[1]
         sz = speed[2]
-        k = 500.0 / Globals.inputForceMax  # Arbitrary scaling, to make max. length of vector constant
+        k = 500.0 / Params.inputForceMax  # Arbitrary scaling, to make max. length of vector constant
         self.sideViewCanvas.coords(
             self.allTargetElements[0].speedLines[index],
             self.canvasW - self.canvasScale*x + self.canvasOffset[0], self.canvasH - self.canvasScale*z + self.canvasOffset[1],
