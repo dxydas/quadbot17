@@ -14,11 +14,10 @@ else:
 
 
 class CanvasDrawing3D():
-    def __init__(self, defaultFont, canvas, robot, inputHandler):
+    def __init__(self, defaultFont, canvas, robot):
         self.defaultFont = defaultFont
         self.canvas = canvas
         self.robot = robot
-        self.inputHandler = inputHandler
 
         self.figure = None
         self.figureCanvas = None

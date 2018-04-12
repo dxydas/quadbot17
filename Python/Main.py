@@ -588,10 +588,9 @@ if __name__ == '__main__':
         pass
     elif gui == 1:
         canvasDrawing = CanvasDrawing.CanvasDrawing(scsz, canvasW, canvasH, defaultFont,
-                                                    sideViewCanvas, frontViewCanvas, topViewCanvas,
-                                                    robot, inputHandler)
+                                                    sideViewCanvas, frontViewCanvas, topViewCanvas, robot)
     else:
-        canvasDrawing = CanvasDrawing3D.CanvasDrawing3D(defaultFont, canvas, robot, inputHandler)
+        canvasDrawing = CanvasDrawing3D.CanvasDrawing3D(defaultFont, canvas, robot)
 
     gaits = Gaits.Gaits(robot)
 
