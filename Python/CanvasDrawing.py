@@ -114,7 +114,7 @@ class CanvasDrawing():
                                   leg.joints[5].tfJointInWorld[1, 3],
                                   leg.joints[5].tfJointInWorld[2, 3] )
 
-        # Target
+        # Targets
         if Params.showTargets:
             for i, target in enumerate(self.robot.targets):
                 self.drawTarget(target, self.robot.speeds[i])
@@ -155,7 +155,7 @@ class CanvasDrawing():
                                   leg.joints[5].tfJointInWorld[2, 3] )
             endEffectorIdx = endEffectorIdx + 1
 
-        # Target
+        # Targets
         if Params.showTargets:
             for i, target in enumerate(self.robot.targets):
                 self.moveTarget(targetIdx, target, self.robot.speeds[i])
@@ -177,7 +177,7 @@ class CanvasDrawing():
         h2 = self.sideViewCanvas.create_text(
                 self.canvasW - self.canvasScale*x + self.canvasOffset[0], self.canvasH - self.canvasScale*z + self.canvasOffset[1],
                 text = id, font = ("Times", 12, "bold") )
-        self.allJointElements[0].ovals.append(h1)
+        self.allJointElements[0].circles.append(h1)
         self.allJointElements[0].texts.append(h2)
 
         h1 = self.frontViewCanvas.create_oval(
@@ -187,7 +187,7 @@ class CanvasDrawing():
         h2 = self.frontViewCanvas.create_text(
                 self.canvasW + self.canvasScale*y + self.canvasOffset[0], self.canvasH - self.canvasScale*z + self.canvasOffset[1],
                 text = id, font = ("Times", 12, "bold") )
-        self.allJointElements[1].ovals.append(h1)
+        self.allJointElements[1].circles.append(h1)
         self.allJointElements[1].texts.append(h2)
 
         h1 = self.topViewCanvas.create_oval(
@@ -197,7 +197,7 @@ class CanvasDrawing():
         h2 = self.topViewCanvas.create_text(
                 self.canvasW - self.canvasScale*x + self.canvasOffset[0], self.canvasH + self.canvasScale*y + self.canvasOffset[2],
                 text = id, font = ("Times", 12, "bold") )
-        self.allJointElements[2].ovals.append(h1)
+        self.allJointElements[2].circles.append(h1)
         self.allJointElements[2].texts.append(h2)
 
 
@@ -213,7 +213,7 @@ class CanvasDrawing():
         h2 = self.sideViewCanvas.create_text(
                 self.canvasW - self.canvasScale*x + self.canvasOffset[0], self.canvasH - self.canvasScale*z + self.canvasOffset[1],
                 text = id, fill = "white", font = ("Times", 12, "bold") )
-        self.allEndEffectorElements[0].ovals.append(h1)
+        self.allEndEffectorElements[0].circles.append(h1)
         self.allEndEffectorElements[0].texts.append(h2)
 
         h1 = self.frontViewCanvas.create_oval(
@@ -223,7 +223,7 @@ class CanvasDrawing():
         h2 = self.frontViewCanvas.create_text(
                 self.canvasW + self.canvasScale*y + self.canvasOffset[0], self.canvasH - self.canvasScale*z + self.canvasOffset[1],
                 text = id, fill = "white", font = ("Times", 12, "bold") )
-        self.allEndEffectorElements[1].ovals.append(h1)
+        self.allEndEffectorElements[1].circles.append(h1)
         self.allEndEffectorElements[1].texts.append(h2)
 
         h1 = self.topViewCanvas.create_oval(
@@ -233,7 +233,7 @@ class CanvasDrawing():
         h2 = self.topViewCanvas.create_text(
                 self.canvasW - self.canvasScale*x + self.canvasOffset[0], self.canvasH + self.canvasScale*y + self.canvasOffset[2],
                 text = id, fill = "white", font = ("Times", 12, "bold") )
-        self.allEndEffectorElements[2].ovals.append(h1)
+        self.allEndEffectorElements[2].circles.append(h1)
         self.allEndEffectorElements[2].texts.append(h2)
 
 
@@ -271,19 +271,19 @@ class CanvasDrawing():
                 self.canvasW - self.canvasScale*x - r + self.canvasOffset[0], self.canvasH - self.canvasScale*z - r + self.canvasOffset[1],
                 self.canvasW - self.canvasScale*x + r + self.canvasOffset[0], self.canvasH - self.canvasScale*z + r + self.canvasOffset[1],
                 outline = borderCol, width = w )
-        self.allTargetElements[0].ovals.append(h)
+        self.allTargetElements[0].circles.append(h)
 
         h = self.frontViewCanvas.create_oval(
                 self.canvasW + self.canvasScale*y - r + self.canvasOffset[0], self.canvasH - self.canvasScale*z - r + self.canvasOffset[1],
                 self.canvasW + self.canvasScale*y + r + self.canvasOffset[0], self.canvasH - self.canvasScale*z + r + self.canvasOffset[1],
                 outline = borderCol, width = w )
-        self.allTargetElements[1].ovals.append(h)
+        self.allTargetElements[1].circles.append(h)
 
         h = self.topViewCanvas.create_oval(
                 self.canvasW - self.canvasScale*x - r + self.canvasOffset[0], self.canvasH + self.canvasScale*y - r + self.canvasOffset[2],
                 self.canvasW - self.canvasScale*x + r + self.canvasOffset[0], self.canvasH + self.canvasScale*y + r + self.canvasOffset[2],
                 outline = borderCol, width = w )
-        self.allTargetElements[2].ovals.append(h)
+        self.allTargetElements[2].circles.append(h)
 
         # Line along X
         tmpVec = np.array([50, 0, 0, 1]).reshape(4, 1)
@@ -388,7 +388,7 @@ class CanvasDrawing():
     def moveJoint(self, index, id, x, y, z):
         r = self.scsz*13
         self.sideViewCanvas.coords(
-            self.allJointElements[0].ovals[index],
+            self.allJointElements[0].circles[index],
             self.canvasW - self.canvasScale*x - r + self.canvasOffset[0], self.canvasH - self.canvasScale*z - r + self.canvasOffset[1],
             self.canvasW - self.canvasScale*x + r + self.canvasOffset[0], self.canvasH - self.canvasScale*z + r + self.canvasOffset[1] )
         self.sideViewCanvas.coords(
@@ -396,7 +396,7 @@ class CanvasDrawing():
             self.canvasW - self.canvasScale*x + self.canvasOffset[0], self.canvasH - self.canvasScale*z + self.canvasOffset[1] )
 
         self.frontViewCanvas.coords(
-            self.allJointElements[1].ovals[index],
+            self.allJointElements[1].circles[index],
             self.canvasW + self.canvasScale*y - r + self.canvasOffset[0], self.canvasH - self.canvasScale*z - r + self.canvasOffset[1],
             self.canvasW + self.canvasScale*y + r + self.canvasOffset[0], self.canvasH - self.canvasScale*z + r + self.canvasOffset[1] )
         self.frontViewCanvas.coords(
@@ -404,7 +404,7 @@ class CanvasDrawing():
             self.canvasW + self.canvasScale*y + self.canvasOffset[0], self.canvasH - self.canvasScale*z + self.canvasOffset[1] )
 
         self.topViewCanvas.coords(
-            self.allJointElements[2].ovals[index],
+            self.allJointElements[2].circles[index],
             self.canvasW - self.canvasScale*x - r + self.canvasOffset[0], self.canvasH + self.canvasScale*y - r + self.canvasOffset[2],
             self.canvasW - self.canvasScale*x + r + self.canvasOffset[0], self.canvasH + self.canvasScale*y + r + self.canvasOffset[2] )
         self.topViewCanvas.coords(
@@ -415,7 +415,7 @@ class CanvasDrawing():
     def moveEndEffector(self, index, id, x, y, z):
         r = self.scsz*13
         self.sideViewCanvas.coords (
-            self.allEndEffectorElements[0].ovals[index],
+            self.allEndEffectorElements[0].circles[index],
             self.canvasW - self.canvasScale*x - r + self.canvasOffset[0], self.canvasH - self.canvasScale*z - r + self.canvasOffset[1],
             self.canvasW - self.canvasScale*x + r + self.canvasOffset[0], self.canvasH - self.canvasScale*z + r + self.canvasOffset[1] )
         self.sideViewCanvas.coords(
@@ -423,7 +423,7 @@ class CanvasDrawing():
             self.canvasW - self.canvasScale*x + self.canvasOffset[0], self.canvasH - self.canvasScale*z + self.canvasOffset[1] )
 
         self.frontViewCanvas.coords(
-            self.allEndEffectorElements[1].ovals[index],
+            self.allEndEffectorElements[1].circles[index],
             self.canvasW + self.canvasScale*y - r + self.canvasOffset[0], self.canvasH - self.canvasScale*z - r + self.canvasOffset[1],
             self.canvasW + self.canvasScale*y + r + self.canvasOffset[0], self.canvasH - self.canvasScale*z + r + self.canvasOffset[1] )
         self.frontViewCanvas.coords(
@@ -431,7 +431,7 @@ class CanvasDrawing():
             self.canvasW + self.canvasScale*y + self.canvasOffset[0], self.canvasH - self.canvasScale*z + self.canvasOffset[1] )
 
         self.topViewCanvas.coords(
-            self.allEndEffectorElements[2].ovals[index],
+            self.allEndEffectorElements[2].circles[index],
             self.canvasW - self.canvasScale*x - r + self.canvasOffset[0], self.canvasH + self.canvasScale*y - r + self.canvasOffset[2],
             self.canvasW - self.canvasScale*x + r + self.canvasOffset[0], self.canvasH + self.canvasScale*y + r + self.canvasOffset[2] )
         self.topViewCanvas.coords(
@@ -463,17 +463,17 @@ class CanvasDrawing():
         y = target[1, 3]
         z = target[2, 3]
         self.sideViewCanvas.coords(
-            self.allTargetElements[0].ovals[index],
+            self.allTargetElements[0].circles[index],
             self.canvasW - self.canvasScale*x - r + self.canvasOffset[0], self.canvasH - self.canvasScale*z - r + self.canvasOffset[1],
             self.canvasW - self.canvasScale*x + r + self.canvasOffset[0], self.canvasH - self.canvasScale*z + r + self.canvasOffset[1] )
 
         self.frontViewCanvas.coords(
-            self.allTargetElements[1].ovals[index],
+            self.allTargetElements[1].circles[index],
             self.canvasW + self.canvasScale*y - r + self.canvasOffset[0], self.canvasH - self.canvasScale*z - r + self.canvasOffset[1],
             self.canvasW + self.canvasScale*y + r + self.canvasOffset[0], self.canvasH - self.canvasScale*z + r + self.canvasOffset[1] )
 
         self.topViewCanvas.coords(
-            self.allTargetElements[2].ovals[index],
+            self.allTargetElements[2].circles[index],
             self.canvasW - self.canvasScale*x - r + self.canvasOffset[0], self.canvasH + self.canvasScale*y - r + self.canvasOffset[2],
             self.canvasW - self.canvasScale*x + r + self.canvasOffset[0], self.canvasH + self.canvasScale*y + r + self.canvasOffset[2] )
 
@@ -563,7 +563,7 @@ class CanvasDrawing():
 
 class JointElements():
     def __init__(self):
-        self.ovals = []
+        self.circles = []
         self.texts = []
 
 
@@ -574,7 +574,7 @@ class LinkElements():
 
 class TargetElements():
     def __init__(self):
-        self.ovals = []
+        self.circles = []
         self.frameXLines = []
         self.frameYLines = []
         self.frameZLines = []
