@@ -32,10 +32,11 @@ class CanvasDrawing():
         self.canvasOffset = [-self.canvasW/2, -self.canvasH + self.scsz*100, -self.canvasH + self.scsz*185]
 
         # Elements for each view
-        self.allJointElements = [JointElements() for x in range(3)]
-        self.allEndEffectorElements = [JointElements() for x in range(3)]
-        self.allLinkElements = [LinkElements() for x in range(3)]
-        self.allTargetElements = [TargetElements() for x in range(3)]
+        v = 3
+        self.allJointElements = [JointElements() for x in range(v)]
+        self.allEndEffectorElements = [JointElements() for x in range(v)]
+        self.allLinkElements = [LinkElements() for x in range(v)]
+        self.allTargetElements = [TargetElements() for x in range(v)]
 
         self.initViews()
 
