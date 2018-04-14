@@ -121,10 +121,9 @@ class CanvasDrawing3D():
             endEffectorIdx = endEffectorIdx + 1
 
         # Targets
-        if Params.showTargets:
-            for i, target in enumerate(self.robot.targets):
-                self.drawTarget(targetIdx, target, self.robot.speeds[i])
-                targetIdx = targetIdx + 1
+        for i, target in enumerate(self.robot.targets):
+            self.drawTarget(targetIdx, target, self.robot.speeds[i])
+            targetIdx = targetIdx + 1
 
 
     def redraw(self, frame):
@@ -176,10 +175,11 @@ class CanvasDrawing3D():
             endEffectorIdx = endEffectorIdx + 1
 
         # Targets
-        if Params.showTargets:
-            for i, target in enumerate(self.robot.targets):
+        for i, target in enumerate(self.robot.targets):
+            self.toggleTarget(targetIdx, Params.showTargets)
+            if Params.showTargets:
                 self.moveTarget(targetIdx, target, self.robot.speeds[i])
-                targetIdx = targetIdx + 1
+            targetIdx = targetIdx + 1
 
 
     def drawSpine(self, index, ids, xs, ys, zs):
@@ -315,6 +315,14 @@ class CanvasDrawing3D():
         k = 500.0 / Params.inputForceMax
         self.allTargetElements[index].speedLines.set_data([x, x+sx], [y, y+sy])
         self.allTargetElements[index].speedLines.set_3d_properties([z, z+sz], 'z')
+
+
+    def toggleTarget(self, index, show):
+        self.allTargetElements[index].circles.set_visible(show)
+        self.allTargetElements[index].frameXLines.set_visible(show)
+        self.allTargetElements[index].frameYLines.set_visible(show)
+        self.allTargetElements[index].frameZLines.set_visible(show)
+        self.allTargetElements[index].speedLines.set_visible(show)
 
 
 class JointElements():

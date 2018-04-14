@@ -3,6 +3,11 @@ import Params
 import threading
 import numpy as np
 from time import time, sleep
+import sys
+if sys.version_info[0] < 3:
+    from Tkinter.constants import NORMAL, HIDDEN
+else:
+    from tkinter.constants import NORMAL, HIDDEN
 
 
 class CanvasDrawing():
@@ -115,9 +120,8 @@ class CanvasDrawing():
                                   leg.joints[5].tfJointInWorld[2, 3] )
 
         # Targets
-        if Params.showTargets:
-            for i, target in enumerate(self.robot.targets):
-                self.drawTarget(target, self.robot.speeds[i])
+        for i, target in enumerate(self.robot.targets):
+            self.drawTarget(target, self.robot.speeds[i])
 
 
     def redraw(self):
@@ -156,10 +160,11 @@ class CanvasDrawing():
             endEffectorIdx = endEffectorIdx + 1
 
         # Targets
-        if Params.showTargets:
-            for i, target in enumerate(self.robot.targets):
+        for i, target in enumerate(self.robot.targets):
+            self.toggleTarget(targetIdx, Params.showTargets)
+            if Params.showTargets:
                 self.moveTarget(targetIdx, target, self.robot.speeds[i])
-                targetIdx = targetIdx + 1
+            targetIdx = targetIdx + 1
 
         self.sideViewCanvas.after(int(self.dt*1000), self.redraw)
 
@@ -559,6 +564,31 @@ class CanvasDrawing():
             self.allTargetElements[2].speedLines[index],
             self.canvasW - self.canvasScale*x + self.canvasOffset[0], self.canvasH + self.canvasScale*y + self.canvasOffset[2],
             self.canvasW - self.canvasScale*x - sx*k + self.canvasOffset[0], self.canvasH + self.canvasScale*y + sy*k + self.canvasOffset[2] )
+
+
+    def toggleTarget(self, index, show):
+        if show:
+            s = NORMAL
+        else:
+            s = HIDDEN
+        for x in range(3):
+            self.sideViewCanvas.itemconfig(self.allTargetElements[x].circles[index], state=s)
+            self.sideViewCanvas.itemconfig(self.allTargetElements[x].frameXLines[index], state=s)
+            self.sideViewCanvas.itemconfig(self.allTargetElements[x].frameYLines[index], state=s)
+            self.sideViewCanvas.itemconfig(self.allTargetElements[x].frameZLines[index], state=s)
+            self.sideViewCanvas.itemconfig(self.allTargetElements[x].speedLines[index], state=s)
+
+            self.frontViewCanvas.itemconfig(self.allTargetElements[x].circles[index], state=s)
+            self.frontViewCanvas.itemconfig(self.allTargetElements[x].frameXLines[index], state=s)
+            self.frontViewCanvas.itemconfig(self.allTargetElements[x].frameYLines[index], state=s)
+            self.frontViewCanvas.itemconfig(self.allTargetElements[x].frameZLines[index], state=s)
+            self.frontViewCanvas.itemconfig(self.allTargetElements[x].speedLines[index], state=s)
+
+            self.topViewCanvas.itemconfig(self.allTargetElements[x].circles[index], state=s)
+            self.topViewCanvas.itemconfig(self.allTargetElements[x].frameXLines[index], state=s)
+            self.topViewCanvas.itemconfig(self.allTargetElements[x].frameYLines[index], state=s)
+            self.topViewCanvas.itemconfig(self.allTargetElements[x].frameZLines[index], state=s)
+            self.topViewCanvas.itemconfig(self.allTargetElements[x].speedLines[index], state=s)
 
 
 class JointElements():
