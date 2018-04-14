@@ -27,11 +27,12 @@ class CanvasDrawing3D():
         #self.toolbar = None
 
         # Elements
-        self.allSpineElements = [JointElements() for x in range(2)]
-        self.allJointElements = [JointElements() for x in range(4)]
-        self.allEndEffectorElements = [JointElements() for x in range(4)]
-        self.allLinkElements = [LinkElements() for x in range(4)]
-        self.allTargetElements = [TargetElements() for x in range(4)]
+        L = len(self.robot.legs)
+        self.allSpineElements = [JointElements() for x in range(1)]
+        self.allJointElements = [JointElements() for x in range(L)]
+        self.allEndEffectorElements = [JointElements() for x in range(L)]
+        self.allLinkElements = [LinkElements() for x in range(L)]
+        self.allTargetElements = [TargetElements() for x in range(L)]
 
         self.initViews()
 
@@ -73,11 +74,6 @@ class CanvasDrawing3D():
         origin = self.axes.scatter(0.0, 0.0, 0.0, marker='o', s=50, c='black', alpha=0.5)
 
         # Draw elements for the first time, store handles
-        spineIdx = 0
-        jointIdx = 0
-        endEffectorIdx = 0
-        linkIdx = 0
-        targetIdx = 0
         # Spine
         n = len(self.robot.spine.joints) - 1
         ids = [""]*n
@@ -89,12 +85,11 @@ class CanvasDrawing3D():
             xs[i] = self.robot.spine.joints[j].tfJointInWorld[0, 3]
             ys[i] = self.robot.spine.joints[j].tfJointInWorld[1, 3]
             zs[i] = self.robot.spine.joints[j].tfJointInWorld[2, 3]
-        self.drawSpine(spineIdx, ids, xs, ys, zs)
-        spineIdx = spineIdx + 1
+        self.drawSpine(0, ids, xs, ys, zs)
 
         # Legs
-        for leg in self.robot.legs:
-            n = len(leg.joints) - 1
+        for idx, leg in enumerate(self.robot.legs):
+            n = len(leg.joints)
             ids = [""]*n
             xs = np.zeros(n)
             ys = np.zeros(n)
@@ -104,34 +99,16 @@ class CanvasDrawing3D():
                 xs[j] = leg.joints[j].tfJointInWorld[0, 3]
                 ys[j] = leg.joints[j].tfJointInWorld[1, 3]
                 zs[j] = leg.joints[j].tfJointInWorld[2, 3]
-            self.drawJoints(jointIdx, ids, xs, ys, zs)
-            jointIdx = jointIdx + 1
-            self.drawLinks(linkIdx, xs, ys, zs)
-            linkIdx = linkIdx + 1
-            j = n
-            ids = [""]*1
-            xs = np.zeros(1)
-            ys = np.zeros(1)
-            zs = np.zeros(1)
-            ids[0] = str(leg.joints[j].id)
-            xs[0] = leg.joints[j].tfJointInWorld[0, 3]
-            ys[0] = leg.joints[j].tfJointInWorld[1, 3]
-            zs[0] = leg.joints[j].tfJointInWorld[2, 3]
-            self.drawEndEffectors(endEffectorIdx, ids, xs, ys, zs)
-            endEffectorIdx = endEffectorIdx + 1
+            self.drawJoints(idx, ids[0:n-1], xs[0:n-1], ys[0:n-1], zs[0:n-1])
+            self.drawLinks(idx, xs, ys, zs)
+            self.drawEndEffectors(idx, [ids[n-1]], [xs[n-1]], [ys[n-1]], [zs[n-1]])
 
         # Targets
-        for i, target in enumerate(self.robot.targets):
-            self.drawTarget(targetIdx, target, self.robot.speeds[i])
-            targetIdx = targetIdx + 1
+        for idx, target in enumerate(self.robot.targets):
+            self.drawTarget(idx, target, self.robot.speeds[i])
 
 
     def redraw(self, frame):
-        spineIdx = 0
-        jointIdx = 0
-        endEffectorIdx = 0
-        linkIdx = 0
-        targetIdx = 0
         # Spine
         n = len(self.robot.spine.joints) - 1
         ids = [""]*n
@@ -143,12 +120,11 @@ class CanvasDrawing3D():
             xs[i] = self.robot.spine.joints[j].tfJointInWorld[0, 3]
             ys[i] = self.robot.spine.joints[j].tfJointInWorld[1, 3]
             zs[i] = self.robot.spine.joints[j].tfJointInWorld[2, 3]
-        self.moveSpine(spineIdx, ids, xs, ys, zs)
-        spineIdx = spineIdx + 1
+        self.moveSpine(0, ids, xs, ys, zs)
 
         # Legs
-        for leg in self.robot.legs:
-            n = len(leg.joints) - 1
+        for idx, leg in enumerate(self.robot.legs):
+            n = len(leg.joints)
             ids = [""]*n
             xs = np.zeros(n)
             ys = np.zeros(n)
@@ -158,28 +134,15 @@ class CanvasDrawing3D():
                 xs[j] = leg.joints[j].tfJointInWorld[0, 3]
                 ys[j] = leg.joints[j].tfJointInWorld[1, 3]
                 zs[j] = leg.joints[j].tfJointInWorld[2, 3]
-            self.moveJoints(jointIdx, ids, xs, ys, zs)
-            jointIdx = jointIdx + 1
-            self.moveLinks(linkIdx, xs, ys, zs)
-            linkIdx = linkIdx + 1
-            j = n
-            ids = [""]*1
-            xs = np.zeros(1)
-            ys = np.zeros(1)
-            zs = np.zeros(1)
-            ids[0] = str(leg.joints[j].id)
-            xs[0] = leg.joints[j].tfJointInWorld[0, 3]
-            ys[0] = leg.joints[j].tfJointInWorld[1, 3]
-            zs[0] = leg.joints[j].tfJointInWorld[2, 3]
-            self.moveEndEffectors(endEffectorIdx, ids, xs, ys, zs)
-            endEffectorIdx = endEffectorIdx + 1
+            self.moveJoints(idx, ids[0:n-1], xs[0:n-1], ys[0:n-1], zs[0:n-1])
+            self.moveLinks(idx, xs, ys, zs)
+            self.moveEndEffectors(idx, [ids[n-1]], [xs[n-1]], [ys[n-1]], [zs[n-1]])
 
         # Targets
-        for i, target in enumerate(self.robot.targets):
-            self.toggleTarget(targetIdx, Params.showTargets)
+        for idx, target in enumerate(self.robot.targets):
+            self.toggleTarget(idx, Params.showTargets)
             if Params.showTargets:
-                self.moveTarget(targetIdx, target, self.robot.speeds[i])
-            targetIdx = targetIdx + 1
+                self.moveTarget(idx, target, self.robot.speeds[i])
 
 
     def drawSpine(self, index, ids, xs, ys, zs):
