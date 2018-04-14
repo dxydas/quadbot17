@@ -68,6 +68,9 @@ class CanvasDrawing3D():
         #self.toolbar.update()
         #self.figureCanvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=True)
 
+        # Origin point on canvas
+        origin = self.axes.scatter(0.0, 0.0, 0.0, marker='o', s=50, c='black', alpha=0.5)
+
         # Draw elements for the first time, store handles
         spineIdx = 0
         jointIdx = 0
