@@ -292,12 +292,7 @@ def quit():
     serialHandler.stop()
     # Wait for threads to finish
     while gamepadReader.isAlive() or inputHandler.isAlive() or serialHandler.isAlive():
-        #print(gamepadReader.isAlive())
-        #print(inputHandler.isAlive())
-        #print(serialHandler.isAlive())
-        #print("----")
         sleep(0.1)
-
     root.destroy()
 
 
@@ -590,7 +585,7 @@ if __name__ == '__main__':
         canvasDrawing = CanvasDrawing.CanvasDrawing(scsz, canvasW, canvasH, defaultFont,
                                                     sideViewCanvas, frontViewCanvas, topViewCanvas, robot)
     else:
-        canvasDrawing = CanvasDrawing3D.CanvasDrawing3D(defaultFont, canvas, robot)
+        canvasDrawing = CanvasDrawing3D.CanvasDrawing3D(scsz, defaultFont, canvas, robot)
 
     gaits = Gaits.Gaits(robot)
 
