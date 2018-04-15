@@ -75,8 +75,6 @@ class GamepadReader(threading.Thread):
         self.inputLJSY = 0
         self.inputRJSX = 0
         self.inputRJSY = 0
-        self.prevTime = time()
-        self.currTime = time()
 
 
     def run(self):
@@ -96,7 +94,6 @@ class GamepadReader(threading.Thread):
                     sleep(2)
             else:
                 try:
-                    #print("GamepadReader poll gamepad time diff.:", self.currTime - self.prevTime)
                     # Get joystick input
                     gpEvents = gamepad.read()
                     for gpEvent in gpEvents:
@@ -116,7 +113,6 @@ class GamepadReader(threading.Thread):
 
 
     def processGamepadEvent(self, gpEvent):
-        self.currTime = time()
         #print(gpEvent.ev_type, gpEvent.code, gpEvent.state)
         if gpEvent.code == 'BTN_SOUTH':  # Button A
             self.inputModeSelect = (self.inputModeSelect + 1) % 3
@@ -128,7 +124,6 @@ class GamepadReader(threading.Thread):
             self.inputRJSX = gpEvent.state
         elif gpEvent.code == 'ABS_RY':
             self.inputRJSY = gpEvent.state
-        self.prevTime = self.currTime
 
 
 class InputHandler(threading.Thread):
@@ -142,6 +137,8 @@ class InputHandler(threading.Thread):
         self.event = threading.Event()
         self.dt = 0.05  # 50 ms
         self.paused = True
+        self.prevTimeInputs = time()
+        self.currTimeInputs = time()
 
         # Input vars
         self.selectedInput = 0
@@ -152,10 +149,6 @@ class InputHandler(threading.Thread):
         self.inputY1Normed = 0
         self.inputX2Normed = 0
         self.inputY2Normed = 0
-        self.prevTimeInputs = time()
-        self.currTimeInputs = time()
-        self.prevTimeIK = time()
-        self.currTimeIK = time()
 
 
     def run(self):
@@ -210,11 +203,9 @@ class InputHandler(threading.Thread):
 
 
     def pollIK(self):
-        self.currTimeIK = time()
         self.robot.targets[self.robot.selectedLeg] = deepcopy(self.target)
         self.robot.speeds[self.robot.selectedLeg] = deepcopy(self.speed)
         self.robot.runLegIK(self.robot.selectedLeg)
-        self.prevTimeIK = self.currTimeIK
 
 
     def filterInput(self, i):
