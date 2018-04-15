@@ -234,7 +234,4 @@ class InputHandler(threading.Thread):
         # Equations of motion
         u = u0 + a*t
         x = x0 + u0*t + 0.5*a*math.pow(t, 2)
-        # Update self
-        target = x
-        speed = u
-        return target, speed
+        return x, u
