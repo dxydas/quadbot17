@@ -44,7 +44,7 @@ class CanvasDrawing3D():
         use("TkAgg")
 
         # Figure
-        self.figure = Figure(figsize=(self.scsz*4, self.scsz*2), dpi=self.scsz*100, tight_layout=True)
+        self.figure = Figure(figsize=(8, 4), dpi=self.scsz*100, tight_layout=True)
         self.figureCanvas = FigureCanvasTkAgg(self.figure, self.canvas)
 
         # Axes with 3D projection
