@@ -310,7 +310,7 @@ scsz = 2
 # 0: None
 # 1: 2D
 # 2: 3D
-gui = 1
+gui = 2
 
 root = Tk()
 root.title("Quadbot 17 Kinematics")
