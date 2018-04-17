@@ -5,7 +5,7 @@ import numpy as np
 from time import time, sleep
 import sys
 if sys.version_info[0] < 3:
-    from Tkinter.constants import NORMAL, HIDDEN
+    from Tkconstants import NORMAL, HIDDEN
 else:
     from tkinter.constants import NORMAL, HIDDEN
 
