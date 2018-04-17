@@ -291,8 +291,9 @@ def quit():
     inputHandler.stop()
     serialHandler.stop()
     # Wait for threads to finish
-    while gamepadReader.isAlive() or inputHandler.isAlive() or serialHandler.isAlive():
-        sleep(0.1)
+    # Note: gamepad.read() is blocking, so this won't actually quit until another gamepad event is generated!
+    #while gamepadReader.isAlive() or inputHandler.isAlive() or serialHandler.isAlive():
+    #    sleep(0.1)
     root.destroy()
 
 
@@ -309,7 +310,7 @@ scsz = 2
 # 0: None
 # 1: 2D
 # 2: 3D
-gui = 2
+gui = 1
 
 root = Tk()
 root.title("Quadbot 17 Kinematics")

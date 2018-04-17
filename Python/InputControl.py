@@ -64,7 +64,6 @@ class GamepadReader(threading.Thread):
         # Threading/timing vars
         threading.Thread.__init__(self)
         self.event = threading.Event()
-        self.dt = 0.05  # 50 ms
 
         # Input vars
         self.gamepadOK = False
@@ -105,7 +104,6 @@ class GamepadReader(threading.Thread):
                         self.messageLogger.log("Gamepad I/O error")
                         self.gamepadIOError = True
                     sleep(2)
-            self.event.wait(self.dt)
 
 
     def stop(self):
