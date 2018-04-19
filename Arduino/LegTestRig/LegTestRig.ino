@@ -1,7 +1,7 @@
 
 #include <ax12.h>
 
-int numOfJoints = 5;
+int numOfJoints = 22;
 
 
 void setup()
@@ -27,8 +27,8 @@ void setup()
   delay(10);
 
   // Set goal speed
-  //ax12SetRegister2(254, 32, 0);
-  //delay(10);
+  ax12SetRegister2(254, 32, 100);
+  delay(10);
 
   // Home motors
   SetPosition(254, 512);
@@ -88,17 +88,17 @@ void serialEvent()
 //      //Serial.println(buffer);
 //      while ( (str = strtok_r(p, ",", &p)) )
 //      {
-//        // Odd numbers are IDs, even numbers are positions
+//        // Even numbers are IDs, odd numbers are positions
 //        if (j % 2 == 0)
 //        {
 //          id[count] = strtol(str, NULL, 10);
 //          //Serial.println(id[count]);
-//          count++;
 //        }
 //        else
 //        {
 //          pos[count] = strtol(str, NULL, 10);
 //          //Serial.println(pos[count]);
+//          count++;
 //        }
 //        j++;
 //      }
