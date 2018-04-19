@@ -37,7 +37,7 @@ class SerialHandler(threading.Thread):
                         self.serialDisconnected = True
                     sleep(2)
             else:
-                self.pollSerial()
+                self.poll()
             self.event.wait(self.dt)
 
 
@@ -45,11 +45,12 @@ class SerialHandler(threading.Thread):
         self.event.set()
 
 
-    def pollSerial(self):
+    def poll(self):
         speed = 100  # Fixed speed for now
+        # Legs
         for i, leg in enumerate(self.robot.legs):
             #print("leg:", leg.id, "angles:", leg.angles)
-            for j in range(len(leg.angles)):
+            for j in range(0, len(leg.angles)):
                 if (i % 2 == 0):
                     # Left side
                     # Joint 2 needs its direction inverted
@@ -65,13 +66,22 @@ class SerialHandler(threading.Thread):
                     else:  # Joints 1, 2 & 5 (zero-indexed)
                         x = int( rescale(leg.angles[j], -180.0, 180.0, 0, 1023) )
                 writeStr = str(leg.joints[j].id) + " " + str(x) + " " + str(speed) + "\n"
-                #print("writeStr: ", writeStr)
-                try:
-                    self.ser.write(writeStr.encode("utf-8"))
-                except serial.SerialException:
-                    self.messageLogger.log("Serial write error")
-                    self.ser.close()
-                    self.serialOK = False
+                self.send(writeStr)
+        # Spine
+        for j in range(0, len(self.robot.spine.angles), 2):  # Skip dummy joint
+            x = int( rescale(self.robot.spine.angles[j], -180.0, 180.0, 0, 1023) )
+            writeStr = str(self.robot.spine.joints[j].id) + " " + str(x) + " " + str(speed) + "\n"
+            self.send(writeStr)
+
+
+    def send(self, msg):
+        #print("msg: ", msg)
+        try:
+            self.ser.write(msg.encode("utf-8"))
+        except serial.SerialException:
+            self.messageLogger.log("Serial write error")
+            self.ser.close()
+            self.serialOK = False
 
 
     def closeSerial(self):
