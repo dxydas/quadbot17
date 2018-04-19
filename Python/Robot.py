@@ -67,17 +67,17 @@ class Robot():
 
         d_1b = 16.975  # Dummy link offset
 
-        s = [0, 0, 0, 0]
-        c = [0, 0, 0, 0]
-        for i in range(1, 4):
-            s[i] = math.sin( math.radians(self.spine.angles[i-1]) )
-            c[i] = math.cos( math.radians(self.spine.angles[i-1]) )
+        s = [0, 0, 0]  # Second value is unused
+        c = [0, 0, 0]
+        for i in range(0, 3, 2):
+            s[i] = math.sin( math.radians(self.spine.angles[i]) )
+            c[i] = math.cos( math.radians(self.spine.angles[i]) )
 
         tfJointInPrevJoint = [0, 0, 0]
 
         # Front spine joint
-        tfJointInPrevJoint[0] = np.matrix( [ [  c[1], -s[1],     0,     0],
-                                             [  s[1],  c[1],     0,     0],
+        tfJointInPrevJoint[0] = np.matrix( [ [  c[0], -s[0],     0,     0],
+                                             [  s[0],  c[0],     0,     0],
                                              [     0,     0,     1,     0],
                                              [     0,     0,     0,     1] ] )
 
@@ -88,9 +88,9 @@ class Robot():
                                              [     0,     0,     0,     1] ] )
 
         # Rear spine joint
-        tfJointInPrevJoint[2] = np.matrix( [ [  c[3], -s[3],     0,     0],
+        tfJointInPrevJoint[2] = np.matrix( [ [  c[2], -s[2],     0,     0],
                                              [     0,     0,     1,     0],
-                                             [ -s[3], -c[3],     0,     0],
+                                             [ -s[2], -c[2],     0,     0],
                                              [     0,     0,     0,     1] ] )
 
         for j in range(0, 3):
@@ -115,8 +115,8 @@ class Robot():
     def runLegFK(self, legIndex):
         leg = self.legs[legIndex]
 
-        s = [0, 0, 0, 0, 0]
-        c = [0, 0, 0, 0, 0]
+        s = [0, 0, 0, 0, 0, 0]  # Last value is unused
+        c = [0, 0, 0, 0, 0, 0]
         for i in range(0, 5):
             s[i] = math.sin( math.radians(leg.angles[i]) )
             c[i] = math.cos( math.radians(leg.angles[i]) )
