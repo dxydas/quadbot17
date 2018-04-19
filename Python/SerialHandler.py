@@ -1,10 +1,13 @@
+from HelperFunctions import rescale
+
 import threading
 import serial
 from time import sleep
 
 
 class SerialHandler(threading.Thread):
-    def __init__(self, messageLogger, robot):
+    def __init__(self, serialPort, messageLogger, robot):
+        self.port = serialPort
         self.messageLogger = messageLogger
         self.robot = robot
 
@@ -14,8 +17,7 @@ class SerialHandler(threading.Thread):
         self.dt = 0.05  # 50 ms
 
         # Input vars
-        self.ser = 0
-        self.port = "/dev/ttyUSB0"
+        self.ser = None
         self.serialOK = False
         self.serialDisconnected = False
 
@@ -35,7 +37,7 @@ class SerialHandler(threading.Thread):
                         self.serialDisconnected = True
                     sleep(2)
             else:
-                pollSerial()
+                self.pollSerial()
             self.event.wait(self.dt)
 
 
@@ -43,8 +45,8 @@ class SerialHandler(threading.Thread):
         self.event.set()
 
 
-    def pollSerial():
-        writeStr = ""
+    def pollSerial(self):
+        speed = 100  # Fixed speed for now
         for i, leg in enumerate(self.robot.legs):
             #print("leg:", leg.id, "angles:", leg.angles)
             for j in range(len(leg.angles)):
@@ -62,18 +64,14 @@ class SerialHandler(threading.Thread):
                         x = int( rescale(-leg.angles[j], -180.0, 180.0, 0, 1023) )
                     else:  # Joints 1, 2 & 5 (zero-indexed)
                         x = int( rescale(leg.angles[j], -180.0, 180.0, 0, 1023) )
-                writeStr += str(leg.joints[j].id) + "," + str(x)
-                if (i == 3) and ( j == (len(leg.angles) - 1) ):
-                    writeStr += "\n"
-                else:
-                    writeStr += ","
-        #print("writeStr: ", writeStr)
-        try:
-            self.ser.write(writeStr)
-        except serial.SerialException:
-            self.messageLogger.log("Serial write error")
-            self.ser.close()
-            self.serialOK = False
+                writeStr = str(leg.joints[j].id) + " " + str(x) + " " + str(speed) + "\n"
+                #print("writeStr: ", writeStr)
+                try:
+                    self.ser.write(writeStr.encode("utf-8"))
+                except serial.SerialException:
+                    self.messageLogger.log("Serial write error")
+                    self.ser.close()
+                    self.serialOK = False
 
 
     def closeSerial(self):

@@ -301,6 +301,11 @@ def quit():
 
 startTime = strftime("%a, %d %b %Y %H:%M:%S", localtime())
 
+# Serial port
+# /dev/ttyUSB0: ArbotiX-M
+# /dev/ttyACM0: OpenCM 9.04 with OpenCM 485 Expansion Board
+serialPort = "/dev/ttyACM0"
+
 # Screen size var
 # 1: HD screen
 # 2: 4K screen
@@ -577,7 +582,7 @@ if __name__ == '__main__':
     inputHandler = InputControl.InputHandler(robot, keyboardReader, gamepadReader)
     inputHandler.start()
 
-    serialHandler = SerialHandler.SerialHandler(messageLogger, robot)
+    serialHandler = SerialHandler.SerialHandler(serialPort, messageLogger, robot)
     serialHandler.start()
 
     if gui == 0:
