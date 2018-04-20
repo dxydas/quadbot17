@@ -88,19 +88,19 @@ void serialEvent()
 //      //Serial.println(buffer);
 //      while ( (str = strtok_r(p, ",", &p)) )
 //      {
-//        // Even numbers are IDs, odd numbers are positions
+//        j++;
+//        // Odd numbers are IDs, even numbers are positions
 //        if (j % 2 == 0)
-//        {
-//          id[count] = strtol(str, NULL, 10);
-//          //Serial.println(id[count]);
-//        }
-//        else
 //        {
 //          pos[count] = strtol(str, NULL, 10);
 //          //Serial.println(pos[count]);
 //          count++;
 //        }
-//        j++;
+//        else
+//        {
+//          id[count] = strtol(str, NULL, 10);
+//          //Serial.println(id[count]);
+//        }
 //      }
 //      i = 0;
 //      buffer[i] = NULL;
