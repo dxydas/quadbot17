@@ -75,12 +75,12 @@ class CanvasDrawing3D():
 
         # Draw elements for the first time, store handles
         # Spine
-        n = len(self.robot.spine.joints) - 1
-        ids = [""]*n
-        xs = np.zeros(n)
-        ys = np.zeros(n)
-        zs = np.zeros(n)
-        for i, j in enumerate(range(0, n+1, 2)):  # Skip dummy joint
+        n = len(self.robot.spine.joints)
+        ids = [""]*(n-1)
+        xs = np.zeros(n-1)
+        ys = np.zeros(n-1)
+        zs = np.zeros(n-1)
+        for i, j in enumerate(range(0, n, 2)):  # Skip dummy joint
             ids[i] = self.robot.spine.joints[j].id
             xs[i] = self.robot.spine.joints[j].tfJointInWorld[0, 3]
             ys[i] = self.robot.spine.joints[j].tfJointInWorld[1, 3]
@@ -110,12 +110,12 @@ class CanvasDrawing3D():
 
     def redraw(self, frame):
         # Spine
-        n = len(self.robot.spine.joints) - 1
-        ids = [""]*n
-        xs = np.zeros(n)
-        ys = np.zeros(n)
-        zs = np.zeros(n)
-        for i, j in enumerate(range(0, n+1, 2)):  # Skip dummy joint
+        n = len(self.robot.spine.joints)
+        ids = [""]*(n-1)
+        xs = np.zeros(n-1)
+        ys = np.zeros(n-1)
+        zs = np.zeros(n-1)
+        for i, j in enumerate(range(0, n, 2)):  # Skip dummy joint
             ids[i] = self.robot.spine.joints[j].id
             xs[i] = self.robot.spine.joints[j].tfJointInWorld[0, 3]
             ys[i] = self.robot.spine.joints[j].tfJointInWorld[1, 3]

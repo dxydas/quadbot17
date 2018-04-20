@@ -96,31 +96,31 @@ class CanvasDrawing():
         # Draw elements for the first time, store handles
         # Spine
         n = len(self.robot.spine.joints)
-        for j in range(n, -1, -2):  # Skip dummy joint
+        for j in range(n-1, -1, -2):  # Skip dummy joint
             self.drawJoint( self.robot.spine.joints[j].id,
                             self.robot.spine.joints[j].tfJointInWorld[0, 3],
                             self.robot.spine.joints[j].tfJointInWorld[1, 3],
                             self.robot.spine.joints[j].tfJointInWorld[2, 3] )
 
         # Legs
-        n = len(leg.joints)
         for leg in reversed(self.robot.legs):
-            for j in range(n, -1, -1):
+            n = len(leg.joints)
+            for j in range(n-2, -1, -1):
                 self.drawLink( leg.joints[j].tfJointInWorld[0, 3],
                                leg.joints[j].tfJointInWorld[1, 3],
                                leg.joints[j].tfJointInWorld[2, 3],
                                leg.joints[j+1].tfJointInWorld[0, 3],
                                leg.joints[j+1].tfJointInWorld[1, 3],
                                leg.joints[j+1].tfJointInWorld[2, 3] )
-            for j in range(n, -1, -1):
+            for j in range(n-2, -1, -1):
                 self.drawJoint( leg.joints[j].id,
                                 leg.joints[j].tfJointInWorld[0, 3],
                                 leg.joints[j].tfJointInWorld[1, 3],
                                 leg.joints[j].tfJointInWorld[2, 3] )
-            self.drawEndEffector( leg.joints[5].id,
-                                  leg.joints[5].tfJointInWorld[0, 3],
-                                  leg.joints[5].tfJointInWorld[1, 3],
-                                  leg.joints[5].tfJointInWorld[2, 3] )
+            self.drawEndEffector( leg.joints[n-1].id,
+                                  leg.joints[n-1].tfJointInWorld[0, 3],
+                                  leg.joints[n-1].tfJointInWorld[1, 3],
+                                  leg.joints[n-1].tfJointInWorld[2, 3] )
 
         # Targets
         for i, target in enumerate(self.robot.targets):
@@ -134,7 +134,7 @@ class CanvasDrawing():
         targetIdx = 0
         # Spine
         n = len(self.robot.spine.joints)
-        for j in range(n, -1, -2):  # Skip dummy joint
+        for j in range(n-1, -1, -2):  # Skip dummy joint
             self.moveJoint( jointIdx, self.robot.spine.joints[j].id,
                             self.robot.spine.joints[j].tfJointInWorld[0, 3],
                             self.robot.spine.joints[j].tfJointInWorld[1, 3],
@@ -142,9 +142,9 @@ class CanvasDrawing():
             jointIdx = jointIdx + 1
 
         # Legs
-        n = len(leg.joints)
         for leg in reversed(self.robot.legs):
-            for j in range(n, -1, -1):
+            n = len(leg.joints)
+            for j in range(n-2, -1, -1):
                 self.moveLink( linkIdx, leg.joints[j].tfJointInWorld[0, 3],
                                leg.joints[j].tfJointInWorld[1, 3],
                                leg.joints[j].tfJointInWorld[2, 3],
@@ -152,16 +152,16 @@ class CanvasDrawing():
                                leg.joints[j+1].tfJointInWorld[1, 3],
                                leg.joints[j+1].tfJointInWorld[2, 3] )
                 linkIdx = linkIdx + 1
-            for j in range(n, -1, -1):
+            for j in range(n-2, -1, -1):
                 self.moveJoint( jointIdx, leg.joints[j].id,
                                 leg.joints[j].tfJointInWorld[0, 3],
                                 leg.joints[j].tfJointInWorld[1, 3],
                                 leg.joints[j].tfJointInWorld[2, 3] )
                 jointIdx = jointIdx + 1
-            self.moveEndEffector( endEffectorIdx, leg.joints[5].id,
-                                  leg.joints[5].tfJointInWorld[0, 3],
-                                  leg.joints[5].tfJointInWorld[1, 3],
-                                  leg.joints[5].tfJointInWorld[2, 3] )
+            self.moveEndEffector( endEffectorIdx, leg.joints[n-1].id,
+                                  leg.joints[n-1].tfJointInWorld[0, 3],
+                                  leg.joints[n-1].tfJointInWorld[1, 3],
+                                  leg.joints[n-1].tfJointInWorld[2, 3] )
             endEffectorIdx = endEffectorIdx + 1
 
         # Targets
