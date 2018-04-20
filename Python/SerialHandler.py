@@ -46,11 +46,13 @@ class SerialHandler(threading.Thread):
 
 
     def poll(self):
+        writeStr = ""
         speed = 100  # Fixed speed for now
         # Legs
         for i, leg in enumerate(self.robot.legs):
             #print("leg:", leg.id, "angles:", leg.angles)
-            for j in range(0, len(leg.angles)):
+            n = len(leg.angles)
+            for j in range(0, n):
                 if (i % 2 == 0):
                     # Left side
                     # Joint 2 needs its direction inverted
@@ -65,13 +67,23 @@ class SerialHandler(threading.Thread):
                         x = int( rescale(-leg.angles[j], -180.0, 180.0, 0, 1023) )
                     else:  # Joints 1, 2 & 5 (zero-indexed)
                         x = int( rescale(leg.angles[j], -180.0, 180.0, 0, 1023) )
-                writeStr = str(leg.joints[j].id) + " " + str(x) + " " + str(speed) + "\n"
-                self.send(writeStr)
+                writeStr += str(leg.joints[j].id) + " " + str(x) + " " + str(speed) + " "
+                #writeStr = str(leg.joints[j].id) + " " + str(x) + " " + str(speed) + "\n"
+                #self.send(writeStr)
+
         # Spine
-        for j in range(0, len(self.robot.spine.angles), 2):  # Skip dummy joint
+        n = len(self.robot.spine.angles)
+        for j in range(0, n, 2):  # Skip dummy joint
             x = int( rescale(self.robot.spine.angles[j], -180.0, 180.0, 0, 1023) )
-            writeStr = str(self.robot.spine.joints[j].id) + " " + str(x) + " " + str(speed) + "\n"
-            self.send(writeStr)
+            writeStr += str(self.robot.spine.joints[j].id) + " " + str(x) + " " + str(speed)
+            if (j == n - 1):
+                writeStr += "\n"
+            else:
+                writeStr += " "
+            #writeStr = str(self.robot.spine.joints[j].id) + " " + str(x) + " " + str(speed) + "\n"
+            #self.send(writeStr)
+
+        self.send(writeStr)
 
 
     def send(self, msg):
@@ -80,7 +92,6 @@ class SerialHandler(threading.Thread):
             self.ser.write(msg.encode("utf-8"))
         except serial.SerialException:
             self.messageLogger.log("Serial write error")
-            self.ser.close()
             self.serialOK = False
 
 

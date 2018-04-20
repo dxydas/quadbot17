@@ -293,7 +293,7 @@ def quit():
     # Wait for threads to finish
     # Note: gamepad.read() is blocking, so this won't actually quit until another gamepad event is generated!
     #while gamepadReader.isAlive() or inputHandler.isAlive() or serialHandler.isAlive():
-    #    sleep(0.1)
+    #    pass
     root.destroy()
 
 
