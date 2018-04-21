@@ -82,7 +82,6 @@ class SerialHandler(threading.Thread):
                 writeStr += " "
             #writeStr = str(self.robot.spine.joints[j].id) + " " + str(x) + " " + str(speed) + "\n"
             #self.send(writeStr)
-
         self.send(writeStr)
 
 
@@ -97,4 +96,6 @@ class SerialHandler(threading.Thread):
 
     def closeSerial(self):
         if self.serialOK:
+            self.ser.flush()
             self.ser.close()
+            self.messageLogger.log("Serial port closed")

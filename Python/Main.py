@@ -285,12 +285,11 @@ def loadTargets2Callback():
 
 
 def quit():
-    serialHandler.closeSerial()
     keyboardReader.stopListener()
     gamepadReader.stop()
     inputHandler.stop()
     serialHandler.stop()
-    # Wait for threads to finish
+    serialHandler.closeSerial()
     # Note: gamepad.read() is blocking, so this won't actually quit until another gamepad event is generated!
     #while gamepadReader.isAlive() or inputHandler.isAlive() or serialHandler.isAlive():
     #    pass
