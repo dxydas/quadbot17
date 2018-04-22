@@ -149,21 +149,21 @@ class CanvasDrawing3D():
         self.allSpineElements[index].circles = self.axes.scatter(xs, ys, zs, marker='o', s=200, c='cyan', alpha=0.7)
         for j, id in enumerate(ids):
             self.allSpineElements[index].texts.append(
-                self.axes.text(xs[j], ys[j], zs[j], id, zdir=None) )
+                self.axes.text(xs[j], ys[j], zs[j], id, zdir=None, weight='bold') )
 
 
     def drawJoints(self, index, ids, xs, ys, zs):
         self.allJointElements[index].circles = self.axes.scatter(xs, ys, zs, marker='o', s=200, alpha=0.7)
         for j, id in enumerate(ids):
             self.allJointElements[index].texts.append(
-                self.axes.text(xs[j], ys[j], zs[j], id, zdir=None) )
+                self.axes.text(xs[j], ys[j], zs[j], id, zdir=None, weight='bold') )
 
 
     def drawEndEffectors(self, index, ids, xs, ys, zs):
         self.allEndEffectorElements[index].circles = self.axes.scatter(xs, ys, zs, marker='o', s=200, c='blue', alpha=0.5)
         for j, id in enumerate(ids):
             self.allEndEffectorElements[index].texts.append(
-                self.axes.text(xs[j], ys[j], zs[j], id, zdir=None) )
+                self.axes.text(xs[j], ys[j], zs[j], id, zdir=None, weight='bold') )
 
 
     def drawLinks(self, index, xs, ys, zs):
