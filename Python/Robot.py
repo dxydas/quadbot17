@@ -1,4 +1,4 @@
-from HelperFunctions import identityTF, applyYawPitchRoll
+from HelperFunctions import identityTF, getRollPitchYaw, applyYawPitchRoll
 
 import math
 import numpy as np
@@ -16,55 +16,61 @@ class Robot():
         self.spineAngleOffsets = [0, 0, -45]
         self.legAngleOffsets = [0, -34, 67.5, -33.5, 0]
 
-        self.targets = [0, 0, 0, 0]
-        self.targetsHome = [0, 0, 0, 0]
-        self.speeds = [0, 0, 0, 0]
+        self.baseTarget = None
+        self.baseTargetHome = None
+        self.baseTargetSpeed = None
+
+        n = 4
+        self.legTargets = [None]*n
+        self.legTargetsHome = [None]*n
+        self.legTargetSpeeds = [None]*n
         self.selectedLeg = 0
 
-        # Dummy targets (because of runLegIK, which calls runLegFK at the end)
-        for i in range(0, len(self.legs)):
-            self.targets[i] = identityTF()
 
+
+
+        # Dummy targets (because of moveBase()->runSpineFK->runLegIK(),
+        # which finally calls runLegFK() at the end)
+        for i in range(0, len(self.legs)):
+            self.legTargets[i] = identityTF()
+
+
+
+
+        # Base target in world
+        self.baseTargetHome = identityTF()#deepcopy(self.spine.tfSpineBaseInWorld)
+        self.baseTarget = deepcopy(self.baseTargetHome)
+        self.baseTargetSpeed = [0, 0, 0]
+
+
+
+        #self.baseTarget = identityTF()
         self.spine.angles = deepcopy(self.spineAngleOffsets)
-        self.runSpineFK(0, 0, 0, 0, 0, 0)
+
+        #self.runSpineFK()
+        self.moveBase()
+
+
+
+
+
+
 
         for i, leg in enumerate(self.legs):
             leg.angles = deepcopy(self.legAngleOffsets)
             self.runLegFK(i)
 
-        # Targets: Foot in world
+
+
+        # Leg targets: Foot in world
         for i, leg in enumerate(self.legs):
-            self.targetsHome[i] = deepcopy(leg.joints[5].tfJointInWorld)
-            applyYawPitchRoll(self.targetsHome[i], 0, 0, 0)
-            self.speeds[i] = [0, 0, 0]
-        self.targets = deepcopy(self.targetsHome)
+            self.legTargetsHome[i] = deepcopy(leg.joints[5].tfJointInWorld)
+            applyYawPitchRoll(self.legTargetsHome[i], 0, 0, 0)
+            self.legTargetSpeeds[i] = [0, 0, 0]
+        self.legTargets = deepcopy(self.legTargetsHome)
 
 
-    def runSpineFK(self, x, y, z, roll, pitch, yaw):
-        # Spine front: In the future this can be controlled by e.g. orientation from IMU
-        self.spine.tfSpineBaseInWorld = identityTF()
-
-        self.spine.tfSpineBaseInWorld[0, 3] = x
-        self.spine.tfSpineBaseInWorld[1, 3] = y
-        self.spine.tfSpineBaseInWorld[2, 3] = z
-
-        applyYawPitchRoll(self.spine.tfSpineBaseInWorld, yaw, pitch, roll)
-
-        # TODO: Get this translation accurate e.g. at location of IMU
-        # Translation (to get from world to robot spine)
-        self.spine.tfSpineBaseInWorld *= np.matrix( [ [  1,  0,  0, -50],
-                                                      [  0,  1,  0,   0],
-                                                      [  0,  0,  1,   0],
-                                                      [  0,  0,  0,   1] ] )
-
-        # -45 around Y (to get from world to robot spine)
-        s = math.sin( -math.pi/4 )
-        c = math.cos( -math.pi/4 )
-        self.spine.tfSpineBaseInWorld *= np.matrix( [ [  c,  0,  s,   0],
-                                                      [  0,  1,  0,   0],
-                                                      [ -s,  0,  c,   0],
-                                                      [  0,  0,  0,   1] ] )
-
+    def runSpineFK(self):
         d_1b = 16.975  # Dummy link offset
 
         s = [0, 0, 0]  # Second value is unused
@@ -97,19 +103,50 @@ class Robot():
             # Assign joint transforms, in preceeding joint coords and in world coords
             self.spine.joints[j].tfJointInPrevJoint = deepcopy(tfJointInPrevJoint[j])
             if j == 0:
-                T = self.spine.tfSpineBaseInWorld
+                T = self.baseTarget * self.spine.tfSpineBaseInRobotBase
             else:
                 T = self.spine.joints[j-1].tfJointInWorld
             self.spine.joints[j].tfJointInWorld = T * tfJointInPrevJoint[j]
 
+
+    def moveBase(self):
+#        self.spine.tfSpineBaseInWorld = identityTF()
+
+#        self.spine.tfSpineBaseInWorld[0, 3] = x
+#        self.spine.tfSpineBaseInWorld[1, 3] = y
+#        self.spine.tfSpineBaseInWorld[2, 3] = z
+#
+#        applyYawPitchRoll(self.spine.tfSpineBaseInWorld, yaw, pitch, roll)
+
+        # TODO: Get this translation accurate e.g. at location of IMU
+        # Translation (to get from world to robot spine)
+#        self.spine.tfSpineBaseInWorld *= np.matrix( [ [  1,  0,  0, -50],
+#                                                      [  0,  1,  0,   0],
+#                                                      [  0,  0,  1,   0],
+#                                                      [  0,  0,  0,   1] ] )
+
+        # -45 around Y (to get from world to robot spine)
+#        s = math.sin( -math.pi/4 )
+#        c = math.cos( -math.pi/4 )
+#        self.spine.tfSpineBaseInWorld *= np.matrix( [ [  c,  0,  s,   0],
+#                                                      [  0,  1,  0,   0],
+#                                                      [ -s,  0,  c,   0],
+#                                                      [  0,  0,  0,   1] ] )
+
+        #self.spine.tfSpineBaseInWorld[0, 3] = x#self.spine.tfSpineBaseInWorld[0, 3] + x
+        #self.spine.tfSpineBaseInWorld[1, 3] = y#self.spine.tfSpineBaseInWorld[1, 3] + y
+        #self.spine.tfSpineBaseInWorld[2, 3] = z#self.spine.tfSpineBaseInWorld[2, 3] + z
+
+        #print(self.baseTarget)
+        #tfSpineBaseInWorld = self.baseTarget * self.spine.tfSpineBaseInRobotBase
+        #self.spine.joints[0].tfJointInWorld = self.baseTarget
+
+
+        self.runSpineFK()
+
         # Update legs
         for i in range(0, len(self.legs)):
             self.runLegIK(i)
-
-
-    def runSpineIK(self):
-        #TODO
-        pass
 
 
     def runLegFK(self, legIndex):
@@ -158,7 +195,7 @@ class Robot():
             leg.joints[j].tfJointInPrevJoint = deepcopy(tfJointInPrevJoint[j])
             if j == 0:
                 if (leg.id == "FL") or (leg.id == "FR"):
-                    T = self.spine.tfSpineBaseInWorld * leg.tfLegBaseInSpineBase
+                    T = self.spine.joints[0].tfJointInWorld * leg.tfLegBaseInSpineBase
                 else:
                     T = self.spine.joints[2].tfJointInWorld * leg.tfLegBaseInSpineBase
             else:
@@ -167,13 +204,12 @@ class Robot():
 
 
     def runLegIK(self, legIndex):
-        target = self.targets[legIndex]
+        target = self.legTargets[legIndex]
         # Convert target in world to be in leg base
         leg = self.legs[legIndex]
         tfSpineBaseInLegBase = np.linalg.inv(leg.tfLegBaseInSpineBase)
         if (leg.id == "FL") or (leg.id == "FR"):
-            T = self.spine.tfSpineBaseInWorld
-            worldInSpineBase = np.linalg.inv(self.spine.tfSpineBaseInWorld)
+            worldInSpineBase = np.linalg.inv(self.spine.joints[0].tfJointInWorld)
         else:
             worldInSpineBase = np.linalg.inv(self.spine.joints[2].tfJointInWorld)
         targetInLegBase = tfSpineBaseInLegBase * worldInSpineBase * target
@@ -183,16 +219,7 @@ class Robot():
         Tz = targetInLegBase[2, 3]
 
         # Extract roll/pitch/yaw (as seen in World frame) from rotation matrix
-        r11 = target[0, 0]
-        r21 = target[1, 0]
-        r31 = target[2, 0]
-        r32 = target[2, 1]
-        r33 = target[2, 2]
-        den = math.sqrt( math.pow(r32, 2) + math.pow(r33, 2) )
-        # Roll negated
-        roll = - math.atan2( r32, r33 )
-        pitch = math.atan2( -r31, den )
-        yaw = math.atan2( r21, r11 )
+        roll, pitch, yaw = getRollPitchYaw(target)
 
         # Trig. values
         sr = math.sin(roll)
@@ -305,17 +332,17 @@ class Robot():
         u2 = math.pow(u, 2)
         x = aEll*(1 - u2) / (u2 + 1)
         y = 2*bEll*u / (u2 + 1)
-        self.targets[self.selectedLeg][0, 3] = self.targetsHome[self.selectedLeg][0, 3] + x + xAdjust
-        self.targets[self.selectedLeg][2, 3] = self.targetsHome[self.selectedLeg][2, 3] + y + yAdjust
+        self.legTargets[self.selectedLeg][0, 3] = self.legTargetsHome[self.selectedLeg][0, 3] + x + xAdjust
+        self.legTargets[self.selectedLeg][2, 3] = self.legTargetsHome[self.selectedLeg][2, 3] + y + yAdjust
         self.runLegIK(self.selectedLeg)
 
 
 class Spine():
-    def __init__(self, id, joints, angles, tfSpineBaseInWorld):
+    def __init__(self, id, joints, angles, tfSpineBaseInRobotBase):
         self.id = id
         self.joints = joints
         self.angles = angles
-        self.tfSpineBaseInWorld = tfSpineBaseInWorld
+        self.tfSpineBaseInRobotBase = tfSpineBaseInRobotBase
 
 
 class Leg():
@@ -334,9 +361,24 @@ class Joint():
 
 
 def initSpine():
-    tmpTF = identityTF()
+    tfSpineBaseInRobotBase = identityTF()
+
+    # TODO: Get this translation accurate e.g. at location of IMU
+    tfSpineBaseInRobotBase *= np.matrix( [ [  1,  0,  0, -50],
+                                           [  0,  1,  0,   0],
+                                           [  0,  0,  1,   0],
+                                           [  0,  0,  0,   1] ] )
+
+    # -45 around Y (to get from world to robot spine)
+    s = math.sin( -math.pi/4 )
+    c = math.cos( -math.pi/4 )
+    tfSpineBaseInRobotBase *= np.matrix( [ [  c,  0,  s,   0],
+                                           [  0,  1,  0,   0],
+                                           [ -s,  0,  c,   0],
+                                           [  0,  0,  0,   1] ] )
+
     spineAngles = [0, 0, 0]
-    spine = Spine( "B", initSpineJoints(21), spineAngles, tmpTF )
+    spine = Spine( "B", initSpineJoints(21), spineAngles, tfSpineBaseInRobotBase )
     return spine
 
 
@@ -350,11 +392,10 @@ def initSpineJoints(startingJoint):
 
 
 def initLegs():
+    # TODO: Position leg bases more accurately
     lengthD = 100
     widthD = 50
     heightD = 10
-
-    # TODO: Position leg bases more accurately
 
     # +135 around Y
     s = math.sin( 3*math.pi/4 )

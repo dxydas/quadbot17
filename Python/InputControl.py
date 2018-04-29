@@ -1,5 +1,5 @@
 import Params
-from HelperFunctions import rescale
+from HelperFunctions import rescale, getRollPitchYaw, applyYawPitchRoll
 
 import threading
 import math
@@ -11,6 +11,7 @@ from time import time, sleep
 
 class KeyboardReader():
     def __init__(self):
+        self.numOfModes = 4
         self.inputModeSelect = 0
         self.inputKBX1 = 0
         self.inputKBY1 = 0
@@ -23,7 +24,7 @@ class KeyboardReader():
 
     def on_press(self, key):
         if key == keyboard.Key.space:
-            self.inputModeSelect = (self.inputModeSelect + 1) % 3
+            self.inputModeSelect = (self.inputModeSelect + 1) % self.numOfModes
         elif key == keyboard.Key.left:
             self.inputKBX1 = -32768
         elif key == keyboard.Key.right:
@@ -69,6 +70,7 @@ class GamepadReader(threading.Thread):
         self.gamepadOK = False
         self.gamepadUnplugged = False
         self.gamepadIOError = False
+        self.numOfModes = 4
         self.inputModeSelect = 0
         self.inputLJSX = 0
         self.inputLJSY = 0
@@ -113,7 +115,7 @@ class GamepadReader(threading.Thread):
     def processGamepadEvent(self, gpEvent):
         #print(gpEvent.ev_type, gpEvent.code, gpEvent.state)
         if gpEvent.code == 'BTN_SOUTH':  # Button A
-            self.inputModeSelect = (self.inputModeSelect + 1) % 3
+            self.inputModeSelect = (self.inputModeSelect + 1) % self.numOfModes
         elif gpEvent.code == 'ABS_X':
             self.inputLJSX = gpEvent.state
         elif gpEvent.code == 'ABS_Y':
@@ -125,10 +127,11 @@ class GamepadReader(threading.Thread):
 
 
 class InputHandler(threading.Thread):
-    def __init__(self, robot, keyboardReader, gamepadReader):
+    def __init__(self, robot, keyboardReader, gamepadReader, messageLogger):
         self.robot = robot
         self.keyboardReader = keyboardReader
         self.gamepadReader = gamepadReader
+        self.messageLogger = messageLogger
 
         # Threading/timing vars
         threading.Thread.__init__(self)
@@ -141,8 +144,15 @@ class InputHandler(threading.Thread):
         # Input vars
         self.selectedInput = 0
         self.inputModeSelect = 0
-        self.target = deepcopy(self.robot.targetsHome[self.robot.selectedLeg])
-        self.speed = [0, 0, 0]
+        self.legTarget = deepcopy(self.robot.legTargetsHome[self.robot.selectedLeg])
+        self.legSpeed = [0, 0, 0]
+        self.baseTarget = deepcopy(self.robot.baseTargetHome)
+        self.spineSpeed = [0, 0, 0]
+        roll, pitch, yaw = getRollPitchYaw(self.robot.baseTargetHome)
+        self.spineRPY = [roll, pitch, yaw]
+        self.spineRPYSpeed = [0, 0, 0]
+        self.spineJoints = [robot.spineAngleOffsets[0], robot.spineAngleOffsets[2]]
+        self.spineJointsSpeed = [0, 0]
         self.inputX1Normed = 0
         self.inputY1Normed = 0
         self.inputX2Normed = 0
@@ -170,40 +180,75 @@ class InputHandler(threading.Thread):
 
 
     def pollInputs(self):
+        # Update current time
         self.currTimeInputs = time()
+
         if self.selectedInput == 0:
             # Keyboard
+            if self.inputModeSelect != self.keyboardReader.inputModeSelect:
+                self.inputModeSelect = self.keyboardReader.inputModeSelect
+                self.messageLogger.log("Input mode changed - Mode: " + str(self.inputModeSelect))
             self.inputX1Normed = self.filterInput(-self.keyboardReader.inputKBX1)
             self.inputY1Normed = self.filterInput(-self.keyboardReader.inputKBY1)
             self.inputX2Normed = self.filterInput(-self.keyboardReader.inputKBX2)
             self.inputY2Normed = self.filterInput(-self.keyboardReader.inputKBY2)
-            self.inputModeSelect = self.keyboardReader.inputModeSelect
         else:
             # Joystick
+            if self.inputModeSelect != self.gamepadReader.inputModeSelect:
+                self.inputModeSelect = self.gamepadReader.inputModeSelect
+                self.messageLogger.log("Input mode changed - Mode: " + str(self.inputModeSelect))
             self.inputX1Normed = self.filterInput(-self.gamepadReader.inputLJSX)
             self.inputY1Normed = self.filterInput(-self.gamepadReader.inputLJSY)
             self.inputX2Normed = self.filterInput(-self.gamepadReader.inputRJSX)
             self.inputY2Normed = self.filterInput(-self.gamepadReader.inputRJSY)
-            self.inputModeSelect = self.gamepadReader.inputModeSelect
 
         if self.inputModeSelect == 0:
             # World X
-            self.target[0, 3], self.speed[0] = self.updateMotion(self.inputY1Normed, self.target[0, 3], self.speed[0])
+            self.legTarget[0, 3], self.legSpeed[0] = self.updateMotion(self.inputY1Normed, self.legTarget[0, 3], self.legSpeed[0])
             # World Y
-            self.target[1, 3], self.speed[1] = self.updateMotion(self.inputX1Normed, self.target[1, 3], self.speed[1])
+            self.legTarget[1, 3], self.legSpeed[1] = self.updateMotion(self.inputX1Normed, self.legTarget[1, 3], self.legSpeed[1])
             # World Z
-            self.target[2, 3], self.speed[2] = self.updateMotion(self.inputY2Normed, self.target[2, 3], self.speed[2])
+            self.legTarget[2, 3], self.legSpeed[2] = self.updateMotion(self.inputY2Normed, self.legTarget[2, 3], self.legSpeed[2])
         elif self.inputModeSelect == 1:
-            pass
+            # World X
+            self.baseTarget[0, 3], self.spineSpeed[0] = self.updateMotion(self.inputY1Normed, self.baseTarget[0, 3], self.spineSpeed[0])
+            # World Y
+            self.baseTarget[1, 3], self.spineSpeed[1] = self.updateMotion(self.inputX1Normed, self.baseTarget[1, 3], self.spineSpeed[1])
+            # World Z
+            self.baseTarget[2, 3], self.spineSpeed[2] = self.updateMotion(self.inputY2Normed, self.baseTarget[2, 3], self.spineSpeed[2])
+            # YPR
+            applyYawPitchRoll(self.baseTarget, self.spineRPY[2], self.spineRPY[1], self.spineRPY[0])
         elif self.inputModeSelect == 2:
-            pass
+            # World Roll
+            self.spineRPY[0], self.spineRPYSpeed[0] = self.updateMotion(self.inputY1Normed, self.spineRPY[0], self.spineRPYSpeed[0])
+            # World Pitch
+            self.spineRPY[1], self.spineRPYSpeed[1] = self.updateMotion(self.inputX1Normed, self.spineRPY[1], self.spineRPYSpeed[1])
+            # World Yaw
+            self.spineRPY[2], self.spineRPYSpeed[2] = self.updateMotion(self.inputY2Normed, self.spineRPY[2], self.spineRPYSpeed[2])
+            # YPR
+            applyYawPitchRoll(self.baseTarget, self.spineRPY[2], self.spineRPY[1], self.spineRPY[0])
+        elif self.inputModeSelect == 3:
+            # Front spine joint
+            self.spineJoints[0], self.spineJointsSpeed[0] = self.updateMotion(self.inputY1Normed, self.spineJoints[0], self.spineJointsSpeed[0])
+            # Rear spine joint
+            self.spineJoints[1], self.spineJointsSpeed[1] = self.updateMotion(self.inputX1Normed, self.spineJoints[1], self.spineJointsSpeed[1])
+
+        # Update previous time
         self.prevTimeInputs = self.currTimeInputs
 
 
     def pollIK(self):
-        self.robot.targets[self.robot.selectedLeg] = deepcopy(self.target)
-        self.robot.speeds[self.robot.selectedLeg] = deepcopy(self.speed)
-        self.robot.runLegIK(self.robot.selectedLeg)
+        if self.inputModeSelect == 0:
+            self.robot.legTargets[self.robot.selectedLeg] = deepcopy(self.legTarget)
+            self.robot.legTargetSpeeds[self.robot.selectedLeg] = deepcopy(self.legSpeed)
+            self.robot.runLegIK(self.robot.selectedLeg)
+
+        else:
+            self.robot.spine.angles[0] = self.spineJoints[0]
+            self.robot.spine.angles[2] = self.spineJoints[1]
+            self.robot.baseTarget = deepcopy(self.baseTarget)
+            self.robot.baseTargetSpeed = deepcopy(self.spineSpeed)
+            self.robot.moveBase()
 
 
     def filterInput(self, i):

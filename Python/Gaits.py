@@ -134,27 +134,27 @@ class Gaits():
 
         # FL
         i = 0
-        self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.FLFwdBack[t] + xAdjust
-        self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
-        self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.FLUpDown[t] + zAdjust
+        self.robot.legTargets[i][0, 3] = self.robot.legTargetsHome[i][0, 3] + self.FLFwdBack[t] + xAdjust
+        self.robot.legTargets[i][1, 3] = self.robot.legTargetsHome[i][1, 3]
+        self.robot.legTargets[i][2, 3] = self.robot.legTargetsHome[i][2, 3] + self.FLUpDown[t] + zAdjust
         self.robot.runLegIK(i)
         # FR
         i = 1
-        self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.FRFwdBack[t] + xAdjust
-        self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
-        self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.FRUpDown[t] + zAdjust
+        self.robot.legTargets[i][0, 3] = self.robot.legTargetsHome[i][0, 3] + self.FRFwdBack[t] + xAdjust
+        self.robot.legTargets[i][1, 3] = self.robot.legTargetsHome[i][1, 3]
+        self.robot.legTargets[i][2, 3] = self.robot.legTargetsHome[i][2, 3] + self.FRUpDown[t] + zAdjust
         self.robot.runLegIK(i)
         # RL
         i = 2
-        self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.RLFwdBack[t] + xAdjust
-        self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
-        self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.RLUpDown[t] + zAdjust
+        self.robot.legTargets[i][0, 3] = self.robot.legTargetsHome[i][0, 3] + self.RLFwdBack[t] + xAdjust
+        self.robot.legTargets[i][1, 3] = self.robot.legTargetsHome[i][1, 3]
+        self.robot.legTargets[i][2, 3] = self.robot.legTargetsHome[i][2, 3] + self.RLUpDown[t] + zAdjust
         self.robot.runLegIK(i)
         # RR
         i = 3
-        self.robot.targets[i][0, 3] = self.robot.targetsHome[i][0, 3] + self.RRFwdBack[t] + xAdjust
-        self.robot.targets[i][1, 3] = self.robot.targetsHome[i][1, 3]
-        self.robot.targets[i][2, 3] = self.robot.targetsHome[i][2, 3] + self.RRUpDown[t] + zAdjust
+        self.robot.legTargets[i][0, 3] = self.robot.legTargetsHome[i][0, 3] + self.RRFwdBack[t] + xAdjust
+        self.robot.legTargets[i][1, 3] = self.robot.legTargetsHome[i][1, 3]
+        self.robot.legTargets[i][2, 3] = self.robot.legTargetsHome[i][2, 3] + self.RRUpDown[t] + zAdjust
         self.robot.runLegIK(i)
 
         self.savePose(t)

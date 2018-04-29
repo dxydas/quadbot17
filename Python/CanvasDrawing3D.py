@@ -32,7 +32,7 @@ class CanvasDrawing3D():
         self.allJointElements = [JointElements() for x in range(L)]
         self.allEndEffectorElements = [JointElements() for x in range(L)]
         self.allLinkElements = [LinkElements() for x in range(L)]
-        self.allTargetElements = [TargetElements() for x in range(L)]
+        self.allTargetElements = [TargetElements() for x in range(L+1)]  # Includes base target
 
         self.initViews()
 
@@ -103,9 +103,12 @@ class CanvasDrawing3D():
             self.drawLinks(idx, xs, ys, zs)
             self.drawEndEffectors(idx, [ids[n-1]], [xs[n-1]], [ys[n-1]], [zs[n-1]])
 
-        # Targets
-        for idx, target in enumerate(self.robot.targets):
-            self.drawTarget(idx, target, self.robot.speeds[i])
+        # Base target
+        idx = 0
+        self.drawTarget(idx, self.robot.baseTarget, self.robot.baseTargetSpeed)
+        # Leg targets
+        for idx, target in enumerate(self.robot.legTargets):
+            self.drawTarget(idx + 1, target, self.robot.legTargetSpeeds[i])
 
 
     def redraw(self, frame):
@@ -138,11 +141,15 @@ class CanvasDrawing3D():
             self.moveLinks(idx, xs, ys, zs)
             self.moveEndEffectors(idx, [ids[n-1]], [xs[n-1]], [ys[n-1]], [zs[n-1]])
 
-        # Targets
-        for idx, target in enumerate(self.robot.targets):
-            self.toggleTarget(idx, Params.showTargets)
+        # Base target
+        idx = 0
+        self.toggleTarget(idx, Params.showTargets)
+        self.moveTarget(idx, self.robot.baseTarget, self.robot.baseTargetSpeed)
+        # Leg targets
+        for idx, target in enumerate(self.robot.legTargets):
+            self.toggleTarget(idx + 1, Params.showTargets)
             if Params.showTargets:
-                self.moveTarget(idx, target, self.robot.speeds[i])
+                self.moveTarget(idx + 1, target, self.robot.legTargetSpeeds[i])
 
 
     def drawSpine(self, index, ids, xs, ys, zs):

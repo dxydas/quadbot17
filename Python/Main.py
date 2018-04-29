@@ -119,29 +119,23 @@ def joint5SliderCallback(val):
 
 
 def targetXSliderCallback(val):
-    robot.targets[robot.selectedLeg][0, 3] = robot.targetsHome[robot.selectedLeg][0, 3] + float(val)
-    robot.targets[robot.selectedLeg][1, 3] = robot.targetsHome[robot.selectedLeg][1, 3] + float(targetYSlider.get())
-    robot.targets[robot.selectedLeg][2, 3] = robot.targetsHome[robot.selectedLeg][2, 3] + float(targetZSlider.get())
+    robot.legTargets[robot.selectedLeg][0, 3] = robot.legTargetsHome[robot.selectedLeg][0, 3] + float(val)
     robot.runLegIK(robot.selectedLeg)
 
 
 def targetYSliderCallback(val):
-    robot.targets[robot.selectedLeg][0, 3] = robot.targetsHome[robot.selectedLeg][0, 3] + float(targetXSlider.get())
-    robot.targets[robot.selectedLeg][1, 3] = robot.targetsHome[robot.selectedLeg][1, 3] + float(val)
-    robot.targets[robot.selectedLeg][2, 3] = robot.targetsHome[robot.selectedLeg][2, 3] + float(targetZSlider.get())
+    robot.legTargets[robot.selectedLeg][1, 3] = robot.legTargetsHome[robot.selectedLeg][1, 3] + float(val)
     robot.runLegIK(robot.selectedLeg)
 
 
 def targetZSliderCallback(val):
-    robot.targets[robot.selectedLeg][0, 3] = robot.targetsHome[robot.selectedLeg][0, 3] + float(targetXSlider.get())
-    robot.targets[robot.selectedLeg][1, 3] = robot.targetsHome[robot.selectedLeg][1, 3] + float(targetYSlider.get())
-    robot.targets[robot.selectedLeg][2, 3] = robot.targetsHome[robot.selectedLeg][2, 3] + float(val)
+    robot.legTargets[robot.selectedLeg][2, 3] = robot.legTargetsHome[robot.selectedLeg][2, 3] + float(val)
     robot.runLegIK(robot.selectedLeg)
 
 
 def targetRollSliderCallback(val):
     # Roll is rotation around X
-    applyYawPitchRoll( robot.targets[robot.selectedLeg],
+    applyYawPitchRoll( robot.legTargets[robot.selectedLeg],
                        0,#targetYawSlider.get(),
                        targetPitchSlider.get(),
                        float(val))
@@ -150,7 +144,7 @@ def targetRollSliderCallback(val):
 
 def targetPitchSliderCallback(val):
     # Pitch is rotation around Y
-    applyYawPitchRoll( robot.targets[robot.selectedLeg],
+    applyYawPitchRoll( robot.legTargets[robot.selectedLeg],
                        0,#targetYawSlider.get(),
                        float(val),
                        targetRollSlider.get() )
@@ -159,99 +153,66 @@ def targetPitchSliderCallback(val):
 
 #def targetYawSliderCallback(val):
 #    # Yaw is rotation around Z
-#    applyYawPitchRoll( robot.targets[robot.selectedLeg],
+#    applyYawPitchRoll( robot.legTargets[robot.selectedLeg],
 #                       float(val),
 #                       targetPitchSlider.get(),
 #                       targetRollSlider.get() )
 #    robot.runLegIK(robot.selectedLeg)
 
 
-def spineXSliderCallback(val):
-    x = float(val)
-    y = spineYSlider.get()
-    z = spineZSlider.get()
-    roll = spineRollSlider.get()
-    pitch = spinePitchSlider.get()
-    yaw = spineYawSlider.get()
-    robot.runSpineFK(x, y, z, roll, pitch, yaw)
+def baseXSliderCallback(val):
+    robot.baseTarget[0, 3] = robot.baseTargetHome[0, 3] + float(val)
+    robot.moveBase()
 
 
-def spineYSliderCallback(val):
-    x = spineXSlider.get()
-    y = float(val)
-    z = spineZSlider.get()
-    roll = spineRollSlider.get()
-    pitch = spinePitchSlider.get()
-    yaw = spineYawSlider.get()
-    robot.runSpineFK(x, y, z, roll, pitch, yaw)
+def baseYSliderCallback(val):
+    robot.baseTarget[1, 3] = robot.baseTargetHome[1, 3] + float(val)
+    robot.moveBase()
 
 
-def spineZSliderCallback(val):
-    x = spineXSlider.get()
-    y = spineYSlider.get()
-    z = float(val)
-    roll = spineRollSlider.get()
-    pitch = spinePitchSlider.get()
-    yaw = spineYawSlider.get()
-    robot.runSpineFK(x, y, z, roll, pitch, yaw)
+def baseZSliderCallback(val):
+    robot.baseTarget[2, 3] = robot.baseTargetHome[2, 3] + float(val)
+    robot.moveBase()
 
 
-def spineRollSliderCallback(val):
-    x = spineXSlider.get()
-    y = spineYSlider.get()
-    z = spineZSlider.get()
+def baseRollSliderCallback(val):
     roll = float(val)
-    pitch = spinePitchSlider.get()
-    yaw = spineYawSlider.get()
-    robot.runSpineFK(x, y, z, roll, pitch, yaw)
+    pitch = basePitchSlider.get()
+    yaw = baseYawSlider.get()
+    applyYawPitchRoll(robot.baseTarget, yaw, pitch, roll)
+    robot.moveBase()
 
 
-def spinePitchSliderCallback(val):
-    x = spineXSlider.get()
-    y = spineYSlider.get()
-    z = spineZSlider.get()
-    roll = spineRollSlider.get()
+def basePitchSliderCallback(val):
+    roll = baseRollSlider.get()
     pitch = float(val)
-    yaw = spineYawSlider.get()
-    robot.runSpineFK(x, y, z, roll, pitch, yaw)
+    yaw = baseYawSlider.get()
+    applyYawPitchRoll(robot.baseTarget, yaw, pitch, roll)
+    robot.moveBase()
 
 
-def spineYawSliderCallback(val):
-    x = spineXSlider.get()
-    y = spineYSlider.get()
-    z = spineZSlider.get()
-    roll = spineRollSlider.get()
-    pitch = spinePitchSlider.get()
+def baseYawSliderCallback(val):
+    roll = baseRollSlider.get()
+    pitch = basePitchSlider.get()
     yaw = float(val)
-    robot.runSpineFK(x, y, z, roll, pitch, yaw)
+    applyYawPitchRoll(robot.baseTarget, yaw, pitch, roll)
+    robot.moveBase()
 
 
 def spineJoint1SliderCallback(val):
-    x = spineXSlider.get()
-    y = spineYSlider.get()
-    z = spineZSlider.get()
-    roll = spineRollSlider.get()
-    pitch = spinePitchSlider.get()
-    yaw = spineYawSlider.get()
     robot.spine.angles[0] = float(val)
-    robot.runSpineFK(x, y, z, roll, pitch, yaw)
+    robot.moveBase()
     # Dummy adjustment while IMU is not present:
-    spineRollSlider.set( (robot.spineAngleOffsets[0] + robot.spine.angles[0]) / 2.0 )
-    spinePitchSlider.set( (robot.spineAngleOffsets[2] - robot.spine.angles[2]) / 2.0 )
+    baseRollSlider.set( (robot.spineAngleOffsets[0] + robot.spine.angles[0]) / 2.0 )
+    basePitchSlider.set( (robot.spineAngleOffsets[2] - robot.spine.angles[2]) / 2.0 )
 
 
 def spineJoint2SliderCallback(val):
-    x = spineXSlider.get()
-    y = spineYSlider.get()
-    z = spineZSlider.get()
-    roll = spineRollSlider.get()
-    pitch = spinePitchSlider.get()
-    yaw = spineYawSlider.get()
     robot.spine.angles[2] = float(val)
-    robot.runSpineFK(x, y, z, roll, pitch, yaw)
+    robot.moveBase()
     # Dummy adjustment while IMU is not present
-    spineRollSlider.set( (robot.spineAngleOffsets[0] + robot.spine.angles[0]) / 2.0 )
-    spinePitchSlider.set( (robot.spineAngleOffsets[2] - robot.spine.angles[2]) / 2.0 )
+    baseRollSlider.set( (robot.spineAngleOffsets[0] + robot.spine.angles[0]) / 2.0 )
+    basePitchSlider.set( (robot.spineAngleOffsets[2] - robot.spine.angles[2]) / 2.0 )
 
 
 def toggleInput():
@@ -314,7 +275,7 @@ scsz = 2
 # 0: None
 # 1: 2D
 # 2: 3D
-gui = 2
+gui = 1
 
 root = Tk()
 root.title("Quadbot 17 Kinematics")
@@ -392,13 +353,13 @@ messageBoxFrame = Frame(controlsSubFrame)
 selectFrame = Frame(controlsSubFrame)
 jointSlidersFrame = Frame(controlsSubFrame)
 targetSlidersFrame = Frame(controlsSubFrame)
-spineSlidersFrame = Frame(controlsSubFrame)
+baseSlidersFrame = Frame(controlsSubFrame)
 
 messageBoxFrame.grid(row=0, column=0, sticky=N)
 selectFrame.grid(row=0, column=1, sticky=N)
 jointSlidersFrame.grid(row=0, column=2, sticky=N)
 targetSlidersFrame.grid(row=0, column=3, sticky=N)
-spineSlidersFrame.grid(row=0, column=4, sticky=N)
+baseSlidersFrame.grid(row=0, column=4, sticky=N)
 
 legSelectSubFrame = Frame(selectFrame)
 legSelectSubFrame.grid(row=0, column=0, sticky=N)
@@ -499,44 +460,44 @@ targetPitchSlider.grid(row=5, column=0)
 #targetYawSlider.config(state=DISABLED)
 
 
-xyzLabel = Label(spineSlidersFrame, text="Spine - Trans.", font = defaultFont)
+xyzLabel = Label(baseSlidersFrame, text="Base - Trans.", font = defaultFont)
 xyzLabel.grid(row=0, column=0)
 
 tsRange = 300.0
-spineXSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "X",
-                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineXSliderCallback )
-spineXSlider.grid(row=1, column=0)
+baseXSlider = Scale( baseSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "X",
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = baseXSliderCallback )
+baseXSlider.grid(row=1, column=0)
 
-spineYSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Y",
-                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineYSliderCallback )
-spineYSlider.grid(row=2, column=0)
+baseYSlider = Scale( baseSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Y",
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = baseYSliderCallback )
+baseYSlider.grid(row=2, column=0)
 
-spineZSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Z",
-                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineZSliderCallback )
-spineZSlider.grid(row=3, column=0)
+baseZSlider = Scale( baseSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Z",
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = baseZSliderCallback )
+baseZSlider.grid(row=3, column=0)
 
-rpyLabel = Label(spineSlidersFrame, text="Spine - Rot.", font = defaultFont)
+rpyLabel = Label(baseSlidersFrame, text="Base - Rot.", font = defaultFont)
 rpyLabel.grid(row=0, column=1)
 
 tsRange = 90.0
-spineRollSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Roll",
-                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineRollSliderCallback )
-spineRollSlider.grid(row=1, column=1)
+baseRollSlider = Scale( baseSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Roll",
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = baseRollSliderCallback )
+baseRollSlider.grid(row=1, column=1)
 
-spinePitchSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Pitch",
-                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spinePitchSliderCallback )
-spinePitchSlider.grid(row=2, column=1)
+basePitchSlider = Scale( baseSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Pitch",
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = basePitchSliderCallback )
+basePitchSlider.grid(row=2, column=1)
 
-spineYawSlider = Scale( spineSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Yaw",
-                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineYawSliderCallback )
-spineYawSlider.grid(row=3, column=1)
+baseYawSlider = Scale( baseSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Yaw",
+                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = baseYawSliderCallback )
+baseYawSlider.grid(row=3, column=1)
 
 jsRange = 90.0
-spineJoint1Slider = Scale( spineSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
+spineJoint1Slider = Scale( baseSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineJoint1SliderCallback )
 spineJoint1Slider.grid(row=4, column=1)
 
-spineJoint2Slider = Scale( spineSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j2",
+spineJoint2Slider = Scale( baseSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j2",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineJoint2SliderCallback )
 spineJoint2Slider.grid(row=5, column=1)
 
@@ -578,7 +539,7 @@ if __name__ == '__main__':
     gamepadReader = InputControl.GamepadReader(messageLogger)
     gamepadReader.start()
 
-    inputHandler = InputControl.InputHandler(robot, keyboardReader, gamepadReader)
+    inputHandler = InputControl.InputHandler(robot, keyboardReader, gamepadReader, messageLogger)
     inputHandler.start()
 
     serialHandler = SerialHandler.SerialHandler(serialPort, messageLogger, robot)

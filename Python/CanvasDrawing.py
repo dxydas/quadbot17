@@ -122,9 +122,11 @@ class CanvasDrawing():
                                   leg.joints[n-1].tfJointInWorld[1, 3],
                                   leg.joints[n-1].tfJointInWorld[2, 3] )
 
-        # Targets
-        for i, target in enumerate(self.robot.targets):
-            self.drawTarget(target, self.robot.speeds[i])
+        # Base target
+        self.drawTarget(self.robot.baseTarget, self.robot.baseTargetSpeed)
+        # Leg targets
+        for i, target in enumerate(self.robot.legTargets):
+            self.drawTarget(target, self.robot.legTargetSpeeds[i])
 
 
     def redraw(self):
@@ -164,11 +166,16 @@ class CanvasDrawing():
                                   leg.joints[n-1].tfJointInWorld[2, 3] )
             endEffectorIdx = endEffectorIdx + 1
 
-        # Targets
-        for i, target in enumerate(self.robot.targets):
+        # Base target
+        self.toggleTarget(targetIdx, Params.showTargets)
+        if Params.showTargets:
+            self.moveTarget(targetIdx, self.robot.baseTarget, self.robot.baseTargetSpeed)
+        targetIdx = targetIdx + 1
+        # Leg targets
+        for i, target in enumerate(self.robot.legTargets):
             self.toggleTarget(targetIdx, Params.showTargets)
             if Params.showTargets:
-                self.moveTarget(targetIdx, target, self.robot.speeds[i])
+                self.moveTarget(targetIdx, target, self.robot.legTargetSpeeds[i])
             targetIdx = targetIdx + 1
 
         self.sideViewCanvas.after(int(self.dt*1000), self.redraw)
