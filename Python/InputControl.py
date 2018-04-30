@@ -10,7 +10,10 @@ from time import time, sleep
 
 
 class KeyboardReader():
-    def __init__(self):
+    def __init__(self, messageLogger):
+        self.messageLogger = messageLogger
+
+        # Input vars
         self.numOfModes = 4
         self.inputKBX1 = 0
         self.inputKBY1 = 0
@@ -24,6 +27,7 @@ class KeyboardReader():
     def on_press(self, key):
         if key == keyboard.Key.space:
             Params.inputModeSelect = (Params.inputModeSelect + 1) % Params.numOfModes
+            self.messageLogger.log("Input mode changed - Mode: " + str(Params.inputModeSelect))
         elif key == keyboard.Key.left:
             self.inputKBX1 = -32768
         elif key == keyboard.Key.right:
@@ -113,6 +117,7 @@ class GamepadReader(threading.Thread):
         #print(gpEvent.ev_type, gpEvent.code, gpEvent.state)
         if gpEvent.code == 'BTN_SOUTH':  # Button A
             Params.inputModeSelect = (Params.inputModeSelect + 1) % Params.numOfModes
+            self.messageLogger.log("Input mode changed - Mode: " + str(Params.inputModeSelect))
         elif gpEvent.code == 'ABS_X':
             self.inputLJSX = gpEvent.state
         elif gpEvent.code == 'ABS_Y':

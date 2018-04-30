@@ -226,10 +226,6 @@ def selectInput():
     inputHandler.selectedInput = rbIpVar.get()
 
 
-def selectMode():
-    Params.inputModeSelect = int(inputModeSelectSpinBox.get())
-
-
 def testIKCallback():
     testIKTimer = TestIKTimer()
     testIKTimer.start()
@@ -486,7 +482,7 @@ spineJoint2Slider.grid(row=2, column=0)
 
 toggleIpVar = IntVar()
 inputCheckButton = Checkbutton(buttonsFrame, text = "Input", var=toggleIpVar, command=toggleInput, font = Params.defaultFont)
-inputCheckButton.grid(row=0, column=0)
+inputCheckButton.grid(row=0, column=0, padx=10)
 #inputCheckButton.select()  # Set default
 
 rbIpVar = IntVar()
@@ -494,25 +490,22 @@ kbInputRadioButton = Radiobutton( buttonsFrame, text = "Keyboard", font = Params
                                   variable=rbIpVar, value = 0, command = selectInput )
 jsInputRadioButton = Radiobutton( buttonsFrame, text = "Joystick", font = Params.defaultFont,
                                   variable=rbIpVar, value = 1, command = selectInput )
-kbInputRadioButton.grid(row=0, column=1)
-jsInputRadioButton.grid(row=0, column=2)
+kbInputRadioButton.grid(row=0, column=1, padx=10)
+jsInputRadioButton.grid(row=0, column=2, padx=10)
 kbInputRadioButton.select()  # Set default
 
-inputModeSelectSpinBox = Spinbox( buttonsFrame, text = "Mode", font = Params.defaultFont, width = 2,
-                                  from_ = 0, to = Params.numOfModes, command = selectMode )
-inputModeSelectSpinBox.grid(row=0, column=3)
 
 testIKButton = Button(buttonsFrame, text = "Test IK", font = Params.defaultFont, command = testIKCallback)
-testIKButton.grid(row=0, column=4)
+testIKButton.grid(row=0, column=5)
 
 loadTargets1Button = Button(buttonsFrame, text = "Load 1", font = Params.defaultFont, command = loadTargets1Callback)
-loadTargets1Button.grid(row=0, column=5)
+loadTargets1Button.grid(row=0, column=6)
 
 loadTargets2Button = Button(buttonsFrame, text = "Load 2", font = Params.defaultFont, command = loadTargets2Callback)
-loadTargets2Button.grid(row=0, column=6)
+loadTargets2Button.grid(row=0, column=7)
 
 quitButton = Button(buttonsFrame, text = "Quit", font = Params.defaultFont, command = quit)
-quitButton.grid(row=0, column=7)
+quitButton.grid(row=0, column=8)
 
 
 
@@ -520,7 +513,7 @@ quitButton.grid(row=0, column=7)
 if __name__ == '__main__':
     robot = Robot.Robot()
 
-    keyboardReader = InputControl.KeyboardReader()
+    keyboardReader = InputControl.KeyboardReader(messageLogger)
 
     gamepadReader = InputControl.GamepadReader(messageLogger)
     gamepadReader.start()
