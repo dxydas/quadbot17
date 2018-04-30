@@ -226,6 +226,10 @@ def selectInput():
     inputHandler.selectedInput = rbIpVar.get()
 
 
+def selectMode():
+    Params.inputModeSelect = int(inputModeSelectSpinBox.get())
+
+
 def testIKCallback():
     testIKTimer = TestIKTimer()
     testIKTimer.start()
@@ -321,19 +325,19 @@ elif gui == 1:
     topViewFrame.grid(row=1, column=0, sticky=S+W)
     controlsFrame.grid(row=1, column=1, sticky=S+E)
 
-    sideViewLabel = Label(sideViewFrame, text="Side View", font = defaultFont)
+    sideViewLabel = Label(sideViewFrame, text = "Side View", font = defaultFont)
     sideViewLabel.grid(row=0, column=0)
-    sideViewCanvas = Canvas(sideViewFrame, background="#E0FFFF", width = canvasW, height = canvasH)
+    sideViewCanvas = Canvas(sideViewFrame, background = "#E0FFFF", width = canvasW, height = canvasH)
     sideViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
 
-    frontViewLabel = Label(frontViewFrame, text="Front View", font = defaultFont)
+    frontViewLabel = Label(frontViewFrame, text = "Front View", font = defaultFont)
     frontViewLabel.grid(row=0, column=0)
-    frontViewCanvas = Canvas(frontViewFrame, background="#FFFACD", width = canvasW, height = canvasH)
+    frontViewCanvas = Canvas(frontViewFrame, background = "#FFFACD", width = canvasW, height = canvasH)
     frontViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
 
-    topViewLabel = Label(topViewFrame, text="Top View", font = defaultFont)
+    topViewLabel = Label(topViewFrame, text = "Top View", font = defaultFont)
     topViewLabel.grid(row=0, column=0)
-    topViewCanvas = Canvas(topViewFrame, background="#E0EEE0", width = canvasW, height = canvasH)
+    topViewCanvas = Canvas(topViewFrame, background = "#E0EEE0", width = canvasW, height = canvasH)
     topViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
 
 else:
@@ -351,15 +355,17 @@ buttonsFrame = Frame(controlsFrame)
 
 messageBoxFrame = Frame(controlsSubFrame)
 selectFrame = Frame(controlsSubFrame)
-jointSlidersFrame = Frame(controlsSubFrame)
-targetSlidersFrame = Frame(controlsSubFrame)
-baseSlidersFrame = Frame(controlsSubFrame)
+legJointsSlidersFrame = Frame(controlsSubFrame)
+legTargetsSlidersFrame = Frame(controlsSubFrame)
+baseMoveSlidersFrame = Frame(controlsSubFrame)
+spineJointsSlidersFrame = Frame(controlsSubFrame)
 
 messageBoxFrame.grid(row=0, column=0, sticky=N)
 selectFrame.grid(row=0, column=1, sticky=N)
-jointSlidersFrame.grid(row=0, column=2, sticky=N)
-targetSlidersFrame.grid(row=0, column=3, sticky=N)
-baseSlidersFrame.grid(row=0, column=4, sticky=N)
+legJointsSlidersFrame.grid(row=0, column=2, sticky=N)
+legTargetsSlidersFrame.grid(row=0, column=3, sticky=N)
+baseMoveSlidersFrame.grid(row=0, column=4, sticky=N)
+spineJointsSlidersFrame.grid(row=0, column=5, sticky=N)
 
 legSelectSubFrame = Frame(selectFrame)
 legSelectSubFrame.grid(row=0, column=0, sticky=N)
@@ -367,7 +373,7 @@ legSelectSubFrame.grid(row=0, column=0, sticky=N)
 controlsSubFrame.grid(row=0, column=0, sticky=N)
 buttonsFrame.grid(row=1, column=0, sticky=N)
 
-messageBox = Text(messageBoxFrame, width = 32, height=16, font = defaultFont)
+messageBox = Text(messageBoxFrame, width = 32, height=18, font = defaultFont)
 messageBox.grid(row=0, column=0, sticky=N+S+W+E)
 scrl = Scrollbar(messageBoxFrame, command=messageBox.yview)
 scrl.grid(row=0, column=1, sticky=N+S)
@@ -377,7 +383,7 @@ messageLogger = MessageLogger(messageBox)
 messageLogger.log("Started at: " + startTime)
 
 
-legSelectLabel = Label(legSelectSubFrame, text="Leg", font = defaultFont)
+legSelectLabel = Label(legSelectSubFrame, text = "Leg", font = defaultFont)
 legSelectLabel.grid(row=0, column=0)
 
 rbLegVar = IntVar()
@@ -396,137 +402,141 @@ RRRadiobutton.grid(row=4, column=0)
 FLRadiobutton.select()  # Set default
 
 
-fkLabel = Label(jointSlidersFrame, text="FK - Joints", font = defaultFont)
-fkLabel.grid(row=0, column=0)
+legJointsLabel = Label(legJointsSlidersFrame, text = "Leg Joints", font = defaultFont)
+legJointsLabel.grid(row=0, column=0)
 
 jsLength = scsz*100
 jsWidth = scsz*20
 
 jsRange = 90.0
-joint1Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
+joint1Slider = Scale( legJointsSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint1SliderCallback )
 joint1Slider.grid(row=1, column=0)
 
 jsRange = 90.0
-joint2Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j2",
+joint2Slider = Scale( legJointsSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j2",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint2SliderCallback )
 joint2Slider.grid(row=2, column=0)
 
 jsRange = 150.0
-joint3Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j3",
+joint3Slider = Scale( legJointsSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j3",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint3SliderCallback )
 joint3Slider.grid(row=3, column=0)
 
 jsRange = 150.0
-joint4Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j4",
+joint4Slider = Scale( legJointsSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j4",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint4SliderCallback )
 joint4Slider.grid(row=4, column=0)
 
 jsRange = 90.0
-joint5Slider = Scale( jointSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j5",
+joint5Slider = Scale( legJointsSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j5",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = joint5SliderCallback )
 joint5Slider.grid(row=5, column=0)
 
 
-ikLabel = Label(targetSlidersFrame, text="IK - Target", font = defaultFont)
-ikLabel.grid(row=0, column=0)
+legTargetsLabel = Label(legTargetsSlidersFrame, text = "Leg Targets", font = defaultFont)
+legTargetsLabel.grid(row=0, column=0)
 
 tsRange = 300.0
-targetXSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "X",
+targetXSlider = Scale( legTargetsSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "X",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = targetXSliderCallback )
 targetXSlider.grid(row=1, column=0)
 
-targetYSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Y",
+targetYSlider = Scale( legTargetsSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Y",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = targetYSliderCallback )
 targetYSlider.grid(row=2, column=0)
 
-targetZSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Z",
+targetZSlider = Scale( legTargetsSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Z",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = targetZSliderCallback )
 targetZSlider.grid(row=3, column=0)
 
 tsRange = 90.0
-targetRollSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Roll",
+targetRollSlider = Scale( legTargetsSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Roll",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = targetRollSliderCallback )
 targetRollSlider.grid(row=4, column=0)
 
-targetPitchSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Pitch",
+targetPitchSlider = Scale( legTargetsSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Pitch",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = targetPitchSliderCallback )
 targetPitchSlider.grid(row=5, column=0)
 
 # Target Yaw has no effect
-#targetYawSlider = Scale( targetSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Yaw",
+#targetYawSlider = Scale( legTargetsSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Yaw",
 #                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = targetYawSliderCallback )
 #targetYawSlider.grid(row=6, column=0)
 #targetYawSlider.config(state=DISABLED)
 
 
-xyzLabel = Label(baseSlidersFrame, text="Base - Trans.", font = defaultFont)
-xyzLabel.grid(row=0, column=0)
+moveLabel = Label(baseMoveSlidersFrame, text = "Base Move", font = defaultFont)
+moveLabel.grid(row=0, column=0)
 
 tsRange = 300.0
-baseXSlider = Scale( baseSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "X",
+baseXSlider = Scale( baseMoveSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "X",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = baseXSliderCallback )
 baseXSlider.grid(row=1, column=0)
 
-baseYSlider = Scale( baseSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Y",
+baseYSlider = Scale( baseMoveSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Y",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = baseYSliderCallback )
 baseYSlider.grid(row=2, column=0)
 
-baseZSlider = Scale( baseSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Z",
+baseZSlider = Scale( baseMoveSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 1.0, label = "Z",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = baseZSliderCallback )
 baseZSlider.grid(row=3, column=0)
 
-rpyLabel = Label(baseSlidersFrame, text="Base - Rot.", font = defaultFont)
-rpyLabel.grid(row=0, column=1)
-
 tsRange = 90.0
-baseRollSlider = Scale( baseSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Roll",
+baseRollSlider = Scale( baseMoveSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Roll",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = baseRollSliderCallback )
-baseRollSlider.grid(row=1, column=1)
+baseRollSlider.grid(row=4, column=0)
 
-basePitchSlider = Scale( baseSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Pitch",
+basePitchSlider = Scale( baseMoveSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Pitch",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = basePitchSliderCallback )
-basePitchSlider.grid(row=2, column=1)
+basePitchSlider.grid(row=5, column=0)
 
-baseYawSlider = Scale( baseSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Yaw",
+baseYawSlider = Scale( baseMoveSlidersFrame, from_ = -tsRange, to = tsRange, resolution = 0.1, label = "Yaw",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = baseYawSliderCallback )
-baseYawSlider.grid(row=3, column=1)
+baseYawSlider.grid(row=6, column=0)
+
+spineJointsLabel = Label(spineJointsSlidersFrame, text = "Spine Joints", font = defaultFont)
+spineJointsLabel.grid(row=0, column=0)
 
 jsRange = 90.0
-spineJoint1Slider = Scale( baseSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
+spineJoint1Slider = Scale( spineJointsSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineJoint1SliderCallback )
-spineJoint1Slider.grid(row=4, column=1)
+spineJoint1Slider.grid(row=1, column=0)
 
-spineJoint2Slider = Scale( baseSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j2",
+spineJoint2Slider = Scale( spineJointsSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j2",
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineJoint2SliderCallback )
-spineJoint2Slider.grid(row=5, column=1)
+spineJoint2Slider.grid(row=2, column=0)
 
 
 toggleIpVar = IntVar()
-inputCheckButton = Checkbutton(buttonsFrame, text="Input", var=toggleIpVar, command=toggleInput, font = defaultFont)
+inputCheckButton = Checkbutton(buttonsFrame, text = "Input", var=toggleIpVar, command=toggleInput, font = defaultFont)
 inputCheckButton.grid(row=0, column=0)
 #inputCheckButton.select()  # Set default
 
 rbIpVar = IntVar()
-kbInputRadioButton = Radiobutton( buttonsFrame, text="Keyboard", font = defaultFont, variable=rbIpVar,
-                                  value = 0, command = selectInput )
-jsInputRadioButton = Radiobutton( buttonsFrame, text="Joystick", font = defaultFont, variable=rbIpVar,
-                                  value = 1, command = selectInput )
+kbInputRadioButton = Radiobutton( buttonsFrame, text = "Keyboard", font = defaultFont,
+                                  variable=rbIpVar, value = 0, command = selectInput )
+jsInputRadioButton = Radiobutton( buttonsFrame, text = "Joystick", font = defaultFont,
+                                  variable=rbIpVar, value = 1, command = selectInput )
 kbInputRadioButton.grid(row=0, column=1)
 jsInputRadioButton.grid(row=0, column=2)
 kbInputRadioButton.select()  # Set default
 
-testIKButton = Button(buttonsFrame, text="Test IK", font = defaultFont)  # Callback gets defined later
-testIKButton.grid(row=0, column=3)
+inputModeSelectSpinBox = Spinbox( buttonsFrame, text = "Mode", font = defaultFont, width = 2,
+                                  from_ = 0, to = Params.numOfModes, command = selectMode )
+inputModeSelectSpinBox.grid(row=0, column=3)
 
-loadTargets1Button = Button(buttonsFrame, text="Load 1", font = defaultFont)  # Callback gets defined later
-loadTargets1Button.grid(row=0, column=4)
+testIKButton = Button(buttonsFrame, text = "Test IK", font = defaultFont, command = testIKCallback)
+testIKButton.grid(row=0, column=4)
 
-loadTargets2Button = Button(buttonsFrame, text="Load 2", font = defaultFont)  # Callback gets defined later
-loadTargets2Button.grid(row=0, column=5)
+loadTargets1Button = Button(buttonsFrame, text = "Load 1", font = defaultFont, command = loadTargets1Callback)
+loadTargets1Button.grid(row=0, column=5)
 
-quitButton = Button(buttonsFrame, text="Quit", command=quit, font = defaultFont)
-quitButton.grid(row=0, column=6)
+loadTargets2Button = Button(buttonsFrame, text = "Load 2", font = defaultFont, command = loadTargets2Callback)
+loadTargets2Button.grid(row=0, column=6)
+
+quitButton = Button(buttonsFrame, text = "Quit", font = defaultFont, command = quit)
+quitButton.grid(row=0, column=7)
 
 
 
@@ -563,9 +573,5 @@ if __name__ == '__main__':
     joint3Slider.set(robot.legs[robot.selectedLeg].angles[2])
     joint4Slider.set(robot.legs[robot.selectedLeg].angles[3])
     joint5Slider.set(robot.legs[robot.selectedLeg].angles[4])
-
-    testIKButton.config(command=testIKCallback)
-    loadTargets1Button.config(command=loadTargets1Callback)
-    loadTargets2Button.config(command=loadTargets2Callback)
 
     root.mainloop()
