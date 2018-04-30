@@ -1,3 +1,4 @@
+import Params
 from HelperFunctions import rescale
 
 import threading
@@ -6,8 +7,7 @@ from time import sleep
 
 
 class SerialHandler(threading.Thread):
-    def __init__(self, serialPort, messageLogger, robot):
-        self.port = serialPort
+    def __init__(self, messageLogger, robot):
         self.messageLogger = messageLogger
         self.robot = robot
 
@@ -26,14 +26,14 @@ class SerialHandler(threading.Thread):
         while not self.event.isSet():
             if not self.serialOK:
                 try:
-                    self.ser = serial.Serial(self.port, 38400)
-                    self.messageLogger.log("Serial port " + self.port + " connected")
+                    self.ser = serial.Serial(Params.serialPort, Params.serialBaudRate)
+                    self.messageLogger.log("Serial port " + Params.serialPort + " connected")
                     self.serialOK = True
                     self.serialDisconnected = False
                 except serial.SerialException:
                     self.serialOK = False
                     if self.serialDisconnected == False:
-                        self.messageLogger.log("Serial port " + self.port + " not connected")
+                        self.messageLogger.log("Serial port " + Params.serialPort + " not connected")
                         self.serialDisconnected = True
                     sleep(2)
             else:

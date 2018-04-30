@@ -69,15 +69,15 @@ class LoadTargetsTimer(threading.Thread):
 
     def run(self):
         t = 0
-        if not Params.gaitCallbackRunning:
+        if not Params.loadTargetsTimerRunning:
             while not self.event.isSet():
                 if t < len(gaits.FLUpDown):
                     gaits.loadTargetsStep(t)
                     t = t + 1
-                    Params.gaitCallbackRunning = True
+                    Params.loadTargetsTimerRunning = True
                     Params.showTargets = False
                 else:
-                    Params.gaitCallbackRunning = False
+                    Params.loadTargetsTimerRunning = False
                     Params.showTargets = True
                     self.stop()
                 self.event.wait(0.05)
@@ -202,17 +202,17 @@ def baseYawSliderCallback(val):
 def spineJoint1SliderCallback(val):
     robot.spine.angles[0] = float(val)
     robot.moveBase()
-    # Dummy adjustment while IMU is not present:
-    baseRollSlider.set( (robot.spineAngleOffsets[0] + robot.spine.angles[0]) / 2.0 )
-    basePitchSlider.set( (robot.spineAngleOffsets[2] - robot.spine.angles[2]) / 2.0 )
+    if Params.spineJointsDummyAdjustment:
+        baseRollSlider.set( (robot.spineAngleOffsets[0] + robot.spine.angles[0]) / 2.0 )
+        basePitchSlider.set( (robot.spineAngleOffsets[2] - robot.spine.angles[2]) / 2.0 )
 
 
 def spineJoint2SliderCallback(val):
     robot.spine.angles[2] = float(val)
     robot.moveBase()
-    # Dummy adjustment while IMU is not present
-    baseRollSlider.set( (robot.spineAngleOffsets[0] + robot.spine.angles[0]) / 2.0 )
-    basePitchSlider.set( (robot.spineAngleOffsets[2] - robot.spine.angles[2]) / 2.0 )
+    if Params.spineJointsDummyAdjustment:
+        baseRollSlider.set( (robot.spineAngleOffsets[0] + robot.spine.angles[0]) / 2.0 )
+        basePitchSlider.set( (robot.spineAngleOffsets[2] - robot.spine.angles[2]) / 2.0 )
 
 
 def toggleInput():
@@ -255,9 +255,6 @@ def quit():
     inputHandler.stop()
     serialHandler.stop()
     serialHandler.closeSerial()
-    # Note: gamepad.read() is blocking, so this won't actually quit until another gamepad event is generated!
-    #while gamepadReader.isAlive() or inputHandler.isAlive() or serialHandler.isAlive():
-    #    pass
     root.destroy()
 
 
@@ -265,57 +262,36 @@ def quit():
 
 startTime = strftime("%a, %d %b %Y %H:%M:%S", localtime())
 
-# Serial port
-# /dev/ttyUSB0: ArbotiX-M
-# /dev/ttyACM0: OpenCM 9.04 with OpenCM 485 Expansion Board
-serialPort = "/dev/ttyACM0"
-
-# Screen size var
-# 1: HD screen
-# 2: 4K screen
-scsz = 2
-
-# Graphical representation
-# 0: None
-# 1: 2D
-# 2: 3D
-gui = 1
-
 root = Tk()
 root.title("Quadbot 17 Kinematics")
-if gui == 0:
-    rootWidth = scsz*860
-    rootHeight = scsz*370
-elif gui == 1:
-    rootWidth = scsz*1420
-    rootHeight = scsz*820
+if Params.gui == 0:
+    rootWidth = Params.scsz*860
+    rootHeight = Params.scsz*370
+elif Params.gui == 1:
+    rootWidth = Params.scsz*1420
+    rootHeight = Params.scsz*820
 else:
-    rootWidth = scsz*860
-    rootHeight = scsz*820
+    rootWidth = Params.scsz*860
+    rootHeight = Params.scsz*820
 root.geometry("%dx%d" % (rootWidth, rootHeight))
 
 # Scaling for 4K screens
-if scsz == 2:
+if Params.scsz == 2:
     root.tk.call('tk', 'scaling', 4.0)
-
-defaultFont = ("System", 12)
 
 
 Grid.rowconfigure(root, 0, weight=1)
 Grid.columnconfigure(root, 0, weight=1)
 
 
-canvasW = scsz*585
-canvasH = scsz*380
-
 controlsFrame = Frame(root)
 
-if gui == 0:
+if Params.gui == 0:
     emptyFrame = Frame(root)
     emptyFrame.grid(row=0, column=0)
     controlsFrame.grid(row=1, column=0)
 
-elif gui == 1:
+elif Params.gui == 1:
     sideViewFrame = Frame(root)
     topViewFrame = Frame(root)
     frontViewFrame = Frame(root)
@@ -325,19 +301,19 @@ elif gui == 1:
     topViewFrame.grid(row=1, column=0, sticky=S+W)
     controlsFrame.grid(row=1, column=1, sticky=S+E)
 
-    sideViewLabel = Label(sideViewFrame, text = "Side View", font = defaultFont)
+    sideViewLabel = Label(sideViewFrame, text = "Side View", font = Params.defaultFont)
     sideViewLabel.grid(row=0, column=0)
-    sideViewCanvas = Canvas(sideViewFrame, background = "#E0FFFF", width = canvasW, height = canvasH)
+    sideViewCanvas = Canvas(sideViewFrame, background = "#E0FFFF", width = Params.canvasW, height = Params.canvasH)
     sideViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
 
-    frontViewLabel = Label(frontViewFrame, text = "Front View", font = defaultFont)
+    frontViewLabel = Label(frontViewFrame, text = "Front View", font = Params.defaultFont)
     frontViewLabel.grid(row=0, column=0)
-    frontViewCanvas = Canvas(frontViewFrame, background = "#FFFACD", width = canvasW, height = canvasH)
+    frontViewCanvas = Canvas(frontViewFrame, background = "#FFFACD", width = Params.canvasW, height = Params.canvasH)
     frontViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
 
-    topViewLabel = Label(topViewFrame, text = "Top View", font = defaultFont)
+    topViewLabel = Label(topViewFrame, text = "Top View", font = Params.defaultFont)
     topViewLabel.grid(row=0, column=0)
-    topViewCanvas = Canvas(topViewFrame, background = "#E0EEE0", width = canvasW, height = canvasH)
+    topViewCanvas = Canvas(topViewFrame, background = "#E0EEE0", width = Params.canvasW, height = Params.canvasH)
     topViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
 
 else:
@@ -346,7 +322,7 @@ else:
     canvasFrame.grid(row=0, column=0)
     controlsFrame.grid(row=1, column=0)
 
-    canvas = Canvas(canvasFrame, width = canvasW, height = canvasH)
+    canvas = Canvas(canvasFrame, width = Params.canvasW, height = Params.canvasH)
     canvas.grid(row=0, column=0, sticky=N+S+W+E)
 
 
@@ -373,7 +349,7 @@ legSelectSubFrame.grid(row=0, column=0, sticky=N)
 controlsSubFrame.grid(row=0, column=0, sticky=N)
 buttonsFrame.grid(row=1, column=0, sticky=N)
 
-messageBox = Text(messageBoxFrame, width = 32, height=18, font = defaultFont)
+messageBox = Text(messageBoxFrame, width = 32, height=18, font = Params.defaultFont)
 messageBox.grid(row=0, column=0, sticky=N+S+W+E)
 scrl = Scrollbar(messageBoxFrame, command=messageBox.yview)
 scrl.grid(row=0, column=1, sticky=N+S)
@@ -383,17 +359,17 @@ messageLogger = MessageLogger(messageBox)
 messageLogger.log("Started at: " + startTime)
 
 
-legSelectLabel = Label(legSelectSubFrame, text = "Leg", font = defaultFont)
+legSelectLabel = Label(legSelectSubFrame, text = "Leg", font = Params.defaultFont)
 legSelectLabel.grid(row=0, column=0)
 
 rbLegVar = IntVar()
-FLRadiobutton = Radiobutton( legSelectSubFrame, text = "FL", font = defaultFont, variable = rbLegVar,
+FLRadiobutton = Radiobutton( legSelectSubFrame, text = "FL", font = Params.defaultFont, variable = rbLegVar,
                              value = 0, command = selectLegCallback )
-FRRadiobutton = Radiobutton( legSelectSubFrame, text = "FR", font = defaultFont, variable = rbLegVar,
+FRRadiobutton = Radiobutton( legSelectSubFrame, text = "FR", font = Params.defaultFont, variable = rbLegVar,
                              value = 1, command = selectLegCallback )
-RLRadiobutton = Radiobutton( legSelectSubFrame, text = "RL", font = defaultFont, variable = rbLegVar,
+RLRadiobutton = Radiobutton( legSelectSubFrame, text = "RL", font = Params.defaultFont, variable = rbLegVar,
                              value = 2, command = selectLegCallback )
-RRRadiobutton = Radiobutton( legSelectSubFrame, text = "RR", font = defaultFont, variable = rbLegVar,
+RRRadiobutton = Radiobutton( legSelectSubFrame, text = "RR", font = Params.defaultFont, variable = rbLegVar,
                              value = 3, command = selectLegCallback )
 FLRadiobutton.grid(row=1, column=0)
 FRRadiobutton.grid(row=2, column=0)
@@ -402,11 +378,11 @@ RRRadiobutton.grid(row=4, column=0)
 FLRadiobutton.select()  # Set default
 
 
-legJointsLabel = Label(legJointsSlidersFrame, text = "Leg Joints", font = defaultFont)
+legJointsLabel = Label(legJointsSlidersFrame, text = "Leg Joints", font = Params.defaultFont)
 legJointsLabel.grid(row=0, column=0)
 
-jsLength = scsz*100
-jsWidth = scsz*20
+jsLength = Params.scsz*100
+jsWidth = Params.scsz*20
 
 jsRange = 90.0
 joint1Slider = Scale( legJointsSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
@@ -434,7 +410,7 @@ joint5Slider = Scale( legJointsSlidersFrame, from_ = -jsRange, to = jsRange, res
 joint5Slider.grid(row=5, column=0)
 
 
-legTargetsLabel = Label(legTargetsSlidersFrame, text = "Leg Targets", font = defaultFont)
+legTargetsLabel = Label(legTargetsSlidersFrame, text = "Leg Targets", font = Params.defaultFont)
 legTargetsLabel.grid(row=0, column=0)
 
 tsRange = 300.0
@@ -466,7 +442,7 @@ targetPitchSlider.grid(row=5, column=0)
 #targetYawSlider.config(state=DISABLED)
 
 
-moveLabel = Label(baseMoveSlidersFrame, text = "Base Move", font = defaultFont)
+moveLabel = Label(baseMoveSlidersFrame, text = "Base Move", font = Params.defaultFont)
 moveLabel.grid(row=0, column=0)
 
 tsRange = 300.0
@@ -495,7 +471,7 @@ baseYawSlider = Scale( baseMoveSlidersFrame, from_ = -tsRange, to = tsRange, res
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = baseYawSliderCallback )
 baseYawSlider.grid(row=6, column=0)
 
-spineJointsLabel = Label(spineJointsSlidersFrame, text = "Spine Joints", font = defaultFont)
+spineJointsLabel = Label(spineJointsSlidersFrame, text = "Spine Joints", font = Params.defaultFont)
 spineJointsLabel.grid(row=0, column=0)
 
 jsRange = 90.0
@@ -509,33 +485,33 @@ spineJoint2Slider.grid(row=2, column=0)
 
 
 toggleIpVar = IntVar()
-inputCheckButton = Checkbutton(buttonsFrame, text = "Input", var=toggleIpVar, command=toggleInput, font = defaultFont)
+inputCheckButton = Checkbutton(buttonsFrame, text = "Input", var=toggleIpVar, command=toggleInput, font = Params.defaultFont)
 inputCheckButton.grid(row=0, column=0)
 #inputCheckButton.select()  # Set default
 
 rbIpVar = IntVar()
-kbInputRadioButton = Radiobutton( buttonsFrame, text = "Keyboard", font = defaultFont,
+kbInputRadioButton = Radiobutton( buttonsFrame, text = "Keyboard", font = Params.defaultFont,
                                   variable=rbIpVar, value = 0, command = selectInput )
-jsInputRadioButton = Radiobutton( buttonsFrame, text = "Joystick", font = defaultFont,
+jsInputRadioButton = Radiobutton( buttonsFrame, text = "Joystick", font = Params.defaultFont,
                                   variable=rbIpVar, value = 1, command = selectInput )
 kbInputRadioButton.grid(row=0, column=1)
 jsInputRadioButton.grid(row=0, column=2)
 kbInputRadioButton.select()  # Set default
 
-inputModeSelectSpinBox = Spinbox( buttonsFrame, text = "Mode", font = defaultFont, width = 2,
+inputModeSelectSpinBox = Spinbox( buttonsFrame, text = "Mode", font = Params.defaultFont, width = 2,
                                   from_ = 0, to = Params.numOfModes, command = selectMode )
 inputModeSelectSpinBox.grid(row=0, column=3)
 
-testIKButton = Button(buttonsFrame, text = "Test IK", font = defaultFont, command = testIKCallback)
+testIKButton = Button(buttonsFrame, text = "Test IK", font = Params.defaultFont, command = testIKCallback)
 testIKButton.grid(row=0, column=4)
 
-loadTargets1Button = Button(buttonsFrame, text = "Load 1", font = defaultFont, command = loadTargets1Callback)
+loadTargets1Button = Button(buttonsFrame, text = "Load 1", font = Params.defaultFont, command = loadTargets1Callback)
 loadTargets1Button.grid(row=0, column=5)
 
-loadTargets2Button = Button(buttonsFrame, text = "Load 2", font = defaultFont, command = loadTargets2Callback)
+loadTargets2Button = Button(buttonsFrame, text = "Load 2", font = Params.defaultFont, command = loadTargets2Callback)
 loadTargets2Button.grid(row=0, column=6)
 
-quitButton = Button(buttonsFrame, text = "Quit", font = defaultFont, command = quit)
+quitButton = Button(buttonsFrame, text = "Quit", font = Params.defaultFont, command = quit)
 quitButton.grid(row=0, column=7)
 
 
@@ -552,16 +528,15 @@ if __name__ == '__main__':
     inputHandler = InputControl.InputHandler(robot, keyboardReader, gamepadReader, messageLogger)
     inputHandler.start()
 
-    serialHandler = SerialHandler.SerialHandler(serialPort, messageLogger, robot)
+    serialHandler = SerialHandler.SerialHandler(messageLogger, robot)
     serialHandler.start()
 
-    if gui == 0:
+    if Params.gui == 0:
         pass
-    elif gui == 1:
-        canvasDrawing = CanvasDrawing.CanvasDrawing(scsz, canvasW, canvasH, defaultFont,
-                                                    sideViewCanvas, frontViewCanvas, topViewCanvas, robot)
+    elif Params.gui == 1:
+        canvasDrawing = CanvasDrawing.CanvasDrawing(sideViewCanvas, frontViewCanvas, topViewCanvas, robot)
     else:
-        canvasDrawing = CanvasDrawing3D.CanvasDrawing3D(scsz, defaultFont, canvas, robot)
+        canvasDrawing = CanvasDrawing3D.CanvasDrawing3D(canvas, robot)
 
     gaits = Gaits.Gaits(robot)
 

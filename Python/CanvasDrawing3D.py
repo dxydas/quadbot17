@@ -15,9 +15,7 @@ else:
 
 
 class CanvasDrawing3D():
-    def __init__(self, scsz, defaultFont, canvas, robot):
-        self.scsz = scsz
-        self.defaultFont = defaultFont
+    def __init__(self, canvas, robot):
         self.canvas = canvas
         self.robot = robot
 
@@ -44,7 +42,7 @@ class CanvasDrawing3D():
         use("TkAgg")
 
         # Figure
-        self.figure = Figure(figsize=(8, 4), dpi=self.scsz*100, tight_layout=True)
+        self.figure = Figure(figsize=(8, 4), dpi=Params.scsz*100, tight_layout=True)
         self.figureCanvas = FigureCanvasTkAgg(self.figure, self.canvas)
 
         # Axes with 3D projection
