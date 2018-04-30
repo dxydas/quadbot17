@@ -1,9 +1,8 @@
 import Params
 
 from matplotlib import use
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg#, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
-from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import juggle_axes
 import matplotlib.animation as animation
 import numpy as np
@@ -49,14 +48,15 @@ class CanvasDrawing3D():
         self.axes = self.figure.add_subplot(111, projection='3d')
 
         # Set up view
-        self.axes.view_init(azim=60, elev=45)
-        xs = -250
-        ys = -200
-        zs = -300
-        d = 400
-        self.axes.set_xlim3d(xs, xs+d)
-        self.axes.set_ylim3d(ys, ys+d)
-        self.axes.set_zlim3d(zs, zs+d)
+        self.axes.view_init(azim=45, elev=30)
+        self.axes.axis('scaled')
+        xc = -70
+        yc = 0
+        zc = -100
+        l = 120
+        self.axes.set_xlim3d(xc - l, xc + l)
+        self.axes.set_ylim3d(yc- l, yc + l)
+        self.axes.set_zlim3d(zc- l, zc + l)
 
         # Draw/resize
         self.figureCanvas.draw()
@@ -106,7 +106,7 @@ class CanvasDrawing3D():
         self.drawTarget(idx, self.robot.baseTarget, self.robot.baseTargetSpeed)
         # Leg targets
         for idx, target in enumerate(self.robot.legTargets):
-            self.drawTarget(idx + 1, target, self.robot.legTargetSpeeds[i])
+            self.drawTarget(idx + 1, target, self.robot.legTargetSpeeds[idx])
 
 
     def redraw(self, frame):
@@ -147,7 +147,7 @@ class CanvasDrawing3D():
         for idx, target in enumerate(self.robot.legTargets):
             self.toggleTarget(idx + 1, Params.showTargets)
             if Params.showTargets:
-                self.moveTarget(idx + 1, target, self.robot.legTargetSpeeds[i])
+                self.moveTarget(idx + 1, target, self.robot.legTargetSpeeds[idx])
 
 
     def drawSpine(self, index, ids, xs, ys, zs):
@@ -211,8 +211,9 @@ class CanvasDrawing3D():
         sy = speed[1]
         sz = speed[2]
         # Arbitrary scaling, to make max. length of vector constant
-        k = 500.0 / Params.inputForceMax
-        self.allTargetElements[index].speedLines = self.axes.plot([x, x+sx], [y, y+sy], [z, z+sz], linewidth=2, c="#39FF14")[0]
+        k = 400.0 / Params.inputForceMax
+        self.allTargetElements[index].speedLines = self.axes.plot([x, x + sx*k], [y, y + sy*k], [z, z + sz*k],
+                                                                  linewidth=2, c="#39FF14")[0]
 
 
     def moveSpine(self, index, ids, xs, ys, zs):
@@ -280,9 +281,9 @@ class CanvasDrawing3D():
         sy = speed[1]
         sz = speed[2]
         # Arbitrary scaling, to make max. length of vector constant
-        k = 500.0 / Params.inputForceMax
-        self.allTargetElements[index].speedLines.set_data([x, x+sx], [y, y+sy])
-        self.allTargetElements[index].speedLines.set_3d_properties([z, z+sz], 'z')
+        k = 400.0 / Params.inputForceMax
+        self.allTargetElements[index].speedLines.set_data([x, x + sx*k], [y, y + sy*k])
+        self.allTargetElements[index].speedLines.set_3d_properties([z, z + sz*k], 'z')
 
 
     def toggleTarget(self, index, show):

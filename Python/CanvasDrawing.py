@@ -377,22 +377,22 @@ class CanvasDrawing():
         sx = speed[0]
         sy = speed[1]
         sz = speed[2]
-        k = 500.0 / Params.inputForceMax  # Arbitrary scaling, to make max. length of vector constant
+        k = 400.0 / Params.inputForceMax  # Arbitrary scaling, to make max. length of vector constant
         h = self.sideViewCanvas.create_line(
                 Params.canvasW - self.canvasScale*x + self.canvasOffset[0], Params.canvasH - self.canvasScale*z + self.canvasOffset[1],
-                Params.canvasW - self.canvasScale*x - sx*k + self.canvasOffset[0], Params.canvasH - self.canvasScale*z - sz*k + self.canvasOffset[1],
+                Params.canvasW - self.canvasScale*(x + sx*k) + self.canvasOffset[0], Params.canvasH - self.canvasScale*(z + sz*k) + self.canvasOffset[1],
                 fill = fillCol, width = w )
         self.allTargetElements[0].speedLines.append(h)
 
         h = self.frontViewCanvas.create_line(
                 Params.canvasW + self.canvasScale*y + self.canvasOffset[0], Params.canvasH - self.canvasScale*z + self.canvasOffset[1],
-                Params.canvasW + self.canvasScale*y + sy*k + self.canvasOffset[0], Params.canvasH - self.canvasScale*z - sz*k + self.canvasOffset[1],
+                Params.canvasW + self.canvasScale*(y + sy*k) + self.canvasOffset[0], Params.canvasH - self.canvasScale*(z + sz*k) + self.canvasOffset[1],
                 fill = fillCol, width = w )
         self.allTargetElements[1].speedLines.append(h)
 
         h = self.topViewCanvas.create_line(
                 Params.canvasW - self.canvasScale*x + self.canvasOffset[0], Params.canvasH + self.canvasScale*y + self.canvasOffset[2],
-                Params.canvasW - self.canvasScale*x - sx*k + self.canvasOffset[0], Params.canvasH + self.canvasScale*y + sy*k + self.canvasOffset[2],
+                Params.canvasW - self.canvasScale*(x + sx*k) + self.canvasOffset[0], Params.canvasH + self.canvasScale*(y + sy*k) + self.canvasOffset[2],
                 fill = fillCol, width = w )
         self.allTargetElements[2].speedLines.append(h)
 
@@ -556,21 +556,21 @@ class CanvasDrawing():
         sx = speed[0]
         sy = speed[1]
         sz = speed[2]
-        k = 500.0 / Params.inputForceMax  # Arbitrary scaling, to make max. length of vector constant
+        k = 400.0 / Params.inputForceMax  # Arbitrary scaling, to make max. length of vector constant
         self.sideViewCanvas.coords(
             self.allTargetElements[0].speedLines[index],
             Params.canvasW - self.canvasScale*x + self.canvasOffset[0], Params.canvasH - self.canvasScale*z + self.canvasOffset[1],
-            Params.canvasW - self.canvasScale*x - sx*k + self.canvasOffset[0], Params.canvasH - self.canvasScale*z - sz*k + self.canvasOffset[1] )
+            Params.canvasW - self.canvasScale*(x + sx*k) + self.canvasOffset[0], Params.canvasH - self.canvasScale*(z + sz*k) + self.canvasOffset[1] )
 
         self.frontViewCanvas.coords(
             self.allTargetElements[1].speedLines[index],
             Params.canvasW + self.canvasScale*y + self.canvasOffset[0], Params.canvasH - self.canvasScale*z + self.canvasOffset[1],
-            Params.canvasW + self.canvasScale*y + sy*k + self.canvasOffset[0], Params.canvasH - self.canvasScale*z - sz*k + self.canvasOffset[1] )
+            Params.canvasW + self.canvasScale*(y + sy*k) + self.canvasOffset[0], Params.canvasH - self.canvasScale*(z + sz*k) + self.canvasOffset[1] )
 
         self.topViewCanvas.coords(
             self.allTargetElements[2].speedLines[index],
             Params.canvasW - self.canvasScale*x + self.canvasOffset[0], Params.canvasH + self.canvasScale*y + self.canvasOffset[2],
-            Params.canvasW - self.canvasScale*x - sx*k + self.canvasOffset[0], Params.canvasH + self.canvasScale*y + sy*k + self.canvasOffset[2] )
+            Params.canvasW - self.canvasScale*(x + sx*k) + self.canvasOffset[0], Params.canvasH + self.canvasScale*(y + sy*k) + self.canvasOffset[2] )
 
 
     def toggleTarget(self, index, show):
