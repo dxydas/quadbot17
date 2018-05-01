@@ -61,7 +61,7 @@ void useBuffer(char *p)
   int pos[numOfJoints];
   int speed[numOfJoints];
 
-  // ID POS SPEED repeated until \n
+  // String format: ID POS SPEED repeated until \n
   while ( x = strtol(pEnd, &pEnd, 10) )
   {
     id[count] = x;
