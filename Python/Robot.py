@@ -26,41 +26,23 @@ class Robot():
         self.legTargetSpeeds = [None]*n
         self.selectedLeg = 0
 
-
-
-
         # Dummy targets (because of moveBase()->runSpineFK->runLegIK(),
         # which finally calls runLegFK() at the end)
         for i in range(0, len(self.legs)):
             self.legTargets[i] = identityTF()
-
-
-
 
         # Base target in world
         self.baseTargetHome = identityTF()#deepcopy(self.spine.tfSpineBaseInWorld)
         self.baseTarget = deepcopy(self.baseTargetHome)
         self.baseTargetSpeed = [0, 0, 0]
 
-
-
-        #self.baseTarget = identityTF()
         self.spine.angles = deepcopy(self.spineAngleOffsets)
 
-        #self.runSpineFK()
         self.moveBase()
-
-
-
-
-
-
 
         for i, leg in enumerate(self.legs):
             leg.angles = deepcopy(self.legAngleOffsets)
             self.runLegFK(i)
-
-
 
         # Leg targets: Foot in world
         for i, leg in enumerate(self.legs):
@@ -110,41 +92,9 @@ class Robot():
 
 
     def moveBase(self):
-#        self.spine.tfSpineBaseInWorld = identityTF()
-
-#        self.spine.tfSpineBaseInWorld[0, 3] = x
-#        self.spine.tfSpineBaseInWorld[1, 3] = y
-#        self.spine.tfSpineBaseInWorld[2, 3] = z
-#
-#        applyYawPitchRoll(self.spine.tfSpineBaseInWorld, yaw, pitch, roll)
-
-        # TODO: Get this translation accurate e.g. at location of IMU
-        # Translation (to get from world to robot spine)
-#        self.spine.tfSpineBaseInWorld *= np.matrix( [ [  1,  0,  0, -50],
-#                                                      [  0,  1,  0,   0],
-#                                                      [  0,  0,  1,   0],
-#                                                      [  0,  0,  0,   1] ] )
-
-        # -45 around Y (to get from world to robot spine)
-#        s = math.sin( -math.pi/4 )
-#        c = math.cos( -math.pi/4 )
-#        self.spine.tfSpineBaseInWorld *= np.matrix( [ [  c,  0,  s,   0],
-#                                                      [  0,  1,  0,   0],
-#                                                      [ -s,  0,  c,   0],
-#                                                      [  0,  0,  0,   1] ] )
-
-        #self.spine.tfSpineBaseInWorld[0, 3] = x#self.spine.tfSpineBaseInWorld[0, 3] + x
-        #self.spine.tfSpineBaseInWorld[1, 3] = y#self.spine.tfSpineBaseInWorld[1, 3] + y
-        #self.spine.tfSpineBaseInWorld[2, 3] = z#self.spine.tfSpineBaseInWorld[2, 3] + z
-
-        #print(self.baseTarget)
-        #tfSpineBaseInWorld = self.baseTarget * self.spine.tfSpineBaseInRobotBase
-        #self.spine.joints[0].tfJointInWorld = self.baseTarget
-
-
+        # Update spine (FK)
         self.runSpineFK()
-
-        # Update legs
+        # Update legs (IK)
         for i in range(0, len(self.legs)):
             self.runLegIK(i)
 
