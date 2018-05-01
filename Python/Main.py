@@ -267,8 +267,8 @@ elif Params.gui == 1:
     rootWidth = Params.scsz*1420
     rootHeight = Params.scsz*820
 else:
-    rootWidth = Params.scsz*860
-    rootHeight = Params.scsz*820
+    rootWidth = Params.scsz*1500#860
+    rootHeight = Params.scsz*700#820
 root.geometry("%dx%d" % (rootWidth, rootHeight))
 
 # Scaling for 4K screens
@@ -316,7 +316,7 @@ else:
     canvasFrame = Frame(root)
 
     canvasFrame.grid(row=0, column=0)
-    controlsFrame.grid(row=1, column=0)
+    controlsFrame.grid(row=0, column=1)
 
     canvas = Canvas(canvasFrame, width = Params.canvasW, height = Params.canvasH)
     canvas.grid(row=0, column=0, sticky=N+S+W+E)

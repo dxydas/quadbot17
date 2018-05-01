@@ -41,7 +41,8 @@ class CanvasDrawing3D():
         use("TkAgg")
 
         # Figure
-        self.figure = Figure(figsize=(8, 4), dpi=Params.scsz*100, tight_layout=True)
+        #self.figure = Figure(figsize=(8, 4), dpi=Params.scsz*100, tight_layout=True)
+        self.figure = Figure(figsize=(6, 6), dpi=Params.scsz*100, tight_layout=True)
         self.figureCanvas = FigureCanvasTkAgg(self.figure, self.canvas)
 
         # Axes with 3D projection
@@ -50,10 +51,10 @@ class CanvasDrawing3D():
         # Set up view
         self.axes.view_init(azim=45, elev=30)
         self.axes.axis('scaled')
-        xc = -70
+        xc = -80
         yc = 0
         zc = -100
-        l = 120
+        l = 200
         self.axes.set_xlim3d(xc - l, xc + l)
         self.axes.set_ylim3d(yc- l, yc + l)
         self.axes.set_zlim3d(zc- l, zc + l)
