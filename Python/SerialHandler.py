@@ -68,20 +68,19 @@ class SerialHandler(threading.Thread):
                     else:  # Joints 1, 2 & 5 (zero-indexed)
                         x = int( rescale(leg.angles[j], -180.0, 180.0, 0, 1023) )
                 writeStr += str(leg.joints[j].id) + " " + str(x) + " " + str(speed) + " "
-                #writeStr = str(leg.joints[j].id) + " " + str(x) + " " + str(speed) + "\n"
-                #self.send(writeStr)
 
         # Spine
-        n = len(self.robot.spine.angles)
-        for j in range(0, n, 2):  # Skip dummy joint
-            x = int( rescale(self.robot.spine.angles[j], -180.0, 180.0, 0, 1023) )
-            writeStr += str(self.robot.spine.joints[j].id) + " " + str(x) + " " + str(speed)
-            if (j == n - 1):
-                writeStr += "\n"
-            else:
-                writeStr += " "
-            #writeStr = str(self.robot.spine.joints[j].id) + " " + str(x) + " " + str(speed) + "\n"
-            #self.send(writeStr)
+        # Joint 1
+        j = 0
+        x = int( rescale(self.robot.spine.angles[j], -180.0, 180.0, 0, 1023) )
+        writeStr += str(self.robot.spine.joints[j].id) + " " + str(x) + " " + str(speed) + " "
+        # Skip dummy joint
+        # Joint 2 (inverted)
+        j = 2
+        x = int( rescale(-self.robot.spine.angles[j], -180.0, 180.0, 0, 1023) )
+        writeStr += str(self.robot.spine.joints[j].id) + " " + str(x) + " " + str(speed) + "\n"
+
+        # Write
         self.send(writeStr)
 
 
