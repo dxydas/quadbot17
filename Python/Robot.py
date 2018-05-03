@@ -67,7 +67,7 @@ class Robot():
         tfJointInPrevJoint = [0, 0, 0]
 
         # Front spine joint
-        tfJointInPrevJoint[0] = np.matrix( [ [  c[0], -s[0],     0,     0],
+        tfJointInPrevJoint[0] = np.matrix( [ [  c[0], -s[0],     0, -d_1b],
                                              [  s[0],  c[0],     0,     0],
                                              [     0,     0,     1,     0],
                                              [     0,     0,     0,     1] ] )
@@ -173,8 +173,22 @@ class Robot():
         Ty = targetInLegBase[1, 3]
         Tz = targetInLegBase[2, 3]
 
-        # Extract roll/pitch/yaw (as seen in World frame) from rotation matrix
+        # Extract roll/pitch/yaw (as seen in World frame) from target rotation matrix
         roll, pitch, yaw = getRollPitchYaw(target)
+
+        # Negate roll/pitch/yaw (as seen in World frame) from base/spine rotation matrix,
+        # plus further adjustments for rear legs.
+        # Messy, but works for now!
+        rollB, pitchB, yawB = getRollPitchYaw(self.tfSpineBaseInWorld)
+        if (leg.id == "FL") or (leg.id == "FR"):
+            roll = roll - rollB
+            pitch = pitch - pitchB
+            yaw = yaw - yawB
+        else:
+            rollS, pitchS, yawS = getRollPitchYaw(self.spine.tfSpineBaseInRobotBase)
+            roll = roll - rollB + rollS - math.radians(self.spine.angles[0])
+            pitch = pitch - pitchB + pitchS - math.radians(self.spine.angles[2])
+            yaw =  yaw - yawB + yawS
 
         # Trig. values
         sr = math.sin(roll)
@@ -348,9 +362,9 @@ def initSpineJoints(startingJoint):
 
 def initLegs():
     # TODO: Position leg bases more accurately
-    lengthD = 100
+    lengthD = 50
     widthD = 50
-    heightD = 10
+    heightD = 0
 
     # +90 around Y
     s = math.sin( math.pi/2 )
@@ -374,6 +388,10 @@ def initLegs():
                                         [  0,  0,  1,  lengthD],
                                         [  0,  0,  0,        1] ] )
 
+    lengthD = 100
+    widthD = 50
+    heightD = 0
+
     # +90 around X
     s = math.sin( math.pi/2 )
     c = math.cos( math.pi/2 )
@@ -388,7 +406,7 @@ def initLegs():
                                            [  0,  1,  0,  0],
                                            [ -s,  0,  c,  0],
                                            [  0,  0,  0,  1] ] )
-    tfRLBaseInSpineBase *= np.matrix( [ [  1,  0,  0,        0],
+    tfRLBaseInSpineBase *= np.matrix( [ [  1,  0,  0, -heightD],
                                         [  0,  1,  0,   widthD],
                                         [  0,  0,  1, -lengthD],
                                         [  0,  0,  0,        1] ] )
@@ -398,7 +416,7 @@ def initLegs():
                                            [  0,  1,  0,  0],
                                            [ -s,  0,  c,  0],
                                            [  0,  0,  0,  1] ] )
-    tfRRBaseInSpineBase *= np.matrix( [ [  1,  0,  0,        0],
+    tfRRBaseInSpineBase *= np.matrix( [ [  1,  0,  0, -heightD],
                                         [  0,  1,  0,  -widthD],
                                         [  0,  0,  1, -lengthD],
                                         [  0,  0,  0,        1] ] )
