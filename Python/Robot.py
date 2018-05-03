@@ -31,8 +31,11 @@ class Robot():
         for i in range(0, len(self.legs)):
             self.legTargets[i] = identityTF()
 
+        # Base in world
+        self.tfSpineBaseInWorld = identityTF()
+
         # Base target in world
-        self.baseTargetHome = identityTF()#deepcopy(self.spine.tfSpineBaseInWorld)
+        self.baseTargetHome = deepcopy(self.tfSpineBaseInWorld)
         self.baseTarget = deepcopy(self.baseTargetHome)
         self.baseTargetSpeed = [0, 0, 0]
 
@@ -85,13 +88,15 @@ class Robot():
             # Assign joint transforms, in preceeding joint coords and in world coords
             self.spine.joints[j].tfJointInPrevJoint = deepcopy(tfJointInPrevJoint[j])
             if j == 0:
-                T = self.baseTarget * self.spine.tfSpineBaseInRobotBase
+                T = self.tfSpineBaseInWorld * self.spine.tfSpineBaseInRobotBase
             else:
                 T = self.spine.joints[j-1].tfJointInWorld
             self.spine.joints[j].tfJointInWorld = T * tfJointInPrevJoint[j]
 
 
     def moveBase(self):
+        # Update base
+        self.tfSpineBaseInWorld = self.baseTarget
         # Update spine (FK)
         self.runSpineFK()
         # Update legs (IK)
@@ -145,7 +150,7 @@ class Robot():
             leg.joints[j].tfJointInPrevJoint = deepcopy(tfJointInPrevJoint[j])
             if j == 0:
                 if (leg.id == "FL") or (leg.id == "FR"):
-                    T = self.spine.joints[0].tfJointInWorld * leg.tfLegBaseInSpineBase
+                    T = self.tfSpineBaseInWorld * leg.tfLegBaseInSpineBase
                 else:
                     T = self.spine.joints[2].tfJointInWorld * leg.tfLegBaseInSpineBase
             else:
@@ -159,7 +164,7 @@ class Robot():
         leg = self.legs[legIndex]
         tfSpineBaseInLegBase = np.linalg.inv(leg.tfLegBaseInSpineBase)
         if (leg.id == "FL") or (leg.id == "FR"):
-            worldInSpineBase = np.linalg.inv(self.spine.joints[0].tfJointInWorld)
+            worldInSpineBase = np.linalg.inv(self.tfSpineBaseInWorld)
         else:
             worldInSpineBase = np.linalg.inv(self.spine.joints[2].tfJointInWorld)
         targetInLegBase = tfSpineBaseInLegBase * worldInSpineBase * target
@@ -347,9 +352,9 @@ def initLegs():
     widthD = 50
     heightD = 10
 
-    # +135 around Y
-    s = math.sin( 3*math.pi/4 )
-    c = math.cos( 3*math.pi/4 )
+    # +90 around Y
+    s = math.sin( math.pi/2 )
+    c = math.cos( math.pi/2 )
     tfFLBaseInSpineBase = np.matrix( [ [  c,  0,  s,  0],
                                        [  0,  1,  0,  0],
                                        [ -s,  0,  c,  0],
@@ -358,7 +363,7 @@ def initLegs():
                                         [  0,  1,  0,   widthD],
                                         [  0,  0,  1,  lengthD],
                                         [  0,  0,  0,        1] ] )
-    # +135 around Y
+    # +90 around Y
     # c, s same as above
     tfFRBaseInSpineBase = np.matrix( [ [  c,  0,  s,  0],
                                        [  0,  1,  0,  0],
