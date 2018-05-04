@@ -293,17 +293,17 @@ elif Params.gui == 1:
     topViewFrame.grid(row=1, column=0, sticky=S+W)
     controlsFrame.grid(row=1, column=1, sticky=S+E)
 
-    sideViewLabel = Label(sideViewFrame, text = "Side View", font = Params.defaultFont)
+    sideViewLabel = Label(sideViewFrame, text = "Side View")
     sideViewLabel.grid(row=0, column=0)
     sideViewCanvas = Canvas(sideViewFrame, background = "#E0FFFF", width = Params.canvasW, height = Params.canvasH)
     sideViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
 
-    frontViewLabel = Label(frontViewFrame, text = "Front View", font = Params.defaultFont)
+    frontViewLabel = Label(frontViewFrame, text = "Front View")
     frontViewLabel.grid(row=0, column=0)
     frontViewCanvas = Canvas(frontViewFrame, background = "#FFFACD", width = Params.canvasW, height = Params.canvasH)
     frontViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
 
-    topViewLabel = Label(topViewFrame, text = "Top View", font = Params.defaultFont)
+    topViewLabel = Label(topViewFrame, text = "Top View")
     topViewLabel.grid(row=0, column=0)
     topViewCanvas = Canvas(topViewFrame, background = "#E0EEE0", width = Params.canvasW, height = Params.canvasH)
     topViewCanvas.grid(row=1, column=0, sticky=N+S+W+E)
@@ -341,7 +341,7 @@ legSelectSubFrame.grid(row=0, column=0, sticky=N)
 controlsSubFrame.grid(row=0, column=0, sticky=N)
 buttonsFrame.grid(row=1, column=0, sticky=N)
 
-messageBox = Text(messageBoxFrame, width = 32, height=18, font = Params.defaultFont)
+messageBox = Text(messageBoxFrame, width = 32, height=18)
 messageBox.grid(row=0, column=0, sticky=N+S+W+E)
 scrl = Scrollbar(messageBoxFrame, command=messageBox.yview)
 scrl.grid(row=0, column=1, sticky=N+S)
@@ -351,18 +351,14 @@ messageLogger = MessageLogger(messageBox)
 messageLogger.log("Started at: " + startTime)
 
 
-legSelectLabel = Label(legSelectSubFrame, text = "Leg", font = Params.defaultFont)
+legSelectLabel = Label(legSelectSubFrame, text = "Leg")
 legSelectLabel.grid(row=0, column=0)
 
 rbLegVar = IntVar()
-FLRadiobutton = Radiobutton( legSelectSubFrame, text = "FL", font = Params.defaultFont, variable = rbLegVar,
-                             value = 0, command = selectLegCallback )
-FRRadiobutton = Radiobutton( legSelectSubFrame, text = "FR", font = Params.defaultFont, variable = rbLegVar,
-                             value = 1, command = selectLegCallback )
-RLRadiobutton = Radiobutton( legSelectSubFrame, text = "RL", font = Params.defaultFont, variable = rbLegVar,
-                             value = 2, command = selectLegCallback )
-RRRadiobutton = Radiobutton( legSelectSubFrame, text = "RR", font = Params.defaultFont, variable = rbLegVar,
-                             value = 3, command = selectLegCallback )
+FLRadiobutton = Radiobutton( legSelectSubFrame, text = "FL", variable = rbLegVar, value = 0, command = selectLegCallback )
+FRRadiobutton = Radiobutton( legSelectSubFrame, text = "FR", variable = rbLegVar, value = 1, command = selectLegCallback )
+RLRadiobutton = Radiobutton( legSelectSubFrame, text = "RL", variable = rbLegVar, value = 2, command = selectLegCallback )
+RRRadiobutton = Radiobutton( legSelectSubFrame, text = "RR", variable = rbLegVar, value = 3, command = selectLegCallback )
 FLRadiobutton.grid(row=1, column=0)
 FRRadiobutton.grid(row=2, column=0)
 RLRadiobutton.grid(row=3, column=0)
@@ -370,7 +366,7 @@ RRRadiobutton.grid(row=4, column=0)
 FLRadiobutton.select()  # Set default
 
 
-legJointsLabel = Label(legJointsSlidersFrame, text = "Leg Joints", font = Params.defaultFont)
+legJointsLabel = Label(legJointsSlidersFrame, text = "Leg Joints")
 legJointsLabel.grid(row=0, column=0)
 
 jsLength = Params.scsz*100
@@ -402,7 +398,7 @@ joint5Slider = Scale( legJointsSlidersFrame, from_ = -jsRange, to = jsRange, res
 joint5Slider.grid(row=5, column=0)
 
 
-legTargetsLabel = Label(legTargetsSlidersFrame, text = "Leg Targets", font = Params.defaultFont)
+legTargetsLabel = Label(legTargetsSlidersFrame, text = "Leg Targets")
 legTargetsLabel.grid(row=0, column=0)
 
 tsRange = 300.0
@@ -434,7 +430,7 @@ targetPitchSlider.grid(row=5, column=0)
 #targetYawSlider.config(state=DISABLED)
 
 
-moveLabel = Label(baseMoveSlidersFrame, text = "Base Move", font = Params.defaultFont)
+moveLabel = Label(baseMoveSlidersFrame, text = "Base Move")
 moveLabel.grid(row=0, column=0)
 
 tsRange = 300.0
@@ -463,49 +459,46 @@ baseYawSlider = Scale( baseMoveSlidersFrame, from_ = -tsRange, to = tsRange, res
                       length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = baseYawSliderCallback )
 baseYawSlider.grid(row=6, column=0)
 
-spineJointsLabel = Label(spineJointsSlidersFrame, text = "Spine Joints", font = Params.defaultFont)
+spineJointsLabel = Label(spineJointsSlidersFrame, text = "Spine Joints")
 spineJointsLabel.grid(row=0, column=0)
 
 jsRange = 90.0
 spineJoint1Slider = Scale( spineJointsSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j1",
-                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineJoint1SliderCallback )
+                           length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL,
+                           command = spineJoint1SliderCallback )
 spineJoint1Slider.grid(row=1, column=0)
 
 spineJoint2Slider = Scale( spineJointsSlidersFrame, from_ = -jsRange, to = jsRange, resolution = 0.1, label = "j2",
-                      length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL, command = spineJoint2SliderCallback )
+                           length = jsLength, width = jsWidth, font = ("System", 9), orient=HORIZONTAL,
+                           command = spineJoint2SliderCallback )
 spineJoint2Slider.grid(row=2, column=0)
 
 
 toggleIpVar = IntVar()
-inputCheckButton = Checkbutton(buttonsFrame, text = "Input", var=toggleIpVar, command=toggleInput, font = Params.defaultFont)
+inputCheckButton = Checkbutton(buttonsFrame, text = "Input", var=toggleIpVar, command=toggleInput)
 inputCheckButton.grid(row=0, column=0, padx=10)
 #inputCheckButton.select()  # Set default
 
 rbIpVar = IntVar()
-kbInputRadioButton = Radiobutton( buttonsFrame, text = "Keyboard", font = Params.defaultFont,
-                                  variable=rbIpVar, value = 0, command = selectInput )
-jsInputRadioButton = Radiobutton( buttonsFrame, text = "Joystick", font = Params.defaultFont,
-                                  variable=rbIpVar, value = 1, command = selectInput )
+kbInputRadioButton = Radiobutton( buttonsFrame, text = "Keyboard", variable=rbIpVar, value = 0, command = selectInput )
+jsInputRadioButton = Radiobutton( buttonsFrame, text = "Joystick", variable=rbIpVar, value = 1, command = selectInput )
 kbInputRadioButton.grid(row=0, column=1, padx=10)
 jsInputRadioButton.grid(row=0, column=2, padx=10)
 kbInputRadioButton.select()  # Set default
 
-testIKButton = Button(buttonsFrame, text = "Test IK", font = Params.defaultFont, command = testIKCallback)
+testIKButton = Button(buttonsFrame, text = "Test IK", command = testIKCallback)
 testIKButton.grid(row=0, column=5)
 
 csvIpVar = StringVar(root)
 csvFiles = ["Gait_Creep", "Gait_Walk"]
 csvIpVar.set("Gait_Creep")  # Set Default
 loadTargetsMenu = OptionMenu(buttonsFrame, csvIpVar, *csvFiles)
-# Set fonts
-loadTargetsMenu.config(font = Params.defaultFont)
-root.option_add("*TCombobox*Listbox*Font", Params.defaultFont)
 loadTargetsMenu.grid(row=0, column=6)
 
-loadTargetsButton = Button(buttonsFrame, text = "Load CSV", font = Params.defaultFont, command = loadTargetsCallback)
+loadTargetsButton = Button(buttonsFrame, text = "Load CSV", command = loadTargetsCallback)
 loadTargetsButton.grid(row=0, column=7)
 
-quitButton = Button(buttonsFrame, text = "Quit", font = Params.defaultFont, command = quit)
+quitButton = Button(buttonsFrame, text = "Quit", command = quit)
 quitButton.grid(row=0, column=8)
 
 
