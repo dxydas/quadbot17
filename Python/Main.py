@@ -476,30 +476,30 @@ spineJoint2Slider.grid(row=2, column=0)
 
 toggleIpVar = IntVar()
 inputCheckButton = Checkbutton(buttonsFrame, text = "Input", var=toggleIpVar, command=toggleInput)
-inputCheckButton.grid(row=0, column=0, padx=10)
+inputCheckButton.grid(row=0, column=0)
 #inputCheckButton.select()  # Set default
 
 rbIpVar = IntVar()
 kbInputRadioButton = Radiobutton( buttonsFrame, text = "Keyboard", variable=rbIpVar, value = 0, command = selectInput )
 jsInputRadioButton = Radiobutton( buttonsFrame, text = "Joystick", variable=rbIpVar, value = 1, command = selectInput )
-kbInputRadioButton.grid(row=0, column=1, padx=10)
-jsInputRadioButton.grid(row=0, column=2, padx=10)
+kbInputRadioButton.grid(row=0, column=1, padx=(10, 0))
+jsInputRadioButton.grid(row=0, column=2, padx=(10, 0))
 kbInputRadioButton.select()  # Set default
 
 testIKButton = Button(buttonsFrame, text = "Test IK", command = testIKCallback)
-testIKButton.grid(row=0, column=5)
+testIKButton.grid(row=0, column=5, padx=(40, 0))
 
 csvIpVar = StringVar(root)
 csvFiles = ["Gait_Creep", "Gait_Walk"]
 csvIpVar.set("Gait_Creep")  # Set Default
 loadTargetsMenu = OptionMenu(buttonsFrame, csvIpVar, *csvFiles)
-loadTargetsMenu.grid(row=0, column=6)
+loadTargetsMenu.grid(row=0, column=6, padx=(40, 0))
 
 loadTargetsButton = Button(buttonsFrame, text = "Load CSV", command = loadTargetsCallback)
 loadTargetsButton.grid(row=0, column=7)
 
 quitButton = Button(buttonsFrame, text = "Quit", command = quit)
-quitButton.grid(row=0, column=8)
+quitButton.grid(row=0, column=8, padx=(40, 0))
 
 
 
