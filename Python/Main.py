@@ -231,18 +231,11 @@ def testIKCallback():
     testIKTimer.start()
 
 
-def loadTargets1Callback():
-    loadTargets1Timer = LoadTargetsTimer()
+def loadTargetsCallback():
     # Load from CSV
-    gaits.loadFromFile("Gait_Creep.csv")
-    loadTargets1Timer.start()
-
-
-def loadTargets2Callback():
-    loadTargets2Timer = LoadTargetsTimer()
-    # Load from csv
-    gaits.loadFromFile("Gait_Walk.csv")
-    loadTargets2Timer.start()
+    gaits.loadFromFile(csvIpVar.get() + ".csv")
+    loadTargetsTimer = LoadTargetsTimer()
+    loadTargetsTimer.start()
 
 
 def quit():
@@ -275,7 +268,10 @@ root.geometry("%dx%d" % (rootWidth, rootHeight))
 if Params.scsz == 2:
     root.tk.call('tk', 'scaling', 4.0)
 
+# Set default font
+root.option_add("*Font", Params.defaultFont)
 
+# Set grow weights
 Grid.rowconfigure(root, 0, weight=1)
 Grid.columnconfigure(root, 0, weight=1)
 
@@ -494,15 +490,20 @@ kbInputRadioButton.grid(row=0, column=1, padx=10)
 jsInputRadioButton.grid(row=0, column=2, padx=10)
 kbInputRadioButton.select()  # Set default
 
-
 testIKButton = Button(buttonsFrame, text = "Test IK", font = Params.defaultFont, command = testIKCallback)
 testIKButton.grid(row=0, column=5)
 
-loadTargets1Button = Button(buttonsFrame, text = "Load 1", font = Params.defaultFont, command = loadTargets1Callback)
-loadTargets1Button.grid(row=0, column=6)
+csvIpVar = StringVar(root)
+csvFiles = ["Gait_Creep", "Gait_Walk"]
+csvIpVar.set("Gait_Creep")  # Set Default
+loadTargetsMenu = OptionMenu(buttonsFrame, csvIpVar, *csvFiles)
+# Set fonts
+loadTargetsMenu.config(font = Params.defaultFont)
+root.option_add("*TCombobox*Listbox*Font", Params.defaultFont)
+loadTargetsMenu.grid(row=0, column=6)
 
-loadTargets2Button = Button(buttonsFrame, text = "Load 2", font = Params.defaultFont, command = loadTargets2Callback)
-loadTargets2Button.grid(row=0, column=7)
+loadTargetsButton = Button(buttonsFrame, text = "Load CSV", font = Params.defaultFont, command = loadTargetsCallback)
+loadTargetsButton.grid(row=0, column=7)
 
 quitButton = Button(buttonsFrame, text = "Quit", font = Params.defaultFont, command = quit)
 quitButton.grid(row=0, column=8)
