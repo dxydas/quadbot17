@@ -115,7 +115,7 @@ class GamepadReader(threading.Thread):
 
     def processGamepadEvent(self, gpEvent):
         #print(gpEvent.ev_type, gpEvent.code, gpEvent.state)
-        if gpEvent.code == 'BTN_SOUTH':  # Button A
+        if (gpEvent.code == 'BTN_SOUTH') and (gpEvent.state == 1):  # Button A pressed
             Params.inputModeSelect = (Params.inputModeSelect + 1) % Params.numOfModes
             self.messageLogger.log("Input mode changed - Mode: " + str(Params.inputModeSelect))
         elif gpEvent.code == 'ABS_X':
