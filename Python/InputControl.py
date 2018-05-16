@@ -261,8 +261,6 @@ class InputHandler(threading.Thread):
         F = Params.inputForceMax*i - Params.dragForceCoef*u0
         if abs(F) > Params.inputForceMax:
             F = math.copysign(1.0, F)*Params.inputForceMax
-        #print(F)
-        #print("..")
         a = F/m
         t = self.currTimeInputs - self.prevTimeInputs
         # Zero t if it's too large
