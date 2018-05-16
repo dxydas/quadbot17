@@ -248,11 +248,7 @@ class InputHandler(threading.Thread):
 
     def filterInput(self, i):
         if (i > 3277) or (i < -3277):  # ~10%
-            if i > 3277:
-                oldMax = 32767
-            elif i < -3277:
-                oldMax = 32768
-            inputNormed = math.copysign(1.0, abs(i)) * rescale(i, 0, oldMax, 0, 1.0)
+            inputNormed = math.copysign(1.0, i)*rescale(abs(i), 0, 32767, 0, 1.0)
         else:
             inputNormed = 0
         return inputNormed
@@ -263,6 +259,10 @@ class InputHandler(threading.Thread):
         u0 = speed
         # Force minus linear drag
         F = Params.inputForceMax*i - Params.dragForceCoef*u0
+        if abs(F) > Params.inputForceMax:
+            F = math.copysign(1.0, F)*Params.inputForceMax
+        #print(F)
+        #print("..")
         a = F/m
         t = self.currTimeInputs - self.prevTimeInputs
         # Zero t if it's too large

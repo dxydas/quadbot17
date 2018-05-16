@@ -12,6 +12,10 @@ def identityTF():
 def rescale(old, oldMin, oldMax, newMin, newMax):
     oldRange = (oldMax - oldMin)
     newRange = (newMax - newMin)
+    if old < oldMin:
+        old = oldMin
+    if old > oldMax:
+        old = oldMax
     return (old - oldMin) * newRange / oldRange + newMin
 
 
