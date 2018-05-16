@@ -46,26 +46,32 @@ class CanvasDrawing():
         # Side view axis widget
         self.sideViewCanvas.create_line( Params.canvasW - (borderDist + axisL), borderDist + axisL, Params.canvasW - borderDist, borderDist + axisL,
                                          fill = "red", width = axisW )  # x-axis
-        self.sideViewCanvas.create_text( Params.canvasW - (borderDist + axisL), borderDist + axisL + Params.scsz*10, text = "X", fill = "red" )
+        self.sideViewCanvas.create_text( Params.canvasW - (borderDist + axisL), borderDist + axisL + Params.scsz*10, text = "X",
+                                         font = Params.defaultFont, fill = "red" )
         self.sideViewCanvas.create_line( Params.canvasW - borderDist, borderDist, Params.canvasW - borderDist, borderDist + axisL,
                                          fill = "blue", width = axisW )  # z-axis
-        self.sideViewCanvas.create_text( Params.canvasW - borderDist + Params.scsz*10, borderDist, text = "Z", fill = "blue" )
+        self.sideViewCanvas.create_text( Params.canvasW - borderDist + Params.scsz*10, borderDist, text = "Z",
+                                         font = Params.defaultFont, fill = "blue" )
 
         # Front view axis widget
         self.frontViewCanvas.create_line( Params.canvasW - (borderDist + axisL), borderDist + axisL, Params.canvasW - borderDist, borderDist + axisL,
                                           fill = "green", width = axisW )  # y-axis
-        self.frontViewCanvas.create_text( Params.canvasW - borderDist, borderDist + axisL + Params.scsz*10, text = "Y", fill = "green" )
+        self.frontViewCanvas.create_text( Params.canvasW - borderDist, borderDist + axisL + Params.scsz*10, text = "Y",
+                                          font = Params.defaultFont, fill = "green" )
         self.frontViewCanvas.create_line( Params.canvasW - (borderDist + axisL), borderDist, Params.canvasW - (borderDist + axisL), borderDist + axisL,
                                           fill = "blue", width = axisW )  # z-axis
-        self.frontViewCanvas.create_text( Params.canvasW - (borderDist + axisL) - Params.scsz*10, borderDist, text = "Z", fill = "blue" )
+        self.frontViewCanvas.create_text( Params.canvasW - (borderDist + axisL) - Params.scsz*10, borderDist, text = "Z",
+                                          font = Params.defaultFont, fill = "blue" )
 
         # Top view axis widget
         self.topViewCanvas.create_line( Params.canvasW - (borderDist + axisL), borderDist, Params.canvasW - borderDist, borderDist,
                                         fill = "red", width = axisW )  # x-axis
-        self.topViewCanvas.create_text( Params.canvasW - (borderDist + axisL), borderDist - Params.scsz*10, text = "X", fill = "red" )
+        self.topViewCanvas.create_text( Params.canvasW - (borderDist + axisL), borderDist - Params.scsz*10, text = "X",
+                                        font = Params.defaultFont, fill = "red" )
         self.topViewCanvas.create_line( Params.canvasW - borderDist, borderDist, Params.canvasW - borderDist, borderDist + axisL,
                                         fill = "green", width = axisW )  # y-axis
-        self.topViewCanvas.create_text( Params.canvasW - borderDist + Params.scsz*10, borderDist + axisL, text = "Y", fill = "green" )
+        self.topViewCanvas.create_text( Params.canvasW - borderDist + Params.scsz*10, borderDist + axisL, text = "Y",
+                                        font = Params.defaultFont, fill = "green" )
 
         # Origin point on canvas
         r = Params.scsz*3
