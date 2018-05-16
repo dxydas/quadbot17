@@ -12,14 +12,32 @@ class Robot():
 
         # Link lengths "a-1" (last value is the foot offset)
         self.a = [0, 29.05, 76.919, 72.96, 45.032, 33.596]
+
         # Offsets for natural "home" position
         self.spineAngleOffsets = [0, 0, -45]
         self.legAngleOffsets = [0, -34, 67.5, -33.5, 0]
 
+        # Servo adjustments - To be used when sending commands to servos
+        # Spine - Direction
+        # Joint 2 needs its direction inverted
+        self.spineServoDirections = [1, 1, -1]
+        # Spine - Offset
+        # Joint 2: 0=-45+45
+        self.spineServoOffsets = [0, 0, 45]
+        # Legs - Direction
+        # Left side: Joint 2 needs its direction inverted
+        self.leftLegServoDirections = [1, -1, 1, 1, 1]
+        # Right side: All joints except for 1 and 5 are mirrors of left side
+        self.rightLegServoDirections = [1, 1, -1, -1, 1]
+        # Legs - Offsets
+        # Joint 2: -45=-34-11, Joint 3: 90=67.5+22.5, Joint 4: -45=-33.5-11.5
+        #self.legServoOffsets = [0, -11, 22.5, -11.5, 0]
+        self.legServoOffsets = [0, -11, 22.5, -11.5, 0]
+
+        # Targeting
         self.baseTarget = None
         self.baseTargetHome = None
         self.baseTargetSpeed = None
-
         n = 4
         self.legTargets = [None]*n
         self.legTargetsHome = [None]*n
