@@ -20,7 +20,7 @@ defaultFont = ("System", 12)
 # 0: None
 # 1: 2D
 # 2: 3D
-gui = 2
+gui = 1
 
 # Dummy adjustment while IMU is not present
 spineJointsDummyAdjustment = True
@@ -36,5 +36,5 @@ numOfModes = 4
 inputModeSelect = 0
 
 # Input "force" vars
-inputForceMax = 1000
-dragForceCoef = 5
+inputForceMax = 1000.0
+dragForceCoef = 5.0
