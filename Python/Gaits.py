@@ -1,3 +1,5 @@
+from HelperFunctions import applyYawPitchRoll
+
 import csv
 import numpy as np
 from time import time, sleep
@@ -8,119 +10,62 @@ class Gaits():
         self.robot = robot
 
         # Input vars
-        self.FLUpDown = []
-        self.FLFwdBack = []
-        self.FRUpDown = []
-        self.FRFwdBack = []
-        self.RLUpDown = []
-        self.RLFwdBack = []
-        self.RRUpDown = []
-        self.RRFwdBack = []
-        self.currentPose = []
+        self.numOfRows = 100
+        self.numOfCols = 28
+        self.gaitData = np.zeros( (self.numOfRows, self.numOfCols) )
 
 
     def savePose(self, i):
-        self.currentPose = [ self.FLUpDown[i], self.FLFwdBack[i], self.FRUpDown[i], self.FRFwdBack[i],
-                             self.RLUpDown[i], self.RLFwdBack[i], self.RRUpDown[i], self.RRFwdBack[i] ]
+        self.currentPose = self.gaitData[i, :]
 
 
     def loadFromFile(self, filename):
-        self.FLUpDown = []
-        self.FLFwdBack = []
-        self.FRUpDown = []
-        self.FRFwdBack = []
-        self.RLUpDown = []
-        self.RLFwdBack = []
-        self.RRUpDown = []
-        self.RRFwdBack = []
-
-        arraySize = 100
         rowOffset = 2
+        colOffset = 2
         upDownAmplAdjust = 50
-        fwdBackamplAdjust = 40
+        fwdBackAmplAdjust = 40
+        inOutAmplAdjust = 40
         with open(filename, 'r') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             for r, row in enumerate(reader):
-                if r in range(rowOffset, rowOffset + arraySize):
-                    #print(r, row)
-                    for c, col in enumerate(row):
-                        if c in range(2, 10):
-                            #print(c, col)
-                            if c == 2:
-                                self.FLUpDown.append(upDownAmplAdjust*float(col))
-                            if c == 3:
-                                self.FLFwdBack.append(fwdBackamplAdjust*float(col))
-                            if c == 4:
-                                self.FRUpDown.append(upDownAmplAdjust*float(col))
-                            if c == 5:
-                                self.FRFwdBack.append(fwdBackamplAdjust*float(col))
-                            if c == 6:
-                                self.RLUpDown.append(upDownAmplAdjust*float(col))
-                            if c == 7:
-                                self.RLFwdBack.append(fwdBackamplAdjust*float(col))
-                            if c == 8:
-                                self.RRUpDown.append(upDownAmplAdjust*float(col))
-                            if c == 9:
-                                self.RRFwdBack.append(fwdBackamplAdjust*float(col))
+                if r in range(rowOffset, rowOffset + self.numOfRows):
+                    self.gaitData[r-rowOffset, :] = row[colOffset : colOffset + self.numOfCols]
         csvfile.close()
+
+        # Leg adjustments
+        m = 5  # Leg Z, X, Y, Roll, Pitch
+        n = 4  # Num. of legs
+        for i in range(0, n):
+            self.gaitData[:, 0 + i*m] *= upDownAmplAdjust
+            self.gaitData[:, 1 + i*m] *= fwdBackAmplAdjust
+            self.gaitData[:, 2 + i*m] *= inOutAmplAdjust
+
+        # Base adjustments
+        self.gaitData[:, 20] *= upDownAmplAdjust
+        self.gaitData[:, 21] *= fwdBackAmplAdjust
+        self.gaitData[:, 22] *= inOutAmplAdjust
 
 
     def findClosestLegPose(self):
+        minThresh = 20
+        penalty = 10
         minDist = 0
         idx = 0
-        for t in range(0, len(self.FLUpDown)):
-
-            distances = np.zeros(len(self.FLUpDown))
-            minThresh = 20
-            penalty = 10
-
-            x = abs(self.currentPose[0] - self.FLUpDown[t])
-            distances[0] = x
-            if (x > minThresh):
-                distances[0] += penalty
-
-            x = abs(self.currentPose[1] - self.FLFwdBack[t])
-            distances[1] = x
-            if (x > minThresh):
-                distances[1] += penalty
-
-            x = abs(self.currentPose[2] - self.FRUpDown[t])
-            distances[2] = x
-            if (x > minThresh):
-                distances[2] += penalty
-
-            x = abs(self.currentPose[3] - self.FRFwdBack[t])
-            distances[3] = x
-            if (x > minThresh):
-                distances[3] += penalty
-
-            x = abs(self.currentPose[4] - self.RLUpDown[t])
-            distances[4] = x
-            if (x > minThresh):
-                distances[4] += penalty
-
-            x = abs(self.currentPose[5] - self.RLFwdBack[t])
-            distances[5] = x
-            if (x > minThresh):
-                distances[5] += penalty
-
-            x = abs(self.currentPose[6] - self.RRUpDown[t])
-            distances[6] = x
-            if (x > minThresh):
-                distances[6] += penalty
-
-            x = abs(self.currentPose[7] - self.RRFwdBack[t])
-            distances[7] = x
-            if (x > minThresh):
-                distances[7] += penalty
+        for r in range(0, self.numOfRows):
+            distances = np.zeros(self.numOfCols)
+            for c in range(0, self.numOfCols):
+                x = abs(self.currentPose[c] - self.gaitData[r, c])
+                distances[c] = x
+                if (x > minThresh):
+                    distances[c] += penalty
 
             distanceMetric = 0
             for d in distances:
                 distanceMetric += d
 
-            if (t == 0) or (distanceMetric < minDist):
+            if (r == 0) or (distanceMetric < minDist):
                 minDist = distanceMetric
-                idx = t
+                idx = r
 
         #print("Closest new index:", idx)
         #print("Dist:", minDist)
@@ -130,32 +75,33 @@ class Gaits():
 
     def loadTargetsStep(self, t):
         xAdjust = -20
+        yAdjust = 0
         zAdjust = 20
 
-        # FL
-        i = 0
-        self.robot.legTargets[i][0, 3] = self.robot.legTargetsHome[i][0, 3] + self.FLFwdBack[t] + xAdjust
-        self.robot.legTargets[i][1, 3] = self.robot.legTargetsHome[i][1, 3]
-        self.robot.legTargets[i][2, 3] = self.robot.legTargetsHome[i][2, 3] + self.FLUpDown[t] + zAdjust
-        self.robot.runLegIK(i)
-        # FR
-        i = 1
-        self.robot.legTargets[i][0, 3] = self.robot.legTargetsHome[i][0, 3] + self.FRFwdBack[t] + xAdjust
-        self.robot.legTargets[i][1, 3] = self.robot.legTargetsHome[i][1, 3]
-        self.robot.legTargets[i][2, 3] = self.robot.legTargetsHome[i][2, 3] + self.FRUpDown[t] + zAdjust
-        self.robot.runLegIK(i)
-        # RL
-        i = 2
-        self.robot.legTargets[i][0, 3] = self.robot.legTargetsHome[i][0, 3] + self.RLFwdBack[t] + xAdjust
-        self.robot.legTargets[i][1, 3] = self.robot.legTargetsHome[i][1, 3]
-        self.robot.legTargets[i][2, 3] = self.robot.legTargetsHome[i][2, 3] + self.RLUpDown[t] + zAdjust
-        self.robot.runLegIK(i)
-        # RR
-        i = 3
-        self.robot.legTargets[i][0, 3] = self.robot.legTargetsHome[i][0, 3] + self.RRFwdBack[t] + xAdjust
-        self.robot.legTargets[i][1, 3] = self.robot.legTargetsHome[i][1, 3]
-        self.robot.legTargets[i][2, 3] = self.robot.legTargetsHome[i][2, 3] + self.RRUpDown[t] + zAdjust
-        self.robot.runLegIK(i)
+        m = 5  # Leg Z, X, Y, Roll, Pitch
+        n = 4  # Num. of legs
+        for i in range(0, n):
+            self.robot.legTargets[i][0, 3] = self.robot.legTargetsHome[i][0, 3] + self.gaitData[t, 1 + i*m] + xAdjust
+            self.robot.legTargets[i][1, 3] = self.robot.legTargetsHome[i][1, 3] + self.gaitData[t, 2 + i*m] + yAdjust
+            self.robot.legTargets[i][2, 3] = self.robot.legTargetsHome[i][2, 3] + self.gaitData[t, 0 + i*m] + zAdjust
+            roll = self.gaitData[t, 3 + i*m]
+            pitch = self.gaitData[t, 4 + i*m]
+            applyYawPitchRoll(self.robot.legTargets[i], 0.0, pitch, roll)
+            #self.robot.runLegIK(i)
+
+        self.robot.baseTarget[0, 3] = self.robot.baseTargetHome[0, 3] + self.gaitData[t, 21]
+        self.robot.baseTarget[1, 3] = self.robot.baseTargetHome[1, 3] + self.gaitData[t, 22]
+        self.robot.baseTarget[2, 3] = self.robot.baseTargetHome[2, 3] + self.gaitData[t, 20]
+
+        roll = self.gaitData[t, 23]
+        pitch = self.gaitData[t, 24]
+        yaw = self.gaitData[t, 25]
+        applyYawPitchRoll(self.robot.baseTarget, yaw, pitch, roll)
+
+        self.robot.spine.angles[0] = self.gaitData[t, 26]
+        self.robot.spine.angles[2] = self.gaitData[t, 27]
+
+        self.robot.moveBase()
 
         self.savePose(t)
 

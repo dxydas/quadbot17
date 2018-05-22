@@ -71,7 +71,7 @@ class LoadTargetsTimer(threading.Thread):
         t = 0
         if not Params.loadTargetsTimerRunning:
             while not self.event.isSet():
-                if t < len(gaits.FLUpDown):
+                if t < gaits.gaitData.shape[0]:
                     gaits.loadTargetsStep(t)
                     t = t + 1
                     Params.loadTargetsTimerRunning = True
@@ -136,7 +136,7 @@ def targetZSliderCallback(val):
 def targetRollSliderCallback(val):
     # Roll is rotation around X
     applyYawPitchRoll( robot.legTargets[robot.selectedLeg],
-                       0,#targetYawSlider.get(),
+                       0.0,#targetYawSlider.get(),
                        targetPitchSlider.get(),
                        float(val))
     robot.runLegIK(robot.selectedLeg)
@@ -145,7 +145,7 @@ def targetRollSliderCallback(val):
 def targetPitchSliderCallback(val):
     # Pitch is rotation around Y
     applyYawPitchRoll( robot.legTargets[robot.selectedLeg],
-                       0,#targetYawSlider.get(),
+                       0.0,#targetYawSlider.get(),
                        float(val),
                        targetRollSlider.get() )
     robot.runLegIK(robot.selectedLeg)
@@ -494,6 +494,7 @@ csvFiles = ["Gait_Creep", "Gait_Walk"]
 csvIpVar.set("Gait_Creep")  # Set Default
 loadTargetsMenu = OptionMenu(buttonsFrame, csvIpVar, *csvFiles)
 loadTargetsMenu.grid(row=0, column=6, padx=(40, 0))
+loadTargetsMenu.config(width=10)
 
 loadTargetsButton = Button(buttonsFrame, text = "Load CSV", command = loadTargetsCallback)
 loadTargetsButton.grid(row=0, column=7)
