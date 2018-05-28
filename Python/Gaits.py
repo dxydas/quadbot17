@@ -21,10 +21,7 @@ class Gaits():
 
     def loadFromFile(self, filename):
         rowOffset = 2
-        colOffset = 2
-        upDownAmplAdjust = 50
-        fwdBackAmplAdjust = 40
-        inOutAmplAdjust = 40
+        colOffset = 1
         with open(filename, 'r') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             for r, row in enumerate(reader):
@@ -32,18 +29,18 @@ class Gaits():
                     self.gaitData[r-rowOffset, :] = row[colOffset : colOffset + self.numOfCols]
         csvfile.close()
 
+        amplAdjust = [40, 40, 50]  # X, Y, Z
+
         # Leg adjustments
-        m = 5  # Leg Z, X, Y, Roll, Pitch
+        m = 5  # Leg X, Y, Z, Roll, Pitch
         n = 4  # Num. of legs
         for i in range(0, n):
-            self.gaitData[:, 0 + i*m] *= upDownAmplAdjust
-            self.gaitData[:, 1 + i*m] *= fwdBackAmplAdjust
-            self.gaitData[:, 2 + i*m] *= inOutAmplAdjust
+            for j in range(0, 3):
+                self.gaitData[:, j + i*m] *= amplAdjust[j]
 
         # Base adjustments
-        self.gaitData[:, 20] *= upDownAmplAdjust
-        self.gaitData[:, 21] *= fwdBackAmplAdjust
-        self.gaitData[:, 22] *= inOutAmplAdjust
+        for j in range(0, 3):
+            self.gaitData[:, j + m*n] *= amplAdjust[j]
 
 
     def findClosestLegPose(self):
@@ -74,24 +71,21 @@ class Gaits():
 
 
     def loadTargetsStep(self, t):
-        xAdjust = -20
-        yAdjust = 0
-        zAdjust = 20
 
-        m = 5  # Leg Z, X, Y, Roll, Pitch
+        posAdjust = [-20, 0, 20]
+
+        m = 5  # Leg X, Y, Z, Roll, Pitch
         n = 4  # Num. of legs
         for i in range(0, n):
-            self.robot.legTargets[i][0, 3] = self.robot.legTargetsHome[i][0, 3] + self.gaitData[t, 1 + i*m] + xAdjust
-            self.robot.legTargets[i][1, 3] = self.robot.legTargetsHome[i][1, 3] + self.gaitData[t, 2 + i*m] + yAdjust
-            self.robot.legTargets[i][2, 3] = self.robot.legTargetsHome[i][2, 3] + self.gaitData[t, 0 + i*m] + zAdjust
+            for j in range(0, 3):
+                self.robot.legTargets[i][j, 3] = self.robot.legTargetsHome[i][j, 3] + self.gaitData[t, j + i*m] + posAdjust[j]
             roll = self.gaitData[t, 3 + i*m]
             pitch = self.gaitData[t, 4 + i*m]
             applyYawPitchRoll(self.robot.legTargets[i], 0.0, pitch, roll)
             #self.robot.runLegIK(i)
 
-        self.robot.baseTarget[0, 3] = self.robot.baseTargetHome[0, 3] + self.gaitData[t, 21]
-        self.robot.baseTarget[1, 3] = self.robot.baseTargetHome[1, 3] + self.gaitData[t, 22]
-        self.robot.baseTarget[2, 3] = self.robot.baseTargetHome[2, 3] + self.gaitData[t, 20]
+        for j in range(0, 3):
+            self.robot.baseTarget[j, 3] = self.robot.baseTargetHome[j, 3] + self.gaitData[t, j + m*n]
 
         roll = self.gaitData[t, 23]
         pitch = self.gaitData[t, 24]
