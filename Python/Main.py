@@ -8,12 +8,12 @@
 
 import Params
 import Robot
-import CanvasDrawing3D
-import CanvasDrawing
+import Gaits
 import InputControl
 import SerialHandler
+import CanvasDrawing
+import CanvasDrawing3D
 from HelperFunctions import applyYawPitchRoll
-import Gaits
 
 import math
 import threading
@@ -232,10 +232,17 @@ def testIKCallback():
 
 
 def loadTargetsCallback():
-    # Load from CSV
+    # Load CSV
     gaits.loadFromFile(csvIpVar.get() + ".csv")
-    loadTargetsTimer = LoadTargetsTimer()
-    loadTargetsTimer.start()
+
+
+def runTargetsCallback():
+    if gaits.isDataLoaded:
+        # Run CSV
+        loadTargetsTimer = LoadTargetsTimer()
+        loadTargetsTimer.start()
+    else:
+        messageLogger.log("Load targets first!")
 
 
 def quit():
@@ -492,15 +499,18 @@ testIKButton.grid(row=0, column=5, padx=(40, 0))
 csvIpVar = StringVar(root)
 csvFiles = ["Gait_Creep", "Gait_Walk"]
 csvIpVar.set("Gait_Creep")  # Set Default
-loadTargetsMenu = OptionMenu(buttonsFrame, csvIpVar, *csvFiles)
-loadTargetsMenu.grid(row=0, column=6, padx=(40, 0))
-loadTargetsMenu.config(width=10)
+csvTargetsMenu = OptionMenu(buttonsFrame, csvIpVar, *csvFiles)
+csvTargetsMenu.grid(row=0, column=6, padx=(40, 0))
+csvTargetsMenu.config(width=10)
 
-loadTargetsButton = Button(buttonsFrame, text = "Load CSV", command = loadTargetsCallback)
+loadTargetsButton = Button(buttonsFrame, text = "Load", command = loadTargetsCallback)
 loadTargetsButton.grid(row=0, column=7)
 
+runTargetsButton = Button(buttonsFrame, text = "Run", command = runTargetsCallback)
+runTargetsButton.grid(row=0, column=8)
+
 quitButton = Button(buttonsFrame, text = "Quit", command = quit)
-quitButton.grid(row=0, column=8, padx=(40, 0))
+quitButton.grid(row=0, column=9, padx=(40, 0))
 
 
 
@@ -508,12 +518,14 @@ quitButton.grid(row=0, column=8, padx=(40, 0))
 if __name__ == '__main__':
     robot = Robot.Robot()
 
+    gaits = Gaits.Gaits(robot)
+
     keyboardReader = InputControl.KeyboardReader(messageLogger)
 
     gamepadReader = InputControl.GamepadReader(messageLogger)
     gamepadReader.start()
 
-    inputHandler = InputControl.InputHandler(robot, keyboardReader, gamepadReader, messageLogger)
+    inputHandler = InputControl.InputHandler(robot, gaits, keyboardReader, gamepadReader, messageLogger)
     inputHandler.start()
 
     serialHandler = SerialHandler.SerialHandler(messageLogger, robot)
@@ -525,8 +537,6 @@ if __name__ == '__main__':
         canvasDrawing = CanvasDrawing.CanvasDrawing(sideViewCanvas, frontViewCanvas, topViewCanvas, robot)
     else:
         canvasDrawing = CanvasDrawing3D.CanvasDrawing3D(canvas, robot)
-
-    gaits = Gaits.Gaits(robot)
 
     spineJoint1Slider.set(robot.spine.angles[0])
     spineJoint2Slider.set(robot.spine.angles[2])

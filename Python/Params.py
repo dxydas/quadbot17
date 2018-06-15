@@ -32,7 +32,7 @@ showTargets = True
 loadTargetsTimerRunning = False
 
 # Input mode select vars
-numOfModes = 4
+numOfModes = 5
 inputModeSelect = 0
 
 # Input "force" vars

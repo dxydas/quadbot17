@@ -12,6 +12,7 @@ class Gaits():
         # Input vars
         self.numOfRows = 100
         self.numOfCols = 28
+        self.isDataLoaded = False
         self.gaitData = np.zeros( (self.numOfRows, self.numOfCols) )
 
 
@@ -28,6 +29,7 @@ class Gaits():
                 if r in range(rowOffset, rowOffset + self.numOfRows):
                     self.gaitData[r-rowOffset, :] = row[colOffset : colOffset + self.numOfCols]
         csvfile.close()
+        self.isDataLoaded = True
 
         amplAdjust = [40, 40, 50]  # X, Y, Z
 
