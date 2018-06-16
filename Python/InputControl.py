@@ -156,6 +156,8 @@ class InputHandler(threading.Thread):
         self.spineJointsSpeed = [0, 0]
         self.gaitIndex = 0
         self.gaitIndexSpeed = 0
+        self.spineDeflection = 0
+        self.spineDeflectionSpeed = 0
         self.inputX1Normed = 0
         self.inputY1Normed = 0
         self.inputX2Normed = 0
@@ -243,20 +245,26 @@ class InputHandler(threading.Thread):
         elif Params.inputModeSelect == 4:
             # Use joystick input to update index
             self.gaitIndex, self.gaitIndexSpeed = self.updateMotion(
-                40.0, Params.inputForceMax * 1.0, Params.dragForceCoef * 6.0, self.inputY1Normed, self.gaitIndex, self.gaitIndexSpeed )
+                20.0, Params.inputForceMax * 1.0, Params.dragForceCoef * 8.0, self.inputY1Normed, self.gaitIndex, self.gaitIndexSpeed )
             # Round and wrap index
             self.gaitIndex = round(self.gaitIndex)
             self.gaitIndex = self.gaitIndex % self.gaits.gaitData.shape[0]
-            #print(self.gaitIndex)
+
+            # Get spine joint deflections for turning, using another joystick input
+            self.spineDeflection, self.spineDeflectionSpeed = self.updateMotion(
+                1.0, Params.inputForceMax * 1.0, Params.dragForceCoef * 1.0, self.inputX2Normed, self.spineDeflection, self.spineDeflectionSpeed )
+
             # Scroll through loaded CSV targets using index
-            self.gaits.loadTargetsStep(self.gaitIndex)
+            self.gaits.loadTargetsStep(self.gaitIndex, self.spineDeflection, True)
 
         # Update previous time
         self.prevTimeInputs = self.currTimeInputs
 
 
     def pollIK(self):
-        if Params.inputModeSelect == 0:
+        if Params.inputModeSelect == 4:
+            pass
+        elif Params.inputModeSelect == 0:
             self.robot.legTargets[self.robot.selectedLeg] = deepcopy(self.legTarget)
             self.robot.legTargetSpeeds[self.robot.selectedLeg] = deepcopy(self.legSpeed)
             self.robot.runLegIK(self.robot.selectedLeg)

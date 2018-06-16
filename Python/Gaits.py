@@ -72,7 +72,7 @@ class Gaits():
         return idx
 
 
-    def loadTargetsStep(self, t):
+    def loadTargetsStep(self, t, spineDeflection=0, adjustRP=False):
 
         posAdjust = [-20, 0, 20]
 
@@ -94,8 +94,14 @@ class Gaits():
         yaw = self.gaitData[t, 25]
         applyYawPitchRoll(self.robot.baseTarget, yaw, pitch, roll)
 
-        self.robot.spine.angles[0] = self.gaitData[t, 26]
+        self.robot.spine.angles[0] = self.gaitData[t, 26] + spineDeflection
         self.robot.spine.angles[2] = self.gaitData[t, 27]
+
+        if adjustRP:
+            # Roll/pitch adjustment
+            roll = (self.robot.spineAngleOffsets[0] + self.robot.spine.angles[0]) / 2.0
+            pitch = (self.robot.spineAngleOffsets[2] - self.robot.spine.angles[2]) / 2.0
+            applyYawPitchRoll(self.robot.baseTarget, yaw, pitch, roll)
 
         self.robot.moveBase()
 
