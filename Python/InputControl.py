@@ -245,14 +245,23 @@ class InputHandler(threading.Thread):
         elif Params.inputModeSelect == 4:
             # Use joystick input to update index
             self.gaitIndex, self.gaitIndexSpeed = self.updateMotion(
-                20.0, Params.inputForceMax * 1.0, Params.dragForceCoef * 8.0, self.inputY1Normed, self.gaitIndex, self.gaitIndexSpeed )
+                20.0, 1.0*Params.inputForceMax, 8.0*Params.dragForceCoef, self.inputY1Normed, self.gaitIndex, self.gaitIndexSpeed )
             # Round and wrap index
             self.gaitIndex = round(self.gaitIndex)
             self.gaitIndex = self.gaitIndex % self.gaits.gaitData.shape[0]
 
             # Get spine joint deflections for turning, using another joystick input
             self.spineDeflection, self.spineDeflectionSpeed = self.updateMotion(
-                1.0, Params.inputForceMax * 1.0, Params.dragForceCoef * 1.0, self.inputX2Normed, self.spineDeflection, self.spineDeflectionSpeed )
+                1.0, Params.inputForceMax, Params.dragForceCoef, self.inputX2Normed, self.spineDeflection, self.spineDeflectionSpeed )
+            # Cap deflection
+            if abs(self.spineDeflection) > 45:
+                self.spineDeflection = 45*math.copysign(1.0, self.spineDeflection)
+            # Slowly decrease deflection back to 0, if input is small
+            if abs(self.inputX2Normed) < 0.05:
+                if abs(self.spineDeflection) > 0.01:
+                    self.spineDeflection = 0.8*self.spineDeflection
+                else:
+                    self.spineDeflection = 0
 
             # Scroll through loaded CSV targets using index
             self.gaits.loadTargetsStep(self.gaitIndex, self.spineDeflection, True)
