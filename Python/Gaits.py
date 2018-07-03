@@ -74,7 +74,7 @@ class Gaits():
 
     def loadTargetsStep(self, t, spineDeflection=0, adjustRP=False):
 
-        posAdjust = [-20, 0, 20]
+        posAdjust = [-40, 0, 20]  # X, Y, Z
 
         m = 5  # Leg X, Y, Z, Roll, Pitch
         n = 4  # Num. of legs
