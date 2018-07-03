@@ -1,3 +1,4 @@
+import Params
 from HelperFunctions import identityTF, getRollPitchYaw, applyYawPitchRoll
 
 import math
@@ -40,14 +41,16 @@ class Robot():
         self.baseTargetSpeed = None
         n = 4
         self.legTargets = [None]*n
+        self.legTargetsPrior = [None]*n
         self.legTargetsHome = [None]*n
         self.legTargetSpeeds = [None]*n
         self.selectedLeg = 0
 
-        # Dummy targets (because of moveBase()->runSpineFK->runLegIK(),
-        # which finally calls runLegFK() at the end)
+        # Dummy targets, because of moveBase()->runLegIK()
+        # and reorientateRearLegTargets()
         for i in range(0, len(self.legs)):
             self.legTargets[i] = identityTF()
+            self.legTargetsPrior[i] = identityTF()
 
         # Base in world
         self.tfSpineBaseInWorld = identityTF()
@@ -58,6 +61,8 @@ class Robot():
         self.baseTargetSpeed = [0, 0, 0]
 
         self.spine.angles = deepcopy(self.spineAngleOffsets)
+        self.spine.prevAnglesForRearLegReorientation = deepcopy(self.spine.angles)
+
 
         self.moveBase()
 
@@ -71,6 +76,7 @@ class Robot():
             applyYawPitchRoll(self.legTargetsHome[i], 0, 0, 0)
             self.legTargetSpeeds[i] = [0, 0, 0]
         self.legTargets = deepcopy(self.legTargetsHome)
+        self.legTargetsPrior = deepcopy(self.legTargetsHome)
 
 
     def runSpineFK(self):
@@ -117,9 +123,35 @@ class Robot():
         self.tfSpineBaseInWorld = self.baseTarget
         # Update spine (FK)
         self.runSpineFK()
-        # Update legs (IK)
+        # Rotate rear legs based on spine twist
+        if Params.rearLegsAdjustment:
+            self.reorientateRearLegTargets()
         for i in range(0, len(self.legs)):
+            # Update legs (IK)
             self.runLegIK(i)
+
+
+    def reorientateRearLegTargets(self):
+        # Helper transforms
+        BinW_T = identityTF()  # Base (without orientation) in World
+        WinB_T = identityTF()  # World in Base (without orientation)
+
+        # Set position vectors
+        for r in range(0, 3):
+            BinW_T[r, 3] =  self.spine.tfSpineBaseInRobotBase[r, 3]
+            WinB_T[r, 3] = -self.spine.tfSpineBaseInRobotBase[r, 3]
+
+        # Rotate about spine base, in world coords - Using "prior" targets
+        BinW_T_Rotated = deepcopy(BinW_T)
+        applyYawPitchRoll(BinW_T_Rotated, self.spine.angles[0], 0, 0)
+        self.legTargetsPrior[2] = BinW_T_Rotated * WinB_T * self.legTargetsPrior[2]
+        self.legTargetsPrior[3] = BinW_T_Rotated * WinB_T * self.legTargetsPrior[3]
+
+        # Update targets
+        self.legTargets = deepcopy(self.legTargetsPrior)
+
+        # Update previous
+        self.spine.prevAnglesForRearLegReorientation = deepcopy(self.spine.angles)
 
 
     def runLegFK(self, legIndex):
@@ -177,9 +209,9 @@ class Robot():
 
 
     def runLegIK(self, legIndex):
+        leg = self.legs[legIndex]
         target = self.legTargets[legIndex]
         # Convert target in world to be in leg base
-        leg = self.legs[legIndex]
         tfSpineBaseInLegBase = np.linalg.inv(leg.tfLegBaseInSpineBase)
         if (leg.id == "FL") or (leg.id == "FR"):
             worldInSpineBase = np.linalg.inv(self.tfSpineBaseInWorld)

@@ -25,6 +25,9 @@ gui = 1
 # Dummy adjustment while IMU is not present
 spineJointsDummyAdjustment = True
 
+# Rotate rear leg targets based on spine twist
+rotateRearLegTargets = True
+
 # Flag to show/hide target widgets
 showTargets = True
 

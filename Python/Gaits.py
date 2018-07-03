@@ -2,6 +2,7 @@ from HelperFunctions import applyYawPitchRoll
 
 import csv
 import numpy as np
+from copy import deepcopy
 from time import time, sleep
 
 
@@ -78,12 +79,13 @@ class Gaits():
 
         m = 5  # Leg X, Y, Z, Roll, Pitch
         n = 4  # Num. of legs
+        self.robot.legTargetsPrior = deepcopy(self.robot.legTargetsHome)
         for i in range(0, n):
             for j in range(0, 3):
-                self.robot.legTargets[i][j, 3] = self.robot.legTargetsHome[i][j, 3] + self.gaitData[t, j + i*m] + posAdjust[j]
+                self.robot.legTargetsPrior[i][j, 3] += self.gaitData[t, j + i*m] + posAdjust[j]
             roll = self.gaitData[t, 3 + i*m]
             pitch = self.gaitData[t, 4 + i*m]
-            applyYawPitchRoll(self.robot.legTargets[i], 0.0, pitch, roll)
+            applyYawPitchRoll(self.robot.legTargetsPrior[i], 0.0, pitch, roll)
             #self.robot.runLegIK(i)
 
         for j in range(0, 3):
