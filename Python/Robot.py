@@ -63,7 +63,6 @@ class Robot():
         self.spine.angles = deepcopy(self.spineAngleOffsets)
         self.spine.prevAnglesForRearLegReorientation = deepcopy(self.spine.angles)
 
-
         self.moveBase()
 
         for i, leg in enumerate(self.legs):
@@ -118,20 +117,20 @@ class Robot():
             self.spine.joints[j].tfJointInWorld = T * tfJointInPrevJoint[j]
 
 
-    def moveBase(self):
+    def moveBase(self, usePrior=False):
         # Update base
         self.tfSpineBaseInWorld = self.baseTarget
         # Update spine (FK)
         self.runSpineFK()
         # Rotate rear legs based on spine twist
         if Params.rearLegsAdjustment:
-            self.reorientateRearLegTargets()
+            self.reorientateRearLegTargets(usePrior)
         for i in range(0, len(self.legs)):
             # Update legs (IK)
             self.runLegIK(i)
 
 
-    def reorientateRearLegTargets(self):
+    def reorientateRearLegTargets(self, usePrior=False):
         # Helper transforms
         BinW_T = identityTF()  # Base (without orientation) in World
         WinB_T = identityTF()  # World in Base (without orientation)
@@ -141,17 +140,28 @@ class Robot():
             BinW_T[r, 3] =  self.spine.tfSpineBaseInRobotBase[r, 3]
             WinB_T[r, 3] = -self.spine.tfSpineBaseInRobotBase[r, 3]
 
-        # Rotate about spine base, in world coords - Using "prior" targets
+        # Rotate about spine base, in world coords
         BinW_T_Rotated = deepcopy(BinW_T)
-        applyYawPitchRoll(BinW_T_Rotated, self.spine.angles[0], 0, 0)
-        self.legTargetsPrior[2] = BinW_T_Rotated * WinB_T * self.legTargetsPrior[2]
-        self.legTargetsPrior[3] = BinW_T_Rotated * WinB_T * self.legTargetsPrior[3]
 
-        # Update targets
-        self.legTargets = deepcopy(self.legTargetsPrior)
-
-        # Update previous
-        self.spine.prevAnglesForRearLegReorientation = deepcopy(self.spine.angles)
+        if (usePrior):
+        # Using "prior" targets - Currently used only in Gaits->loadTargetsStep()
+        # Apply yaw amount to targets which are starting from "prior" position
+            applyYawPitchRoll(BinW_T_Rotated, self.spine.angles[0], 0, 0)
+            self.legTargetsPrior[2] = BinW_T_Rotated * WinB_T * self.legTargetsPrior[2]
+            self.legTargetsPrior[3] = BinW_T_Rotated * WinB_T * self.legTargetsPrior[3]
+            # Update targets
+            self.legTargets = deepcopy(self.legTargetsPrior)
+        else:
+        # Using normal targets - Used in all other cases
+        # Apply yaw amount equal to difference of front spine joint angle
+        # from previous call (otherwise rear legs will end up spinning)
+            a = self.spine.angles[0] - self.spine.prevAnglesForRearLegReorientation[0]
+            if abs(a) > 0.01:  # Avoid drift
+                applyYawPitchRoll(BinW_T_Rotated, a, 0, 0)
+                self.legTargets[2] = BinW_T_Rotated * WinB_T * self.legTargets[2]
+                self.legTargets[3] = BinW_T_Rotated * WinB_T * self.legTargets[3]
+                # Update previous
+                self.spine.prevAnglesForRearLegReorientation = deepcopy(self.spine.angles)
 
 
     def runLegFK(self, legIndex):

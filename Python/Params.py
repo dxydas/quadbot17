@@ -26,7 +26,7 @@ gui = 1
 spineJointsDummyAdjustment = True
 
 # Rotate rear leg targets based on spine twist
-rotateRearLegTargets = True
+rearLegsAdjustment = True
 
 # Flag to show/hide target widgets
 showTargets = True

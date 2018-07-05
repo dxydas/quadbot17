@@ -86,7 +86,6 @@ class Gaits():
             roll = self.gaitData[t, 3 + i*m]
             pitch = self.gaitData[t, 4 + i*m]
             applyYawPitchRoll(self.robot.legTargetsPrior[i], 0.0, pitch, roll)
-            #self.robot.runLegIK(i)
 
         for j in range(0, 3):
             self.robot.baseTarget[j, 3] = self.robot.baseTargetHome[j, 3] + self.gaitData[t, j + m*n]
@@ -105,7 +104,7 @@ class Gaits():
             pitch = (self.robot.spineAngleOffsets[2] - self.robot.spine.angles[2]) / 2.0
             applyYawPitchRoll(self.robot.baseTarget, yaw, pitch, roll)
 
-        self.robot.moveBase()
+        self.robot.moveBase(usePrior=True)
 
         self.savePose(t)
 
