@@ -500,7 +500,7 @@ testIKButton.grid(row=0, column=5, padx=(40, 0))
 
 csvIpVar = StringVar(root)
 csvFiles = ["Gait_Creep", "Gait_Walk"]
-csvIpVar.set("Gait_Creep")  # Set Default
+csvIpVar.set("Gait_Walk")  # Set Default
 csvTargetsMenu = OptionMenu(buttonsFrame, csvIpVar, *csvFiles)
 csvTargetsMenu.grid(row=0, column=6, padx=(40, 0))
 csvTargetsMenu.config(width=10)

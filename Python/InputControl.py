@@ -245,7 +245,7 @@ class InputHandler(threading.Thread):
         elif Params.inputModeSelect == 4:
             # Use joystick input to update index
             self.gaitIndex, self.gaitIndexSpeed = self.updateMotion(
-                20.0, 1.0*Params.inputForceMax, 8.0*Params.dragForceCoef, self.inputY1Normed, self.gaitIndex, self.gaitIndexSpeed )
+                20.0, 1.5*Params.inputForceMax, 8.0*Params.dragForceCoef, self.inputY1Normed, self.gaitIndex, self.gaitIndexSpeed )
             # Round and wrap index
             self.gaitIndex = round(self.gaitIndex)
             self.gaitIndex = self.gaitIndex % self.gaits.gaitData.shape[0]

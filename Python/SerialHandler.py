@@ -47,7 +47,7 @@ class SerialHandler(threading.Thread):
 
     def poll(self):
         writeStr = ""
-        speed = 100  # Fixed speed for now
+        speed = 150  # Fixed speed for now
         # Legs
         for i, leg in enumerate(self.robot.legs):
             #print("leg:", leg.id, ", angles:", leg.angles)
