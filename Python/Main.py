@@ -32,7 +32,9 @@ class MessageLogger():
 
 
     def log(self, msg):
+        self.messageBox.config(state=NORMAL)
         self.messageBox.insert(END, msg + "\n")
+        self.messageBox.config(state=DISABLED)
 
 
     def messageBoxModifiedCallback(self, event):
@@ -352,7 +354,7 @@ messageBox = Text(messageBoxFrame, width = 32, height=18)
 messageBox.grid(row=0, column=0, sticky=N+S+W+E)
 scrl = Scrollbar(messageBoxFrame, command=messageBox.yview)
 scrl.grid(row=0, column=1, sticky=N+S)
-messageBox.config(yscrollcommand=scrl.set)
+messageBox.config(state=DISABLED, yscrollcommand=scrl.set)
 
 messageLogger = MessageLogger(messageBox)
 messageLogger.log("Started at: " + startTime)
