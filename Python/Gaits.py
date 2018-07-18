@@ -1,3 +1,4 @@
+import Params
 from HelperFunctions import applyYawPitchRoll
 
 import csv
@@ -32,7 +33,7 @@ class Gaits():
         csvfile.close()
         self.isDataLoaded = True
 
-        amplAdjust = [40, 40, 50]  # X, Y, Z
+        amplAdjust = [60, 60, 60]  # X, Y, Z
 
         # Leg adjustments
         m = 5  # Leg X, Y, Z, Roll, Pitch
@@ -79,13 +80,13 @@ class Gaits():
 
         m = 5  # Leg X, Y, Z, Roll, Pitch
         n = 4  # Num. of legs
-        self.robot.legTargetsPrior = deepcopy(self.robot.legTargetsHome)
+        tempTargets = deepcopy(self.robot.legTargetsHome)
         for i in range(0, n):
             for j in range(0, 3):
-                self.robot.legTargetsPrior[i][j, 3] += self.gaitData[t, j + i*m] + posAdjust[j]
+                tempTargets[i][j, 3] += self.gaitData[t, j + i*m] + posAdjust[j]
             roll = self.gaitData[t, 3 + i*m]
             pitch = self.gaitData[t, 4 + i*m]
-            applyYawPitchRoll(self.robot.legTargetsPrior[i], 0.0, pitch, roll)
+            applyYawPitchRoll(tempTargets[i], 0.0, pitch, roll)
 
         for j in range(0, 3):
             self.robot.baseTarget[j, 3] = self.robot.baseTargetHome[j, 3] + self.gaitData[t, j + m*n]
@@ -104,7 +105,11 @@ class Gaits():
             pitch = (self.robot.spineAngleOffsets[2] - self.robot.spine.angles[2]) / 2.0
             applyYawPitchRoll(self.robot.baseTarget, yaw, pitch, roll)
 
-        self.robot.moveBase(usePrior=True)
+        if Params.rearLegsAdjustment:
+            self.robot.moveBase(tempTargets)
+        else:
+            self.robot.legTargets = deepcopy(tempTargets)
+            self.robot.moveBase()
 
         self.savePose(t)
 
