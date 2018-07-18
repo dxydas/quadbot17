@@ -549,4 +549,6 @@ if __name__ == '__main__':
     joint4Slider.set(robot.legs[robot.selectedLeg].angles[3])
     joint5Slider.set(robot.legs[robot.selectedLeg].angles[4])
 
+    loadTargetsCallback()
+
     root.mainloop()
