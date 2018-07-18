@@ -252,10 +252,11 @@ class InputHandler(threading.Thread):
 
             # Get spine joint deflections for turning, using another joystick input
             self.spineDeflection, self.spineDeflectionSpeed = self.updateMotion(
-                1.0, Params.inputForceMax, Params.dragForceCoef, self.inputX2Normed, self.spineDeflection, self.spineDeflectionSpeed )
+                1.0, Params.inputForceMax, Params.dragForceCoef, -self.inputX2Normed, self.spineDeflection, self.spineDeflectionSpeed )
             # Cap deflection
-            if abs(self.spineDeflection) > 45:
-                self.spineDeflection = 45*math.copysign(1.0, self.spineDeflection)
+            deflectMax = 25
+            if abs(self.spineDeflection) > deflectMax:
+                self.spineDeflection = deflectMax*math.copysign(1.0, self.spineDeflection)
             # Slowly decrease deflection back to 0, if input is small
             if abs(self.inputX2Normed) < 0.05:
                 if abs(self.spineDeflection) > 0.01:
